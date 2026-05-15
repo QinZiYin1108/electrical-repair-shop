@@ -1,17 +1,17 @@
 /*
  Navicat Premium Dump SQL
 
- Source Server         : localhost
+ Source Server         : 腾讯云【82.156.254.135】
  Source Server Type    : MySQL
- Source Server Version : 90600 (9.6.0)
- Source Host           : localhost:3306
- Source Schema         : electrical_repair_shop
+ Source Server Version : 80046 (8.0.46)
+ Source Host           : 127.0.0.1:3306
+ Source Schema         : appdb
 
  Target Server Type    : MySQL
- Target Server Version : 90600 (9.6.0)
+ Target Server Version : 80046 (8.0.46)
  File Encoding         : 65001
 
- Date: 30/04/2026 03:39:03
+ Date: 15/05/2026 15:35:57
 */
 
 SET NAMES utf8mb4;
@@ -40,13 +40,6 @@ CREATE TABLE `account_balances`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '账户余额表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of account_balances
--- ----------------------------
-INSERT INTO `account_balances` VALUES ('AB296345918133899264', 'U296286005009453056', 1, 21.00, 0.00, 300.00, 279.00, 1774721572714, 1774749195318, 5, 0);
-INSERT INTO `account_balances` VALUES ('AB296440735228628992', 'PLATFORM', 3, 0.00, 0.00, 180.00, 180.00, 1774744178826, 1774749230155, 4, 0);
-INSERT INTO `account_balances` VALUES ('AB296461921832538112', 'TA296299134942580736', 2, 0.00, 180.00, 180.00, 0.00, 1774749230155, 1774749230155, 2, 0);
-
--- ----------------------------
 -- Table structure for account_cancel_records
 -- ----------------------------
 DROP TABLE IF EXISTS `account_cancel_records`;
@@ -67,10 +60,6 @@ CREATE TABLE `account_cancel_records`  (
   INDEX `idx_cancel_time`(`cancel_time` ASC) USING BTREE,
   INDEX `idx_is_delete`(`is_delete` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '账号注销记录表' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of account_cancel_records
--- ----------------------------
 
 -- ----------------------------
 -- Table structure for admin_accounts
@@ -107,11 +96,6 @@ CREATE TABLE `admin_accounts`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '管理员账号表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of admin_accounts
--- ----------------------------
-INSERT INTO `admin_accounts` VALUES ('AA296281039641382912', 'admin', '13800138000', '3129036103@qq.com', NULL, NULL, 'c2f7b6cf5e10bc41bca52973fcbd5d96c489b000dcc5fed68f5771121374b394', 'A9kLm2PqR8sTu4Vw', 1, '[]', 1, 0, NULL, NULL, 1774706104486, 1774740612746, 4, 0);
-
--- ----------------------------
 -- Table structure for admin_profiles
 -- ----------------------------
 DROP TABLE IF EXISTS `admin_profiles`;
@@ -136,11 +120,6 @@ CREATE TABLE `admin_profiles`  (
   INDEX `idx_is_delete`(`is_delete` ASC) USING BTREE,
   CONSTRAINT `fk_admin_profiles_account_id` FOREIGN KEY (`account_id`) REFERENCES `admin_accounts` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '管理员信息表' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of admin_profiles
--- ----------------------------
-INSERT INTO `admin_profiles` VALUES ('AP296281039641382913', 'AA296281039641382912', '王小军', '13800138000', 'admin@repairshop.local', '人事部', '总经理', 1774706104486, 1774707251993, 3, 0);
 
 -- ----------------------------
 -- Table structure for after_sales_applications
@@ -180,11 +159,6 @@ CREATE TABLE `after_sales_applications`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '售后申请表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of after_sales_applications
--- ----------------------------
-INSERT INTO `after_sales_applications` VALUES ('AS296457156906061824', 'PO296453672500596736', 2, 'U296286005009453056', 1, '其他', 'xxxxxxxxxxxx', '[\"https://leonyin-blog.oss-cn-beijing.aliyuncs.com/repair-orders/U296286005009453056/image/b967262a-f1e5-4687-8746-d6a250acc346.jpg\"]', '18737487237', '山东省青岛市李沧区金液泉路福岛小区 6号楼 1单元 301', 0.00, 1, NULL, NULL, NULL, NULL, 1774748094114, 1774748094114, 0, 0);
-
--- ----------------------------
 -- Table structure for announcements
 -- ----------------------------
 DROP TABLE IF EXISTS `announcements`;
@@ -212,18 +186,6 @@ CREATE TABLE `announcements`  (
   INDEX `idx_end_time`(`end_time` ASC) USING BTREE,
   INDEX `idx_is_delete`(`is_delete` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '公告表' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of announcements
--- ----------------------------
-INSERT INTO `announcements` VALUES ('AN900000000000000001', 2, 2, '营业时间提醒', '测试公告', '门店当前营业时间为每天 08:30-20:30。用户可以在营业时间内提交上门维修和安装预约。', '🕒', 1, 1, NULL, NULL, 1774742116083, 1774742116083, 1, 0);
-INSERT INTO `announcements` VALUES ('AN900000000000000002', 2, 2, '预约上门说明', '测试公告', '节假日期间的上门订单会按师傅排班情况依次确认。用户提交订单后，请留意订单状态和站内消息。', '📌', 1, 2, NULL, NULL, 1774742116083, 1774742116083, 1, 0);
-INSERT INTO `announcements` VALUES ('AN900000000000000003', 2, 2, '商城配送提示', '测试公告', '商城商品订单支持常规快递配送。实际发货时间以后台出库记录和订单详情页展示为准。', '📦', 1, 3, NULL, NULL, 1774742116083, 1774742116083, 1, 0);
-INSERT INTO `announcements` VALUES ('AN900000000000000004', 2, 2, '售后处理说明', '测试公告', '用户提交售后申请后，系统会记录申请信息。管理员会按申请时间和订单情况进行处理。', '🛠️', 1, 4, NULL, NULL, 1774742116083, 1774742116083, 1, 0);
-INSERT INTO `announcements` VALUES ('AN900000000000000005', 2, 2, '评价反馈提示', '测试公告', '订单完成后，用户可以在订单详情中提交评价和文字反馈。系统会保存评分和评价内容。', '⭐', 1, 5, NULL, NULL, 1774742116083, 1774742116083, 1, 0);
-INSERT INTO `announcements` VALUES ('AN900000000000000006', 1, 1, '夏季空调安装预约已开放', '可在首页直接进入下单流程', '系统已开放空调安装相关测试服务。用户可以从首页轮播区进入并查看服务详情。', '❄️', 1, 1, NULL, NULL, 1774742353678, 1774742457670, 2, 0);
-INSERT INTO `announcements` VALUES ('AN900000000000000007', 1, 2, '常见家电维修服务已上线', '冰箱、洗衣机、油烟机均可测试下单', '当前测试数据已经包含多类维修项目和故障现象，适合演示分类选择和预约流程。', '🔧', 1, 2, NULL, NULL, 1774742353678, 1774742353678, 1, 0);
-INSERT INTO `announcements` VALUES ('AN900000000000000008', 1, 2, '商城与售后模块可联动演示', '下单后可继续测试售后申请流程', '系统支持商品订单、支付记录、售后申请和处理记录等业务链路的联动展示。', '🛒', 1, 3, NULL, NULL, 1774742353678, 1774742353678, 1, 0);
 
 -- ----------------------------
 -- Table structure for conversation_messages
@@ -254,10 +216,6 @@ CREATE TABLE `conversation_messages`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '站内消息表（用户与师傅）' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of conversation_messages
--- ----------------------------
-
--- ----------------------------
 -- Table structure for conversation_sessions
 -- ----------------------------
 DROP TABLE IF EXISTS `conversation_sessions`;
@@ -286,11 +244,6 @@ CREATE TABLE `conversation_sessions`  (
   CONSTRAINT `fk_conv_technician_account` FOREIGN KEY (`technician_account_id`) REFERENCES `technician_accounts` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_conv_user_account` FOREIGN KEY (`user_account_id`) REFERENCES `user_accounts` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '站内会话表（用户与师傅）' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of conversation_sessions
--- ----------------------------
-INSERT INTO `conversation_sessions` VALUES ('CS296461082195791872', 'U296286005009453056', 'TA296299134942580736', 'RO296440734997942272', NULL, NULL, NULL, 0, 0, 2, 1774749029623, 1774749230155, 1, 0);
 
 -- ----------------------------
 -- Table structure for coupons
@@ -324,10 +277,6 @@ CREATE TABLE `coupons`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '优惠券表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of coupons
--- ----------------------------
-
--- ----------------------------
 -- Table structure for fault_phenomena
 -- ----------------------------
 DROP TABLE IF EXISTS `fault_phenomena`;
@@ -351,27 +300,6 @@ CREATE TABLE `fault_phenomena`  (
   INDEX `idx_is_delete`(`is_delete` ASC) USING BTREE,
   CONSTRAINT `fk_fault_phenomena_service_type_id` FOREIGN KEY (`service_type_id`) REFERENCES `service_types` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '故障现象表' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of fault_phenomena
--- ----------------------------
-INSERT INTO `fault_phenomena` VALUES ('FP900000000000000001', 'ST900000000000000001', '冰箱不制冷', '冰箱通电但冷藏或冷冻效果明显变差', 80.00, 260.00, 1, 1, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `fault_phenomena` VALUES ('FP900000000000000002', 'ST900000000000000001', '冰箱制冷变弱', '冰箱可以运行，但制冷速度慢或温度不稳定', 60.00, 220.00, 1, 2, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `fault_phenomena` VALUES ('FP900000000000000003', 'ST900000000000000001', '冰箱异响', '压缩机或风扇运行时有明显异常噪音', 50.00, 180.00, 1, 3, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `fault_phenomena` VALUES ('FP900000000000000004', 'ST900000000000000002', '油烟机吸力变小', '油烟机可以运行，但吸烟效果明显下降', 60.00, 180.00, 1, 1, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `fault_phenomena` VALUES ('FP900000000000000005', 'ST900000000000000002', '油烟机无法启动', '按键操作后设备无反应或无法正常启动', 70.00, 220.00, 1, 2, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `fault_phenomena` VALUES ('FP900000000000000006', 'ST900000000000000002', '油烟机漏油', '设备在运行过程中出现明显漏油现象', 80.00, 240.00, 1, 3, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `fault_phenomena` VALUES ('FP900000000000000007', 'ST900000000000000003', '洗衣机不排水', '洗衣结束后桶内积水无法正常排出', 70.00, 200.00, 1, 1, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `fault_phenomena` VALUES ('FP900000000000000008', 'ST900000000000000003', '洗衣机不脱水', '洗衣机可以清洗，但无法进入脱水过程', 80.00, 230.00, 1, 2, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `fault_phenomena` VALUES ('FP900000000000000009', 'ST900000000000000003', '洗衣机异响', '设备运行时有明显晃动或异常碰撞声', 60.00, 180.00, 1, 3, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `fault_phenomena` VALUES ('FP900000000000000010', 'ST900000000000000004', '新机安装', '适用于全新空调的首次上门安装', 120.00, 300.00, 1, 1, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `fault_phenomena` VALUES ('FP900000000000000011', 'ST900000000000000004', '移机重装', '适用于旧空调拆机后重新安装', 180.00, 420.00, 1, 2, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `fault_phenomena` VALUES ('FP900000000000000012', 'ST900000000000000005', '新机安装', '适用于新购油烟机的标准安装服务', 100.00, 260.00, 1, 1, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `fault_phenomena` VALUES ('FP900000000000000013', 'ST900000000000000005', '旧机拆装', '适用于旧机拆除并安装新机的服务场景', 120.00, 300.00, 1, 2, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `fault_phenomena` VALUES ('FP900000000000000014', 'ST900000000000000006', '电饭煲无法通电', '电饭煲插电后面板无反应', 30.00, 120.00, 1, 1, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `fault_phenomena` VALUES ('FP900000000000000015', 'ST900000000000000006', '电饭煲加热异常', '电饭煲可以启动，但无法正常加热或保温', 40.00, 150.00, 1, 2, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `fault_phenomena` VALUES ('FP900000000000000016', 'ST900000000000000007', '微波炉不加热', '微波炉可以启动，但食物无法加热', 50.00, 180.00, 1, 1, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `fault_phenomena` VALUES ('FP900000000000000017', 'ST900000000000000007', '微波炉按键失灵', '控制面板按键失效或响应异常', 40.00, 140.00, 1, 2, 1774741181384, 1774741181384, 1, 0);
 
 -- ----------------------------
 -- Table structure for files
@@ -402,13 +330,6 @@ CREATE TABLE `files`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '文件表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of files
--- ----------------------------
-INSERT INTO `files` VALUES ('FI296285663739908096', '用户协议.md', '20260328221326_ef9723e3194445729da67fa7f80f52df.md', 'protocols/user/20260328221326_ef9723e3194445729da67fa7f80f52df.md', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/protocols/user/20260328221326_ef9723e3194445729da67fa7f80f52df.md', 11553, 'application/octet-stream', '.md', 'AA296281039641382912', 3, 'PROTOCOL_DOCUMENT', 'user', 1774707206956, 1, 0);
-INSERT INTO `files` VALUES ('FI296285676087939072', '隐私协议.md', '20260328221329_41191bf4b31c4e40b32dc60b8fdbd4b4.md', 'protocols/privacy/20260328221329_41191bf4b31c4e40b32dc60b8fdbd4b4.md', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/protocols/privacy/20260328221329_41191bf4b31c4e40b32dc60b8fdbd4b4.md', 11360, 'application/octet-stream', '.md', 'AA296281039641382912', 3, 'PROTOCOL_DOCUMENT', 'privacy', 1774707209901, 1, 0);
-INSERT INTO `files` VALUES ('FI296294599729745920', 'auth-code-template.html', '20260328224856_9b98b0a3ccb9450dbbbb0e7d58f0a9fd.html', 'email-templates/auth_code/20260328224856_9b98b0a3ccb9450dbbbb0e7d58f0a9fd.html', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/email-templates/auth_code/20260328224856_9b98b0a3ccb9450dbbbb0e7d58f0a9fd.html', 2538, 'text/html', '.html', 'AA296281039641382912', 3, 'EMAIL_TEMPLATE', 'auth_code', 1774709337462, 1, 0);
-
--- ----------------------------
 -- Table structure for fund_flows
 -- ----------------------------
 DROP TABLE IF EXISTS `fund_flows`;
@@ -437,19 +358,6 @@ CREATE TABLE `fund_flows`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '资金流水表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of fund_flows
--- ----------------------------
-INSERT INTO `fund_flows` VALUES ('FF296345918406529024', 'U296286005009453056', 1, 1, 100.00, 0.00, 100.00, 'USER_WALLET_RECHARGE', 'FF296345918406529024', '微信充值', 'paymentMethod=1', 1774721572714, 0, 0);
-INSERT INTO `fund_flows` VALUES ('FF296345936106491904', 'U296286005009453056', 1, 1, 200.00, 100.00, 300.00, 'USER_WALLET_RECHARGE', 'FF296345936106491904', '微信充值', 'paymentMethod=1', 1774721576997, 0, 0);
-INSERT INTO `fund_flows` VALUES ('FF296440735287349248', 'U296286005009453056', 1, 2, 30.00, 300.00, 270.00, 'REPAIR_ORDER_PREPAY', 'RO296440734997942272', '维修订单预付费用（钱包支付）', 'orderNo=NO296440734997942272', 1774744178826, 1, 0);
-INSERT INTO `fund_flows` VALUES ('FF296440735325097984', 'PLATFORM', 3, 1, 30.00, 0.00, 0.00, 'REPAIR_ORDER_ESCROW_IN', 'RO296440734997942272', '维修订单费用托管入账', 'orderNo=NO296440734997942272', 1774744178826, 1, 0);
-INSERT INTO `fund_flows` VALUES ('FF296453672710311936', 'U296286005009453056', 1, 2, 99.00, 270.00, 171.00, 'PRODUCT_ORDER_PAY', 'PO296453672500596736', '商城订单支付，使用余额完成支付', 'orderNo=PO1774747263367263367', 1774747263367, 0, 0);
-INSERT INTO `fund_flows` VALUES ('FF296461775824621568', 'U296286005009453056', 1, 2, 150.00, 171.00, 21.00, 'REPAIR_ORDER_TAIL_PAY', 'RO296440734997942272', '维修订单尾款支付（钱包支付）', 'orderNo=NO296440734997942272', 1774749195318, 1, 0);
-INSERT INTO `fund_flows` VALUES ('FF296461775853981696', 'PLATFORM', 3, 1, 150.00, 0.00, 0.00, 'REPAIR_ORDER_ESCROW_IN_TAIL', 'RO296440734997942272', '维修订单尾款托管入账', 'orderNo=NO296440734997942272', 1774749195318, 1, 0);
-INSERT INTO `fund_flows` VALUES ('FF296461921870286848', 'PLATFORM', 3, 2, 180.00, 0.00, 0.00, 'REPAIR_ORDER_ESCROW_OUT_SETTLE', 'RO296440734997942272', '维修订单结算出账（打款给师傅）', 'orderNo=NO296440734997942272', 1774749230155, 1, 0);
-INSERT INTO `fund_flows` VALUES ('FF296461921891258368', 'TA296299134942580736', 2, 1, 180.00, 0.00, 0.00, 'REPAIR_ORDER_SETTLEMENT_PENDING', 'RO296440734997942272', '维修订单收入已冻结，完成满7天后可提现', 'orderNo=NO296440734997942272,frozenBalance=180.00', 1774749230155, 1, 0);
-
--- ----------------------------
 -- Table structure for images
 -- ----------------------------
 DROP TABLE IF EXISTS `images`;
@@ -476,27 +384,6 @@ CREATE TABLE `images`  (
   INDEX `idx_is_delete`(`is_delete` ASC) USING BTREE,
   INDEX `idx_created_time`(`created_time` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '图片表' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of images
--- ----------------------------
-INSERT INTO `images` VALUES ('IM1774707233729', '头像.jpg', 'avatars/AA296281039641382912/7eb4aaea-573a-42fc-9183-91735f7d7cfc.jpg', 'avatars/AA296281039641382912/7eb4aaea-573a-42fc-9183-91735f7d7cfc.jpg', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/avatars/AA296281039641382912/7eb4aaea-573a-42fc-9183-91735f7d7cfc.jpg', 527599, 'image/jpeg', 1280, 1280, 'AA296281039641382912', 3, 'AVATAR', 'AA296281039641382912', 1774707234185, 1, 0);
-INSERT INTO `images` VALUES ('IM1774709445084', 'KFraG4kP4cct70eed4a6bca988da7548a536406ff118.jpg', 'avatars/U296286005009453056/1c68881d-987b-4fdc-8ae8-67c753cd589e.jpg', 'avatars/U296286005009453056/1c68881d-987b-4fdc-8ae8-67c753cd589e.jpg', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/avatars/U296286005009453056/1c68881d-987b-4fdc-8ae8-67c753cd589e.jpg', 527599, 'image/jpeg', NULL, NULL, 'U296286005009453056', 1, 'AVATAR', 'U296286005009453056', 1774709445085, 1, 0);
-INSERT INTO `images` VALUES ('IM296428622783320064', '冰箱.png', '20260329_cbbdfedd03ae4f22b08f5e44c050240a.png', 'service-category-icons/SC900000000000000003/20260329_cbbdfedd03ae4f22b08f5e44c050240a.png', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/service-category-icons/SC900000000000000003/20260329_cbbdfedd03ae4f22b08f5e44c050240a.png', 2870, 'image/png', 200, 200, 'AA296281039641382912', 3, 'SERVERCATEGORY', 'SC900000000000000003', 1774741291046, 1, 0);
-INSERT INTO `images` VALUES ('IM296428750843809792', '抽油烟机.png', '20260329_9670468dff044d2da2c2584380ec66e6.png', 'service-category-icons/SC900000000000000004/20260329_9670468dff044d2da2c2584380ec66e6.png', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/service-category-icons/SC900000000000000004/20260329_9670468dff044d2da2c2584380ec66e6.png', 4601, 'image/png', 216, 200, 'AA296281039641382912', 3, 'SERVERCATEGORY', 'SC900000000000000004', 1774741321581, 1, 0);
-INSERT INTO `images` VALUES ('IM296428780849860608', '洗衣机.png', '20260329_540af904195642c79171bbc37fe56b3f.png', 'service-category-icons/SC900000000000000006/20260329_540af904195642c79171bbc37fe56b3f.png', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/service-category-icons/SC900000000000000006/20260329_540af904195642c79171bbc37fe56b3f.png', 5202, 'image/png', 200, 200, 'AA296281039641382912', 3, 'SERVERCATEGORY', 'SC900000000000000006', 1774741328735, 1, 0);
-INSERT INTO `images` VALUES ('IM296428865063096320', '空调.png', '20260329_66755a20820547da81d794ca4dd2b92a.png', 'service-category-icons/SC900000000000000009/20260329_66755a20820547da81d794ca4dd2b92a.png', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/service-category-icons/SC900000000000000009/20260329_66755a20820547da81d794ca4dd2b92a.png', 2777, 'image/png', 200, 200, 'AA296281039641382912', 3, 'SERVERCATEGORY', 'SC900000000000000009', 1774741348813, 1, 0);
-INSERT INTO `images` VALUES ('IM296428883664834560', '抽油烟机.png', '20260329_81f74b34302f4877ad02a49beafc66b8.png', 'service-category-icons/SC900000000000000011/20260329_81f74b34302f4877ad02a49beafc66b8.png', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/service-category-icons/SC900000000000000011/20260329_81f74b34302f4877ad02a49beafc66b8.png', 4601, 'image/png', 216, 200, 'AA296281039641382912', 3, 'SERVERCATEGORY', 'SC900000000000000011', 1774741353248, 1, 0);
-INSERT INTO `images` VALUES ('IM296429016204840960', '电饭煲.png', '20260329_2706549bc3304d7186974aabbb63c471.png', 'service-category-icons/SC900000000000000014/20260329_2706549bc3304d7186974aabbb63c471.png', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/service-category-icons/SC900000000000000014/20260329_2706549bc3304d7186974aabbb63c471.png', 7101, 'image/png', 200, 200, 'AA296281039641382912', 3, 'SERVERCATEGORY', 'SC900000000000000014', 1774741384848, 1, 0);
-INSERT INTO `images` VALUES ('IM296429027344912384', '微波炉.png', '20260329_cc923748bbb04e20941ca6a1be01c90a.png', 'service-category-icons/SC900000000000000015/20260329_cc923748bbb04e20941ca6a1be01c90a.png', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/service-category-icons/SC900000000000000015/20260329_cc923748bbb04e20941ca6a1be01c90a.png', 4452, 'image/png', 200, 200, 'AA296281039641382912', 3, 'SERVERCATEGORY', 'SC900000000000000015', 1774741387504, 1, 0);
-INSERT INTO `images` VALUES ('IM296433534103588864', 'jhk-1774742438467.jpg', '20260329_661f602f2572465eb87e3babbcd407b5.jpg', 'announcements/AN900000000000000006/20260329_661f602f2572465eb87e3babbcd407b5.jpg', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/announcements/AN900000000000000006/20260329_661f602f2572465eb87e3babbcd407b5.jpg', 317165, 'image/jpeg', 1400, 875, 'AA296281039641382912', 3, 'ANNOUNCEMENT', 'AN900000000000000006', 1774742461999, 1, 0);
-INSERT INTO `images` VALUES ('IM296438094528385024', 'jhk-1774742438467-banner.jpg', '20260329_120b0b9d43a74833a6126c7049a68704.jpg', 'announcements/AN900000000000000006/20260329_120b0b9d43a74833a6126c7049a68704.jpg', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/announcements/AN900000000000000006/20260329_120b0b9d43a74833a6126c7049a68704.jpg', 144595, 'image/jpeg', 1404, 500, 'AA296281039641382912', 3, 'ANNOUNCEMENT', 'AN900000000000000006', 1774743549290, 1, 0);
-INSERT INTO `images` VALUES ('IM296440735199268864', 'K1hr7k_CRbaV41658e157e1ac37d7878baf74e66be35.jpg', 'K1hr7k_CRbaV41658e157e1ac37d7878baf74e66be35.jpg', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/repair-orders/U296286005009453056/image/d6cdd25d-193f-4074-a862-187cc2d09930.jpg', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/repair-orders/U296286005009453056/image/d6cdd25d-193f-4074-a862-187cc2d09930.jpg', 54800, 'image/jpeg', 960, 967, 'U296286005009453056', 1, 'REPAIR_ORDER_FAULT', 'ROF296440735140548608', 1774744178826, 1, 0);
-INSERT INTO `images` VALUES ('IM296457156960587776', 'jfGMZ77xSe6hf1e628d75db0ea36f5c3afefa3d191ef.jpg', 'jfGMZ77xSe6hf1e628d75db0ea36f5c3afefa3d191ef.jpg', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/repair-orders/U296286005009453056/image/b967262a-f1e5-4687-8746-d6a250acc346.jpg', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/repair-orders/U296286005009453056/image/b967262a-f1e5-4687-8746-d6a250acc346.jpg', 225137, 'image/jpeg', 1500, 1500, 'U296286005009453056', 1, 'AFTER_SALES_APPLICATION', 'AS296457156906061824', 1774748094114, 1, 0);
-INSERT INTO `images` VALUES ('IM296461082145460224', 'door-qr-NO296440734997942272.png', '20260329095029_31aa2d3462e64a21a4988d6619a9a56b.png', 'door-qr/RO296440734997942272/20260329095029_31aa2d3462e64a21a4988d6619a9a56b.png', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/door-qr/RO296440734997942272/20260329095029_31aa2d3462e64a21a4988d6619a9a56b.png', 780, 'image/png', 360, 360, 'TA296299134942580736', 2, 'ORDER_DOOR_QR', 'RO296440734997942272', 1774749029637, 1, 0);
-INSERT INTO `images` VALUES ('IM296461542914920448', '1774749136722_io.dcloud.HBuilder.png', '1774749136722_io.dcloud.HBuilder.png', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/repair-orders/TA296299134942580736/inspection/image/c3a72b74-0d75-4a78-9c4a-85bcef499dbb.png', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/repair-orders/TA296299134942580736/inspection/image/c3a72b74-0d75-4a78-9c4a-85bcef499dbb.png', 1633, 'image/png', 144, 144, 'TA296299134942580736', 2, 'REPAIR_ORDER_INSPECTION', 'OP296461542902337536', 1774749139807, 0, 0);
-INSERT INTO `images` VALUES ('IM296463666063216640', 'LjZCg-Htk6Px70eed4a6bca988da7548a536406ff118.jpg', 'LjZCg-Htk6Px70eed4a6bca988da7548a536406ff118.jpg', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/reviews/images/9b3685ec-0781-4b28-8796-e8919931c299.jpg', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/reviews/images/9b3685ec-0781-4b28-8796-e8919931c299.jpg', 527599, 'image/jpeg', 1280, 1280, 'U296286005009453056', 1, 'REVIEW', 'R296463666033856512', 1774749646011, 1, 0);
-INSERT INTO `images` VALUES ('IM296467169926057984', '头像.jpg', 'avatars/TA296299134942580736/d0fca1bb-5e2f-41b2-b8f1-49a9e2c8b35a.jpg', 'avatars/TA296299134942580736/d0fca1bb-5e2f-41b2-b8f1-49a9e2c8b35a.jpg', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/avatars/TA296299134942580736/d0fca1bb-5e2f-41b2-b8f1-49a9e2c8b35a.jpg', 527599, 'image/jpeg', 1280, 1280, 'AA296281039641382912', 3, 'AVATAR', 'TA296299134942580736', 1774750481404, 1, 0);
 
 -- ----------------------------
 -- Table structure for operation_logs
@@ -537,12 +424,6 @@ CREATE TABLE `operation_logs`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '操作日志表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of operation_logs
--- ----------------------------
-INSERT INTO `operation_logs` VALUES ('OL1774750481454789', 'AA296281039641382912', 3, 'AA296281039641382912', 'UPDATE', '管理员修改师傅头像', 'ADMIN_WORKER', 'POST', '/admin/workers/TA296299134942580736/avatar', '{\"filename\":\"头像.jpg\"}', NULL, '', NULL, NULL, NULL, 1, NULL, 1774750481454, 1, 0);
-INSERT INTO `operation_logs` VALUES ('OL177475048301066', 'AA296281039641382912', 3, 'AA296281039641382912', 'UPDATE', '管理员修改师傅基础信息', 'ADMIN_WORKER', 'POST', '/admin/workers/TA296299134942580736/update', '{\"oldUsername\":\"天虹电器维修铺\",\"newUsername\":\"天虹电器维修铺\"}', NULL, '', NULL, NULL, NULL, 1, NULL, 1774750483010, 1, 0);
-
--- ----------------------------
 -- Table structure for order_door_qr_codes
 -- ----------------------------
 DROP TABLE IF EXISTS `order_door_qr_codes`;
@@ -577,11 +458,6 @@ CREATE TABLE `order_door_qr_codes`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '上门二维码表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of order_door_qr_codes
--- ----------------------------
-INSERT INTO `order_door_qr_codes` VALUES ('ODQ296461082153848832', 'RO296440734997942272', 'TA296299134942580736', 'U296286005009453056', 'e24bbe56effc40e4bb9e3ec257ae7875', 2, 1774839600000, 1774749099015, 'TA296299134942580736', 'IM296461082145460224', 1774749029637, 1774749099015, 2, 0);
-
--- ----------------------------
 -- Table structure for order_items
 -- ----------------------------
 DROP TABLE IF EXISTS `order_items`;
@@ -604,11 +480,6 @@ CREATE TABLE `order_items`  (
   CONSTRAINT `fk_order_items_order_id` FOREIGN KEY (`order_id`) REFERENCES `product_orders` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_order_items_product_id` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '订单商品表' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of order_items
--- ----------------------------
-INSERT INTO `order_items` VALUES ('OI296453672508985344', 'PO296453672500596736', 'PD900000000000000001', '通用净水器复合滤芯', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/products/image/20260329091020_284c738fec58443da357068f6be3e5c7.jpg', 99.00, 1, 99.00, 1774747263367, 0, 0);
 
 -- ----------------------------
 -- Table structure for order_progress
@@ -634,17 +505,6 @@ CREATE TABLE `order_progress`  (
   INDEX `idx_created_time`(`created_time` ASC) USING BTREE,
   CONSTRAINT `fk_order_progress_order_id` FOREIGN KEY (`order_id`) REFERENCES `repair_orders` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '订单进度表' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of order_progress
--- ----------------------------
-INSERT INTO `order_progress` VALUES ('OP296461080748756992', 'RO296440734997942272', 2, '待上门', '师傅已接单，等待上门', 'TA296299134942580736', 2, '天虹电器维修铺', 1774749029631, 1, 0);
-INSERT INTO `order_progress` VALUES ('OP296461371825065984', 'RO296440734997942272', 3, '待检查', '上门码核销成功，开始检查', 'TA296299134942580736', 2, '天虹电器维修铺', 1774749099029, 1, 0);
-INSERT INTO `order_progress` VALUES ('OP296461542902337536', 'RO296440734997942272', 4, '待支付', '{\"type\":\"inspection\",\"inspectionDiagnosis\":\"问题1\",\"repairPlan\":\"问题2\",\"serviceFee\":\"100.00\",\"materialFee\":\"50.00\"}', 'TA296299134942580736', 2, '天虹电器维修铺', 1774749139807, 1, 0);
-INSERT INTO `order_progress` VALUES ('OP296461775862370304', 'RO296440734997942272', 4, '待支付', '用户已支付尾款，支付方式：钱包支付；支付金额：150.00', 'U296286005009453056', 1, '用户', 1774749195318, 1, 0);
-INSERT INTO `order_progress` VALUES ('OP296461838185533440', 'RO296440734997942272', 5, '服务中', '用户已支付维修尾款，开始维修', 'TA296299134942580736', 2, '天虹电器维修铺', 1774749210218, 1, 0);
-INSERT INTO `order_progress` VALUES ('OP296461893177053184', 'RO296440734997942272', 5, '服务中', '师傅已提交服务完成，等待用户确认', 'TA296299134942580736', 2, '天虹电器维修铺', 1774749223329, 1, 0);
-INSERT INTO `order_progress` VALUES ('OP296461921970950144', 'RO296440734997942272', 6, '已完成', '用户确认服务完成', 'U296286005009453056', 1, '用户', 1774749230155, 1, 0);
 
 -- ----------------------------
 -- Table structure for payment_records
@@ -683,15 +543,6 @@ CREATE TABLE `payment_records`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '支付记录表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of payment_records
--- ----------------------------
-INSERT INTO `payment_records` VALUES ('PR296345918507192320', 'RCG296345918507192320', 'FF296345918406529024', 3, 'U296286005009453056', 1, 100.00, 3, 'WXRCG296345918507192320', 1774721572714, 0.00, NULL, NULL, NULL, '钱包微信充值', 1774721572714, 1774721572714, 0, 0);
-INSERT INTO `payment_records` VALUES ('PR296345936123269120', 'RCG296345936123269120', 'FF296345936106491904', 3, 'U296286005009453056', 1, 200.00, 3, 'WXRCG296345936123269120', 1774721576997, 0.00, NULL, NULL, NULL, '钱包微信充值', 1774721576997, 1774721576997, 0, 0);
-INSERT INTO `payment_records` VALUES ('PR296440735090216960', 'PAY296440734997942272', 'RO296440734997942272', 1, 'U296286005009453056', 5, 30.00, 3, 'WLTPAY296440734997942272', 1774744178826, 0.00, NULL, NULL, NULL, '维修订单预付费用（钱包支付）', 1774744178826, 1774744178826, 1, 0);
-INSERT INTO `payment_records` VALUES ('PR296453672714506240', 'PAY296453672714506240', 'PO296453672500596736', 2, 'U296286005009453056', 5, 99.00, 3, 'WLTPAY296453672714506240', 1774747263367, 0.00, NULL, NULL, NULL, '商城订单余额支付', 1774747263367, 1774747263367, 0, 0);
-INSERT INTO `payment_records` VALUES ('PR296461775711375360', 'PAY296461775711375360', 'RO296440734997942272', 1, 'U296286005009453056', 5, 150.00, 3, 'WLTPAY296461775711375360', 1774749195318, 0.00, NULL, NULL, NULL, '维修订单尾款支付（钱包支付）', 1774749195318, 1774749195318, 1, 0);
-
--- ----------------------------
 -- Table structure for product_categories
 -- ----------------------------
 DROP TABLE IF EXISTS `product_categories`;
@@ -717,18 +568,6 @@ CREATE TABLE `product_categories`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '商品分类表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of product_categories
--- ----------------------------
-INSERT INTO `product_categories` VALUES ('PC900000000000000001', '家电商城', NULL, 1, '测试用一级分类：家电商城', NULL, 1, 1, 1774746449130, 1774746449130, 1, 0);
-INSERT INTO `product_categories` VALUES ('PC900000000000000002', '净水与滤芯', 'PC900000000000000001', 2, '测试用二级分类：净水与滤芯', NULL, 1, 1, 1774746449130, 1774746449130, 1, 0);
-INSERT INTO `product_categories` VALUES ('PC900000000000000003', '净水器滤芯', 'PC900000000000000002', 3, '测试用三级分类：净水器滤芯', NULL, 1, 1, 1774746449130, 1774746449130, 1, 0);
-INSERT INTO `product_categories` VALUES ('PC900000000000000004', '清洁配件', 'PC900000000000000001', 2, '测试用二级分类：清洁配件', NULL, 2, 1, 1774746449130, 1774746449130, 1, 0);
-INSERT INTO `product_categories` VALUES ('PC900000000000000005', '吸尘器配件', 'PC900000000000000004', 3, '测试用三级分类：吸尘器配件', NULL, 1, 1, 1774746449130, 1774746449130, 1, 0);
-INSERT INTO `product_categories` VALUES ('PC900000000000000006', '二手整机', NULL, 1, '测试用一级分类：二手整机', NULL, 2, 1, 1774746449130, 1774746449130, 1, 0);
-INSERT INTO `product_categories` VALUES ('PC900000000000000007', '二手厨房电器', 'PC900000000000000006', 2, '测试用二级分类：二手厨房电器', NULL, 1, 1, 1774746449130, 1774746449130, 1, 0);
-INSERT INTO `product_categories` VALUES ('PC900000000000000008', '二手微波炉', 'PC900000000000000007', 3, '测试用三级分类：二手微波炉', NULL, 1, 1, 1774746449130, 1774746449130, 1, 0);
-
--- ----------------------------
 -- Table structure for product_favorites
 -- ----------------------------
 DROP TABLE IF EXISTS `product_favorites`;
@@ -747,12 +586,6 @@ CREATE TABLE `product_favorites`  (
   CONSTRAINT `fk_product_favorites_account_id` FOREIGN KEY (`account_id`) REFERENCES `user_accounts` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_product_favorites_product_id` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '商品收藏表' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of product_favorites
--- ----------------------------
-INSERT INTO `product_favorites` VALUES ('PF900000000000000001', 'U296286005009453056', 'PD900000000000000001', 1774746449130, 1, 0);
-INSERT INTO `product_favorites` VALUES ('PF900000000000000002', 'U296286005009453056', 'PD900000000000000004', 1774746449130, 1, 0);
 
 -- ----------------------------
 -- Table structure for product_orders
@@ -807,11 +640,6 @@ CREATE TABLE `product_orders`  (
   CONSTRAINT `fk_product_orders_account_id` FOREIGN KEY (`account_id`) REFERENCES `user_accounts` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_product_orders_delivery_address_id` FOREIGN KEY (`delivery_address_id`) REFERENCES `user_addresses` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '商品订单表' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of product_orders
--- ----------------------------
-INSERT INTO `product_orders` VALUES ('PO296453672500596736', 'PO1774747263367263367', 'U296286005009453056', 2, 2, 1, 99.00, 99.00, 0.00, 0.00, 99.00, NULL, 5, 1774747263367, 'UA296429442165772288', '李晓梅', '18737487237', '山东省青岛市李沧区金液泉路福岛小区 6号楼 1单元 301', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, NULL, '', 1774747263367, 1774747263367, 0, 0);
 
 -- ----------------------------
 -- Table structure for products
@@ -869,15 +697,6 @@ CREATE TABLE `products`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '商品表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of products
--- ----------------------------
-INSERT INTO `products` VALUES ('PD900000000000000001', 'PD-TEST-0001', '通用净水器复合滤芯', 1, 'PC900000000000000003', '测试品牌A', 'FLT-10A', '测试用普通商品：适合演示商城商品列表、详情、收藏和购物车流程。', '[{\"key\":\"适用规格\",\"value\":\"10英寸通用\"},{\"key\":\"建议更换周期\",\"value\":\"6-8个月\"}]', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/products/image/20260329091020_284c738fec58443da357068f6be3e5c7.jpg', '[\"https://leonyin-blog.oss-cn-beijing.aliyuncs.com/products/image/20260329091020_8833a5d756014c6aa05c4b912ffc235a.jpg\"]', '[]', 129.00, 99.00, 58.00, 35, 8, 19, 126, 3, 0.60, '25x8x8cm', 12, 0.00, 1, 1, 1, 1, 1, 1, 1774746449130, 1774747263367, 2, 0);
-INSERT INTO `products` VALUES ('PD900000000000000002', 'PD-TEST-0002', '扫地机边刷套装', 1, 'PC900000000000000005', '测试品牌B', 'BR-2P', '测试用普通商品：适合演示配件商品和包邮筛选。', '[{\"key\":\"套装内容\",\"value\":\"边刷2对\"},{\"key\":\"适用场景\",\"value\":\"家用清洁机器人\"}]', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/products/image/20260329091653_071618cf02d04acfb2be33764320a41d.png', '[\"https://leonyin-blog.oss-cn-beijing.aliyuncs.com/products/image/20260329091653_a657126d458d4c8a9a3cf2527673eefe.png\"]', '[]', 49.00, 35.00, 16.00, 58, 10, 32, 208, 2, 0.20, '18x12x3cm', 6, 0.00, 1, 1, 1, 0, 1, 2, 1774746449130, 1774747014109, 2, 0);
-INSERT INTO `products` VALUES ('PD900000000000000003', 'PD-TEST-0003', '洗衣机排水延长管', 1, 'PC900000000000000005', '测试品牌C', 'DR-15', '测试用普通商品：适合演示低价商品和库存筛选。', '[{\"key\":\"长度\",\"value\":\"1.5米\"},{\"key\":\"材质\",\"value\":\"PVC\"}]', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/products/image/20260329091737_fde37f57d47644c1926702ba082b249f.png', '[\"https://leonyin-blog.oss-cn-beijing.aliyuncs.com/products/image/20260329091737_aa14498410974f1483a43da7baebfe90.png\"]', '[]', 39.00, 24.90, 10.00, 80, 15, 9, 94, 1, 0.35, '30x22x4cm', 6, 6.00, 0, 1, 0, 0, 0, 3, 1774746449130, 1774747057642, 2, 0);
-INSERT INTO `products` VALUES ('PD900000000000000004', 'PD-TEST-0004', '二手微波炉 20L', 2, 'PC900000000000000008', '测试品牌D', 'MW-20S', '测试用二手商品：适合演示二手专区列表和详情展示。', '[{\"key\":\"容量\",\"value\":\"20L\"},{\"key\":\"成色\",\"value\":\"9成新\"}]', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/products/image/20260329091906_7356f61770bc4dda9e498a5a41139cf3.jpg', '[\"https://leonyin-blog.oss-cn-beijing.aliyuncs.com/products/image/20260329091906_53c24e0392374277afb204fa1492395f.jpg\"]', '[]', 399.00, 259.00, 180.00, 5, 1, 4, 67, 0, 10.50, '44x34x26cm', 3, 0.00, 1, 1, 0, 0, 1, 1, 1774746449130, 1774747146559, 2, 0);
-INSERT INTO `products` VALUES ('PD900000000000000005', 'PD-TEST-0005', '二手台式电烤箱 32L', 2, 'PC900000000000000008', '测试品牌E', 'OV-32U', '测试用二手商品：适合演示二手商品价格对比和推荐位。', '[{\"key\":\"容量\",\"value\":\"32L\"},{\"key\":\"成色\",\"value\":\"8成新\"}]', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/products/image/20260329091918_f8c43484bc114894b9580af40623ede2.jpg', '[\"https://leonyin-blog.oss-cn-beijing.aliyuncs.com/products/image/20260329091918_0355aa52942244a4b4bcec5252e938a8.jpg\"]', '[]', 520.00, 318.00, 220.00, 3, 1, 2, 41, 1, 12.00, '52x39x33cm', 3, 12.00, 0, 1, 0, 1, 1, 2, 1774746449130, 1774747158832, 2, 0);
-
--- ----------------------------
 -- Table structure for repair_order_faults
 -- ----------------------------
 DROP TABLE IF EXISTS `repair_order_faults`;
@@ -897,11 +716,6 @@ CREATE TABLE `repair_order_faults`  (
   CONSTRAINT `fk_repair_order_faults_fault_phenomenon_id` FOREIGN KEY (`fault_phenomenon_id`) REFERENCES `fault_phenomena` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
   CONSTRAINT `fk_repair_order_faults_repair_order_id` FOREIGN KEY (`repair_order_id`) REFERENCES `repair_orders` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '维修订单故障记录表' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of repair_order_faults
--- ----------------------------
-INSERT INTO `repair_order_faults` VALUES ('ROF296440735140548608', 'RO296440734997942272', 'FP900000000000000001', '冷冻层一点都不冷', 1774744178826, 1774744178826, 1, 0);
 
 -- ----------------------------
 -- Table structure for repair_order_payments
@@ -941,11 +755,6 @@ CREATE TABLE `repair_order_payments`  (
   INDEX `idx_is_delete`(`is_delete` ASC) USING BTREE,
   CONSTRAINT `fk_repair_order_payments_repair_order_id` FOREIGN KEY (`repair_order_id`) REFERENCES `repair_orders` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '维修订单支付表' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of repair_order_payments
--- ----------------------------
-INSERT INTO `repair_order_payments` VALUES ('ROP296440735048273920', 'RO296440734997942272', 30.00, 0.00, 4.574, 50.000, 0.000, 30.00, 5.00, 1, 1, 1774744178826, '{\"distanceKm\":4.574,\"baseRadiusKm\":50.000,\"distanceOverKm\":0.000,\"minVisitFee\":30.00,\"extraFeePerKm\":5.00,\"distanceCalcType\":1,\"roundingRule\":1}', 100.00, 50.00, 0.00, 180.00, 180.00, 0.00, NULL, 5, 1774749195318, 1774744178826, 1774749195318, 3, 0);
 
 -- ----------------------------
 -- Table structure for repair_orders
@@ -996,11 +805,6 @@ CREATE TABLE `repair_orders`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '维修订单表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of repair_orders
--- ----------------------------
-INSERT INTO `repair_orders` VALUES ('RO296440734997942272', 'NO296440734997942272', 'U296286005009453056', 'TA296299134942580736', 'ST900000000000000001', '海尔', 'KMD-40', 1622217600000, 'UA296429442165772288', 1774832400000, 6, 2, 1774749210214, 1774749223328, 1774749230155, NULL, NULL, NULL, 0.00, NULL, NULL, 1774744178826, 1774749230155, 8, 0);
-
--- ----------------------------
 -- Table structure for reviews
 -- ----------------------------
 DROP TABLE IF EXISTS `reviews`;
@@ -1030,11 +834,6 @@ CREATE TABLE `reviews`  (
   INDEX `idx_created_time`(`created_time` ASC) USING BTREE,
   INDEX `idx_is_delete`(`is_delete` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '评价表' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of reviews
--- ----------------------------
-INSERT INTO `reviews` VALUES ('R296463666033856512', 'U296286005009453056', 'RO296440734997942272', 1, 'TA296299134942580736', 1, 5, 'aaaaaaaaaaaaa', 0, 1, NULL, NULL, 1774749646011, 1774749646011, 0, 0);
 
 -- ----------------------------
 -- Table structure for service_categories
@@ -1067,25 +866,6 @@ CREATE TABLE `service_categories`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '服务类型分类表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of service_categories
--- ----------------------------
-INSERT INTO `service_categories` VALUES ('SC900000000000000001', '家电维修', 'TEST_REPAIR', NULL, 1, '/SC900000000000000001/', '测试用一级分类：家电维修', 1, 1, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `service_categories` VALUES ('SC900000000000000002', '厨房电器', 'TEST_REPAIR_KITCHEN', 'SC900000000000000001', 2, '/SC900000000000000001/SC900000000000000002/', '测试用二级分类：厨房电器', 1, 1, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `service_categories` VALUES ('SC900000000000000003', '冰箱维修', 'TEST_REPAIR_FRIDGE', 'SC900000000000000002', 3, '/SC900000000000000001/SC900000000000000002/SC900000000000000003/', '测试用三级分类：冰箱维修', 1, 1, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `service_categories` VALUES ('SC900000000000000004', '油烟机维修', 'TEST_REPAIR_HOOD', 'SC900000000000000002', 3, '/SC900000000000000001/SC900000000000000002/SC900000000000000004/', '测试用三级分类：油烟机维修', 1, 2, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `service_categories` VALUES ('SC900000000000000005', '清洁电器', 'TEST_REPAIR_CLEAN', 'SC900000000000000001', 2, '/SC900000000000000001/SC900000000000000005/', '测试用二级分类：清洁电器', 1, 2, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `service_categories` VALUES ('SC900000000000000006', '洗衣机维修', 'TEST_REPAIR_WASHER', 'SC900000000000000005', 3, '/SC900000000000000001/SC900000000000000005/SC900000000000000006/', '测试用三级分类：洗衣机维修', 1, 1, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `service_categories` VALUES ('SC900000000000000007', '家电安装', 'TEST_INSTALL', NULL, 1, '/SC900000000000000007/', '测试用一级分类：家电安装', 1, 2, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `service_categories` VALUES ('SC900000000000000008', '大家电安装', 'TEST_INSTALL_LARGE', 'SC900000000000000007', 2, '/SC900000000000000007/SC900000000000000008/', '测试用二级分类：大家电安装', 1, 1, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `service_categories` VALUES ('SC900000000000000009', '空调安装', 'TEST_INSTALL_AC', 'SC900000000000000008', 3, '/SC900000000000000007/SC900000000000000008/SC900000000000000009/', '测试用三级分类：空调安装', 1, 1, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `service_categories` VALUES ('SC900000000000000010', '厨房安装', 'TEST_INSTALL_KITCHEN', 'SC900000000000000007', 2, '/SC900000000000000007/SC900000000000000010/', '测试用二级分类：厨房安装', 1, 2, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `service_categories` VALUES ('SC900000000000000011', '油烟机安装', 'TEST_INSTALL_HOOD', 'SC900000000000000010', 3, '/SC900000000000000007/SC900000000000000010/SC900000000000000011/', '测试用三级分类：油烟机安装', 1, 1, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `service_categories` VALUES ('SC900000000000000012', '到店维修', 'TEST_OFFLINE', NULL, 1, '/SC900000000000000012/', '测试用一级分类：到店维修', 1, 3, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `service_categories` VALUES ('SC900000000000000013', '小家电维修', 'TEST_OFFLINE_SMALL', 'SC900000000000000012', 2, '/SC900000000000000012/SC900000000000000013/', '测试用二级分类：小家电维修', 1, 1, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `service_categories` VALUES ('SC900000000000000014', '电饭煲维修', 'TEST_OFFLINE_COOKER', 'SC900000000000000013', 3, '/SC900000000000000012/SC900000000000000013/SC900000000000000014/', '测试用三级分类：电饭煲维修', 1, 1, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `service_categories` VALUES ('SC900000000000000015', '微波炉维修', 'TEST_OFFLINE_MICROWAVE', 'SC900000000000000013', 3, '/SC900000000000000012/SC900000000000000013/SC900000000000000015/', '测试用三级分类：微波炉维修', 1, 2, 1774741181384, 1774741181384, 1, 0);
-
--- ----------------------------
 -- Table structure for service_types
 -- ----------------------------
 DROP TABLE IF EXISTS `service_types`;
@@ -1113,17 +893,6 @@ CREATE TABLE `service_types`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '服务类型表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of service_types
--- ----------------------------
-INSERT INTO `service_types` VALUES ('ST900000000000000001', '冰箱上门检修', 1, 'SC900000000000000003', '适用于冰箱常见故障的上门检测与维修', 60.00, 1, 1, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `service_types` VALUES ('ST900000000000000002', '油烟机上门检修', 1, 'SC900000000000000004', '适用于油烟机常见故障的上门检测与维修', 50.00, 1, 2, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `service_types` VALUES ('ST900000000000000003', '洗衣机上门检修', 1, 'SC900000000000000006', '适用于洗衣机常见故障的上门检测与维修', 55.00, 1, 3, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `service_types` VALUES ('ST900000000000000004', '空调上门安装', 2, 'SC900000000000000009', '适用于家用空调的新机安装或移机安装', 120.00, 1, 1, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `service_types` VALUES ('ST900000000000000005', '油烟机上门安装', 2, 'SC900000000000000011', '适用于油烟机的新机安装或拆旧换新安装', 100.00, 1, 2, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `service_types` VALUES ('ST900000000000000006', '电饭煲到店检修', 3, 'SC900000000000000014', '适用于电饭煲送店后的检测与维修', 30.00, 1, 1, 1774741181384, 1774741181384, 1, 0);
-INSERT INTO `service_types` VALUES ('ST900000000000000007', '微波炉到店检修', 3, 'SC900000000000000015', '适用于微波炉送店后的检测与维修', 35.00, 1, 2, 1774741181384, 1774741181384, 1, 0);
-
--- ----------------------------
 -- Table structure for shopping_carts
 -- ----------------------------
 DROP TABLE IF EXISTS `shopping_carts`;
@@ -1146,13 +915,6 @@ CREATE TABLE `shopping_carts`  (
   CONSTRAINT `fk_shopping_carts_account_id` FOREIGN KEY (`account_id`) REFERENCES `user_accounts` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_shopping_carts_product_id` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '购物车表' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of shopping_carts
--- ----------------------------
-INSERT INTO `shopping_carts` VALUES ('SC296453724199587840', 'U296286005009453056', 'PD900000000000000005', 1, 1, 1774747275693, 1774747275693, 0, 0);
-INSERT INTO `shopping_carts` VALUES ('SC910000000000000001', 'U296286005009453056', 'PD900000000000000002', 2, 1, 1774746449130, 1774746449130, 1, 0);
-INSERT INTO `shopping_carts` VALUES ('SC910000000000000002', 'U296286005009453056', 'PD900000000000000003', 1, 1, 1774746449130, 1774746449130, 1, 0);
 
 -- ----------------------------
 -- Table structure for system_configs
@@ -1225,13 +987,6 @@ CREATE TABLE `system_messages`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '系统消息表（站内通知）' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of system_messages
--- ----------------------------
-INSERT INTO `system_messages` VALUES ('SM1774750481404453', 'TA296299134942580736', 2, '师傅头像已被管理员修改', '您的头像已由管理员修改，如有疑问请联系平台客服。', 3, 'ADMIN_WORKER_AVATAR', 'TA296299134942580736', 2, 0, NULL, 1774750481404, 1774750481404, 1, 0);
-INSERT INTO `system_messages` VALUES ('SM1774750482995579', 'TA296299134942580736', 2, '师傅账号信息已被管理员更新', '您的师傅账号信息已由管理员更新，如有疑问请联系平台客服。', 3, 'ADMIN_WORKER_UPDATE', 'TA296299134942580736', 2, 0, NULL, 1774750482995, 1774750482995, 1, 0);
-INSERT INTO `system_messages` VALUES ('SM296463666079993856', 'TA296299134942580736', 2, '收到新的服务评价', '用户346789已对订单NO296440734997942272完成评价，服务项目：冰箱上门检修，评分：5星，评价：aaaaaaaaaaaaa', 2, 'USER_REVIEW_NOTIFY_WORKER', 'R296463666033856512', 1, 0, NULL, 1774749646011, 1774749646011, 0, 0);
-
--- ----------------------------
 -- Table structure for technician_accounts
 -- ----------------------------
 DROP TABLE IF EXISTS `technician_accounts`;
@@ -1269,11 +1024,6 @@ CREATE TABLE `technician_accounts`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '师傅账号表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of technician_accounts
--- ----------------------------
-INSERT INTO `technician_accounts` VALUES ('TA296299134942580736', '天虹电器维修铺', '18647814174', 'leonyin2003@outlook.com', NULL, NULL, '5ff32776ae693a7e142b4afa5ed03f5f73358675b4092499a4800efd79f91e29', 'xSa4LDXfb5o6pw3o', 1, NULL, NULL, 1, 5.00, 0, 0.00, 1774710418742, 1774750482995, 9, 0);
-
--- ----------------------------
 -- Table structure for technician_profiles
 -- ----------------------------
 DROP TABLE IF EXISTS `technician_profiles`;
@@ -1304,11 +1054,6 @@ CREATE TABLE `technician_profiles`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '师傅信息表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of technician_profiles
--- ----------------------------
-INSERT INTO `technician_profiles` VALUES ('TP296299134997106688', 'TA296299134942580736', '王铁军', '150207200312015610', 1, 291484800000, 0, '', NULL, NULL, '', 0, 1774722559235, 1774710418742, 1774750482995, 5, 0);
-
--- ----------------------------
 -- Table structure for technician_service_areas
 -- ----------------------------
 DROP TABLE IF EXISTS `technician_service_areas`;
@@ -1336,11 +1081,6 @@ CREATE TABLE `technician_service_areas`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '师傅服务区域中心表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of technician_service_areas
--- ----------------------------
-INSERT INTO `technician_service_areas` VALUES ('TSA296299135173267456', 'TA296299134942580736', 36.1878177, 120.4353997, '山东省青岛市李沧区虎山路街道月龙峰路东王埠榆璟苑内,榆璟惠民超市(东王埠·榆璟苑店)南130米', '山东省青岛市李沧区', 1, 1, 1774710418742, 1774722559235, 2, 0);
-
--- ----------------------------
 -- Table structure for technician_skills
 -- ----------------------------
 DROP TABLE IF EXISTS `technician_skills`;
@@ -1364,17 +1104,6 @@ CREATE TABLE `technician_skills`  (
   CONSTRAINT `fk_technician_skills_service_type_id` FOREIGN KEY (`service_type_id`) REFERENCES `service_types` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_technician_skills_technician_account_id` FOREIGN KEY (`technician_account_id`) REFERENCES `technician_accounts` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '师傅技能表' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of technician_skills
--- ----------------------------
-INSERT INTO `technician_skills` VALUES ('TS296429718524268544', 'TA296299134942580736', 'ST900000000000000001', 1, NULL, 1, 1774741552293, 1774741552293, 1, 0);
-INSERT INTO `technician_skills` VALUES ('TS296429718566211584', 'TA296299134942580736', 'ST900000000000000004', 1, NULL, 1, 1774741552303, 1774741552303, 1, 0);
-INSERT INTO `technician_skills` VALUES ('TS296429718595571712', 'TA296299134942580736', 'ST900000000000000006', 1, NULL, 1, 1774741552310, 1774741552310, 1, 0);
-INSERT INTO `technician_skills` VALUES ('TS296429718616543232', 'TA296299134942580736', 'ST900000000000000002', 1, NULL, 1, 1774741552316, 1774741552316, 1, 0);
-INSERT INTO `technician_skills` VALUES ('TS296429718641709056', 'TA296299134942580736', 'ST900000000000000005', 1, NULL, 1, 1774741552321, 1774741552321, 1, 0);
-INSERT INTO `technician_skills` VALUES ('TS296429718662680576', 'TA296299134942580736', 'ST900000000000000007', 1, NULL, 1, 1774741552326, 1774741552326, 1, 0);
-INSERT INTO `technician_skills` VALUES ('TS296429718683652096', 'TA296299134942580736', 'ST900000000000000003', 1, NULL, 1, 1774741552330, 1774741552330, 1, 0);
 
 -- ----------------------------
 -- Table structure for technician_visit_fee_policies
@@ -1407,12 +1136,6 @@ CREATE TABLE `technician_visit_fee_policies`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '师傅上门计费策略表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of technician_visit_fee_policies
--- ----------------------------
-INSERT INTO `technician_visit_fee_policies` VALUES ('TVP296299135093575680', 'TA296299134942580736', 1, 30.00, 50.000, 5.00, 1, 1, 80.00, 1, 1774710418742, 1774710418742, 1774722526663, 2, 0);
-INSERT INTO `technician_visit_fee_policies` VALUES ('TVP296299135093575681', 'TA296299134942580736', 2, 30.00, 50.000, 5.00, 1, 1, 80.00, 1, 1774710418742, 1774710418742, 1774722526663, 2, 0);
-
--- ----------------------------
 -- Table structure for technician_work_times
 -- ----------------------------
 DROP TABLE IF EXISTS `technician_work_times`;
@@ -1434,17 +1157,6 @@ CREATE TABLE `technician_work_times`  (
   INDEX `idx_is_delete`(`is_delete` ASC) USING BTREE,
   CONSTRAINT `fk_technician_work_times_technician_account_id` FOREIGN KEY (`technician_account_id`) REFERENCES `technician_accounts` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '师傅工作时间表' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of technician_work_times
--- ----------------------------
-INSERT INTO `technician_work_times` VALUES ('TW296350070822014976', 'TA296299134942580736', 1, '09:00:00', '18:00:00', 1, 1774722562789, 1774722565660, 2, 0);
-INSERT INTO `technician_work_times` VALUES ('TW296350070876540928', 'TA296299134942580736', 2, '09:00:00', '18:00:00', 1, 1774722562789, 1774722565660, 2, 0);
-INSERT INTO `technician_work_times` VALUES ('TW296350070893318144', 'TA296299134942580736', 3, '09:00:00', '18:00:00', 1, 1774722562789, 1774722565660, 2, 0);
-INSERT INTO `technician_work_times` VALUES ('TW296350070905901056', 'TA296299134942580736', 4, '09:00:00', '18:00:00', 1, 1774722562789, 1774722565660, 2, 0);
-INSERT INTO `technician_work_times` VALUES ('TW296350070918483968', 'TA296299134942580736', 5, '09:00:00', '18:00:00', 1, 1774722562789, 1774722565660, 2, 0);
-INSERT INTO `technician_work_times` VALUES ('TW296350070926872576', 'TA296299134942580736', 6, '09:00:00', '18:00:00', 0, 1774722562789, 1774722565660, 2, 0);
-INSERT INTO `technician_work_times` VALUES ('TW296350070956232704', 'TA296299134942580736', 7, '09:00:00', '18:00:00', 0, 1774722562789, 1774722565660, 2, 0);
 
 -- ----------------------------
 -- Table structure for user_accounts
@@ -1480,11 +1192,6 @@ CREATE TABLE `user_accounts`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户账号表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of user_accounts
--- ----------------------------
-INSERT INTO `user_accounts` VALUES ('U296286005009453056', 'ooAOS6uj6jOJpgg_rD3rrNIbuJd4', NULL, '用户346789', NULL, '2657521877@qq.com', NULL, NULL, 0, 0.00, 1, NULL, NULL, 1774707288321, 1774709389189, 2, 0);
-
--- ----------------------------
 -- Table structure for user_addresses
 -- ----------------------------
 DROP TABLE IF EXISTS `user_addresses`;
@@ -1516,11 +1223,6 @@ CREATE TABLE `user_addresses`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户地址表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of user_addresses
--- ----------------------------
-INSERT INTO `user_addresses` VALUES ('UA296429442165772288', 'U296286005009453056', '李晓梅', '18737487237', '山东省', '青岛市', '李沧区', '金液泉路', '福岛小区 6号楼 1单元 301', NULL, 120.4340267, 36.1466993, 1, 1, 1774741486373, 1774741486373, 1, 0);
-
--- ----------------------------
 -- Table structure for user_coupons
 -- ----------------------------
 DROP TABLE IF EXISTS `user_coupons`;
@@ -1549,10 +1251,6 @@ CREATE TABLE `user_coupons`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户优惠券表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of user_coupons
--- ----------------------------
-
--- ----------------------------
 -- Table structure for user_follow_technicians
 -- ----------------------------
 DROP TABLE IF EXISTS `user_follow_technicians`;
@@ -1572,11 +1270,6 @@ CREATE TABLE `user_follow_technicians`  (
   CONSTRAINT `fk_user_follow_technicians_account_id` FOREIGN KEY (`account_id`) REFERENCES `user_accounts` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_user_follow_technicians_technician_account_id` FOREIGN KEY (`technician_account_id`) REFERENCES `technician_accounts` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户关注师傅关系表' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of user_follow_technicians
--- ----------------------------
-INSERT INTO `user_follow_technicians` VALUES ('UF296441030348247040', 'U296286005009453056', 'TA296299134942580736', 1774744249240, 1774744249240, 1, 0);
 
 -- ----------------------------
 -- Table structure for user_profiles
@@ -1608,11 +1301,6 @@ CREATE TABLE `user_profiles`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户信息表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of user_profiles
--- ----------------------------
-INSERT INTO `user_profiles` VALUES ('UP296286005072367616', 'U296286005009453056', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1774707288321, 1774707288321, 1, 0);
-
--- ----------------------------
 -- Table structure for videos
 -- ----------------------------
 DROP TABLE IF EXISTS `videos`;
@@ -1641,11 +1329,6 @@ CREATE TABLE `videos`  (
   INDEX `idx_is_delete`(`is_delete` ASC) USING BTREE,
   INDEX `idx_created_time`(`created_time` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '视频表' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of videos
--- ----------------------------
-INSERT INTO `videos` VALUES ('VI296457156973170688', 'UMQQRbfOxM70b026b1942d3247bb1db2c4c9bfd7d376.mp4', 'UMQQRbfOxM70b026b1942d3247bb1db2c4c9bfd7d376.mp4', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/repair-orders/U296286005009453056/video/64ff7ca8-6240-4d69-938f-537fe7add883.mp4', 'https://leonyin-blog.oss-cn-beijing.aliyuncs.com/repair-orders/U296286005009453056/video/64ff7ca8-6240-4d69-938f-537fe7add883.mp4', 1872525, 'video/mp4', NULL, NULL, NULL, NULL, 'U296286005009453056', 1, 'AFTER_SALES_APPLICATION', 'AS296457156906061824', 1774748094114, 1, 0);
 
 -- ----------------------------
 -- Table structure for warranty_card_usage_records
@@ -1680,10 +1363,6 @@ CREATE TABLE `warranty_card_usage_records`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '保修卡使用申请表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of warranty_card_usage_records
--- ----------------------------
-
--- ----------------------------
 -- Table structure for warranty_cards
 -- ----------------------------
 DROP TABLE IF EXISTS `warranty_cards`;
@@ -1716,10 +1395,5 @@ CREATE TABLE `warranty_cards`  (
   CONSTRAINT `fk_warranty_cards_product_id` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_warranty_cards_user_id` FOREIGN KEY (`user_id`) REFERENCES `user_accounts` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '保修卡表' ROW_FORMAT = DYNAMIC;
-
--- ----------------------------
--- Records of warranty_cards
--- ----------------------------
-INSERT INTO `warranty_cards` VALUES ('WC296453672739672064', 'BW296453672739672064', 'U296286005009453056', 'PD900000000000000001', '通用净水器复合滤芯', 'FLT-10A', '2026-03-29', '2026-03-29', '2027-03-29', 12, 2, 1, 0, NULL, 1774747263367, 1774747263367, 0, 0);
 
 SET FOREIGN_KEY_CHECKS = 1;

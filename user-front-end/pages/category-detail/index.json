@@ -1,7 +1,0 @@
-{
-  "navigationBarTitleText": "分类详情",
-  "usingComponents": {
-    "van-empty": "/miniprogram_npm/@vant/weapp/empty/index",
-    "van-button": "/miniprogram_npm/@vant/weapp/button/index"
-  }
-}

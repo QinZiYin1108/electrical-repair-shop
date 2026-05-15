@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.backend.mapper.AnnouncementsMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.backend.entity.Announcements">
+        <id property="id" column="id" />
+        <result property="channel" column="channel" />
+        <result property="contentType" column="content_type" />
+        <result property="title" column="title" />
+        <result property="subtitle" column="subtitle" />
+        <result property="content" column="content" />
+        <result property="emoji" column="emoji" />
+        <result property="isActive" column="is_active" />
+        <result property="sortOrder" column="sort_order" />
+        <result property="startTime" column="start_time" />
+        <result property="endTime" column="end_time" />
+        <result property="createdTime" column="created_time" />
+        <result property="updatedTime" column="updated_time" />
+        <result property="version" column="version" />
+        <result property="isDelete" column="is_delete" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,channel,content_type,title,subtitle,content,emoji,
+        is_active,sort_order,start_time,end_time,created_time,updated_time,
+        version,is_delete
+    </sql>
+</mapper>
+

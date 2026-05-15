@@ -1,0 +1,92 @@
+{
+  "pages": [
+    "pages/home/index",
+    "pages/follow-workers/index",
+    "pages/category/index",
+    "pages/category-detail/index",
+    "pages/order-list/index",
+    "pages/order-detail/index",
+    "pages/product-order-list/index",
+    "pages/product-order-detail/index",
+    "pages/favorite-products/index",
+    "pages/product-after-sales/index",
+    "pages/product-order-review/index",
+    "pages/order-review/index",
+    "pages/after-sales/index",
+    "pages/order-flow/step1/index",
+    "pages/order-flow/step2/index",
+    "pages/order-flow/step3/index",
+    "pages/order-flow/step4/index",
+    "pages/order-flow/step5/index",
+    "pages/order-flow/step6/index",
+    "pages/technician-browse/index",
+    "pages/technician-detail/index",
+    "pages/login/index",
+    "pages/protocol/index",
+    "pages/mall/index",
+    "pages/product-detail/index",
+    "pages/product-checkout/index",
+    "pages/message/index",
+    "pages/messageDetail/index",
+    "pages/cart/index",
+    "pages/funds/index",
+    "pages/funds-flow/index",
+    "pages/mine/index",
+    "pages/coupon-list/index",
+    "pages/warranty-card-list/index",
+    "pages/warranty-card-detail/index",
+    "pages/warranty-card-usage-apply/index",
+    "pages/profile/index",
+    "pages/settings/index",
+    "pages/address-list/index",
+    "pages/address-edit/index"
+  ],
+  "window": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "安修到家",
+    "navigationBarBackgroundColor": "#ffffff",
+    "backgroundColor": "#f5f5f5"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#7a7e83",
+    "selectedColor": "#00b578",
+    "borderStyle": "white",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/mall/index",
+        "text": "商城"
+      },
+      {
+        "pagePath": "pages/message/index",
+        "text": "消息"
+      },
+      {
+        "pagePath": "pages/cart/index",
+        "text": "购物车"
+      },
+      {
+        "pagePath": "pages/mine/index",
+        "text": "我的"
+      }
+    ]
+  },
+  "style": "v2",
+  "componentFramework": "glass-easel",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents",
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于定位服务地址、匹配附近可接单维修师傅和地图选点"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation",
+    "chooseLocation"
+  ]
+}

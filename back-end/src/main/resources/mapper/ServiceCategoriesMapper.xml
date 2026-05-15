@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.backend.mapper.ServiceCategoriesMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.backend.entity.ServiceCategories">
+            <id property="id" column="id" />
+            <result property="name" column="name" />
+            <result property="code" column="code" />
+            <result property="parentId" column="parent_id" />
+            <result property="level" column="level" />
+            <result property="path" column="path" />
+            <result property="description" column="description" />
+            <result property="isActive" column="is_active" />
+            <result property="sortOrder" column="sort_order" />
+            <result property="createdTime" column="created_time" />
+            <result property="updatedTime" column="updated_time" />
+            <result property="version" column="version" />
+            <result property="isDelete" column="is_delete" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,name,code,parent_id,level,path,
+        description,is_active,sort_order,created_time,updated_time,
+        version,is_delete
+    </sql>
+</mapper>

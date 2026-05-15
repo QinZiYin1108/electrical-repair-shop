@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.backend.mapper.WarrantyCardsMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.backend.entity.WarrantyCards">
+            <id property="id" column="id" />
+            <result property="cardNo" column="card_no" />
+            <result property="userId" column="user_id" />
+            <result property="productId" column="product_id" />
+            <result property="productName" column="product_name" />
+            <result property="productModel" column="product_model" />
+            <result property="purchaseDate" column="purchase_date" />
+            <result property="warrantyStartDate" column="warranty_start_date" />
+            <result property="warrantyEndDate" column="warranty_end_date" />
+            <result property="warrantyPeriod" column="warranty_period" />
+            <result property="warrantyType" column="warranty_type" />
+            <result property="warrantyStatus" column="warranty_status" />
+            <result property="repairCount" column="repair_count" />
+            <result property="lastRepairDate" column="last_repair_date" />
+            <result property="createdTime" column="created_time" />
+            <result property="updatedTime" column="updated_time" />
+            <result property="version" column="version" />
+            <result property="isDelete" column="is_delete" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,card_no,user_id,product_id,product_name,product_model,
+        purchase_date,warranty_start_date,warranty_end_date,warranty_period,warranty_type,
+        warranty_status,repair_count,last_repair_date,created_time,updated_time,
+        version,is_delete
+    </sql>
+</mapper>

@@ -1,0 +1,36 @@
+<view class="page flow-page">
+  <view class="flow-summary">
+    <view class="flow-summary-title">资金流水</view>
+    <view class="flow-summary-subtitle">查看充值、退款和订单支付带来的余额变化记录</view>
+  </view>
+
+  <view class="flow-card">
+    <van-cell-group inset>
+      <van-cell
+        wx:for="{{ flows }}"
+        wx:key="id"
+        title="{{ item.description || '资金变动' }}"
+        label="{{ item.createdTimeText }}"
+        value="{{ item.amountText }}"
+      />
+    </van-cell-group>
+
+    <van-empty
+      wx:if="{{ !flows.length && !loading }}"
+      description="暂无流水记录"
+    />
+
+    <view class="load-more">
+      <van-button
+        size="small"
+        type="default"
+        plain
+        loading="{{ loadingMore }}"
+        disabled="{{ noMore }}"
+        bind:click="loadMore"
+      >
+        {{ noMore ? '没有更多了' : '加载更多' }}
+      </van-button>
+    </view>
+  </view>
+</view>

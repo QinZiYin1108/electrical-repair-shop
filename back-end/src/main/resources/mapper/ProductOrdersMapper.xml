@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.backend.mapper.ProductOrdersMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.backend.entity.ProductOrders">
+            <id property="id" column="id" />
+            <result property="orderNo" column="order_no" />
+            <result property="accountId" column="account_id" />
+            <result property="orderStatus" column="order_status" />
+            <result property="paymentStatus" column="payment_status" />
+            <result property="deliveryStatus" column="delivery_status" />
+            <result property="totalAmount" column="total_amount" />
+            <result property="productAmount" column="product_amount" />
+            <result property="shippingFee" column="shipping_fee" />
+            <result property="discountAmount" column="discount_amount" />
+            <result property="actualAmount" column="actual_amount" />
+            <result property="couponId" column="coupon_id" />
+            <result property="paymentMethod" column="payment_method" />
+            <result property="paymentTime" column="payment_time" />
+            <result property="deliveryAddressId" column="delivery_address_id" />
+            <result property="deliveryName" column="delivery_name" />
+            <result property="deliveryPhone" column="delivery_phone" />
+            <result property="deliveryAddress" column="delivery_address" />
+            <result property="deliveryCompany" column="delivery_company" />
+            <result property="deliveryNo" column="delivery_no" />
+            <result property="deliveryTime" column="delivery_time" />
+            <result property="receiveTime" column="receive_time" />
+            <result property="completionTime" column="completion_time" />
+            <result property="cancelReason" column="cancel_reason" />
+            <result property="cancelTime" column="cancel_time" />
+            <result property="refundReason" column="refund_reason" />
+            <result property="refundAmount" column="refund_amount" />
+            <result property="refundTime" column="refund_time" />
+            <result property="remark" column="remark" />
+            <result property="createdTime" column="created_time" />
+            <result property="updatedTime" column="updated_time" />
+            <result property="version" column="version" />
+            <result property="isDelete" column="is_delete" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,order_no,account_id,order_status,payment_status,delivery_status,
+        total_amount,product_amount,shipping_fee,discount_amount,actual_amount,
+        coupon_id,payment_method,payment_time,delivery_address_id,delivery_name,
+        delivery_phone,delivery_address,delivery_company,delivery_no,delivery_time,
+        receive_time,completion_time,cancel_reason,cancel_time,refund_reason,
+        refund_amount,refund_time,remark,created_time,updated_time,
+        version,is_delete
+    </sql>
+</mapper>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.backend.mapper.UserFollowTechniciansMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.backend.entity.UserFollowTechnicians">
+        <id property="id" column="id" />
+        <result property="accountId" column="account_id" />
+        <result property="technicianAccountId" column="technician_account_id" />
+        <result property="createdTime" column="created_time" />
+        <result property="updatedTime" column="updated_time" />
+        <result property="version" column="version" />
+        <result property="isDelete" column="is_delete" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,account_id,technician_account_id,created_time,updated_time,version,is_delete
+    </sql>
+</mapper>
+

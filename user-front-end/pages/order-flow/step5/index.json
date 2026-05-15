@@ -1,6 +1,0 @@
-{
-  "navigationBarTitleText": "下单流程 - 步骤5",
-  "usingComponents": {
-    "van-button": "/miniprogram_npm/@vant/weapp/button/index"
-  }
-}

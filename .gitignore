@@ -55,3 +55,7 @@ temp/
 tmp/
 main/
 .claude/
+back-end/
+admin-front-end/
+user-front-end/
+worker-front-end/

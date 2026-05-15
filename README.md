@@ -142,6 +142,8 @@ npm run serve
 | `JWT_SECRET` | JWT 签名密钥（随机字符串） |
 | `MAIL_USERNAME` | 邮箱账号（用于发送验证码） |
 | `MAIL_PASSWORD` | 邮箱 SMTP 授权码 |
+| `ALIYUN_OSS_ENDPOINT` | 阿里云 OSS Endpoint（如 oss-cn-beijing.aliyuncs.com） |
+| `ALIYUN_OSS_BUCKET_NAME` | 阿里云 OSS Bucket 名称 |
 | `ALIYUN_OSS_ACCESS_KEY_ID` | 阿里云 OSS AK |
 | `ALIYUN_OSS_ACCESS_KEY_SECRET` | 阿里云 OSS SK |
 | `WX_MINI_APPID` | 微信小程序 AppID |

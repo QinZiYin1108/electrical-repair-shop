@@ -1,6 +1,0 @@
-{
-  "navigationBarTitleText": "会话消息",
-  "usingComponents": {
-    "van-icon": "/miniprogram_npm/@vant/weapp/icon/index"
-  }
-}

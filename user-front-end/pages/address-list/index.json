@@ -1,8 +1,0 @@
-{
-  "navigationBarTitleText": "地址管理",
-  "usingComponents": {
-    "van-button": "/miniprogram_npm/@vant/weapp/button/index",
-    "van-tag": "/miniprogram_npm/@vant/weapp/tag/index",
-    "van-empty": "/miniprogram_npm/@vant/weapp/empty/index"
-  }
-}

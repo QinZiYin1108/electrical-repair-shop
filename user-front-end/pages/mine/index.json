@@ -1,9 +1,0 @@
-{
-  "navigationBarTitleText": "我的",
-  "enableShareAppMessage": true,
-  "enableShareTimeline": true,
-  "usingComponents": {
-    "van-button": "/miniprogram_npm/@vant/weapp/button/index",
-    "van-icon": "/miniprogram_npm/@vant/weapp/icon/index"
-  }
-}

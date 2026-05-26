@@ -1,0 +1,132 @@
+.page {
+  min-height: 100vh;
+  padding: 24rpx 24rpx 140rpx;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #eef6ff 0%, #f6f8fc 28%, #f5f6f8 100%);
+}
+
+.hero-card,
+.loading-card,
+.category-item,
+.empty-wrap {
+  background: #ffffff;
+  border-radius: 24rpx;
+  box-shadow: 0 8rpx 22rpx rgba(0, 0, 0, 0.04);
+}
+
+.hero-card {
+  padding: 28rpx 24rpx;
+}
+
+.hero-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.hero-desc {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: #64748b;
+}
+
+.focus-tag {
+  margin-top: 18rpx;
+  display: inline-flex;
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  background: #fff4d8;
+  color: #b7791f;
+  font-size: 22rpx;
+}
+
+.loading-card {
+  margin-top: 20rpx;
+  padding: 32rpx 24rpx;
+  text-align: center;
+}
+
+.loading-text {
+  font-size: 24rpx;
+  color: #64748b;
+}
+
+.category-list {
+  margin-top: 20rpx;
+}
+
+.category-item {
+  display: flex;
+  align-items: center;
+  padding: 22rpx 20rpx;
+}
+
+.category-item + .category-item {
+  margin-top: 16rpx;
+}
+
+.category-item-active {
+  border: 2rpx solid #f59e0b;
+}
+
+.category-icon-wrap {
+  width: 76rpx;
+  height: 76rpx;
+  border-radius: 20rpx;
+  background: linear-gradient(135deg, #fff4d8 0%, #ffe5a3 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.category-icon-image {
+  width: 76rpx;
+  height: 76rpx;
+  border-radius: 20rpx;
+}
+
+.category-icon-empty {
+  font-size: 22rpx;
+  font-weight: 600;
+  color: #b7791f;
+}
+
+.category-main {
+  flex: 1;
+  min-width: 0;
+  margin-left: 16rpx;
+}
+
+.category-name {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.category-desc {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #64748b;
+}
+
+.category-link {
+  margin-left: 12rpx;
+  font-size: 24rpx;
+  color: #1677ff;
+}
+
+.empty-wrap {
+  margin-top: 20rpx;
+  padding: 28rpx 24rpx;
+}
+
+.bottom-action {
+  position: fixed;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: 32rpx;
+}

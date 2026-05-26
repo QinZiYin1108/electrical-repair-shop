@@ -1,0 +1,23 @@
+<view class="tab-bar">
+  <block wx:for="{{list}}" wx:key="pagePath" wx:for-item="item" wx:for-index="index">
+    <view
+      class="tab-item {{selected === index ? 'tab-item-active' : ''}}"
+      data-index="{{index}}"
+      bindtap="onChange"
+    >
+      <view class="tab-icon-wrapper">
+        <van-icon
+          size="24px"
+          name="{{selected === index ? item.iconActive : item.icon}}"
+        />
+        <view
+          wx:if="{{item.key === 'message' && hasMessageUnread}}"
+          class="tab-badge-dot"
+        ></view>
+      </view>
+      <text class="tab-text {{selected === index ? 'tab-text-active' : ''}}">
+        {{item.text}}
+      </text>
+    </view>
+  </block>
+</view>

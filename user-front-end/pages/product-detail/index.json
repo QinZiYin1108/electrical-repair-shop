@@ -1,0 +1,10 @@
+{
+  "navigationBarTitleText": "商品详情",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "van-loading": "/miniprogram_npm/@vant/weapp/loading/index",
+    "van-popup": "/miniprogram_npm/@vant/weapp/popup/index",
+    "van-icon": "/miniprogram_npm/@vant/weapp/icon/index"
+  }
+}

@@ -1,0 +1,318 @@
+<scroll-view
+  class="home-scroll"
+  scroll-y
+  enable-back-to-top
+  refresher-enabled="true"
+  refresher-triggered="{{refreshing}}"
+  refresher-background="#eef6ff"
+  bindrefresherrefresh="onRefresherRefresh"
+>
+  <view class="home-page">
+    <view class="hero-section">
+      <swiper
+        class="banner-swipe"
+        indicator-dots
+        indicator-color="rgba(255,255,255,0.45)"
+        indicator-active-color="#ffffff"
+        autoplay
+        interval="3500"
+        circular
+      >
+        <swiper-item
+          wx:for="{{banners}}"
+          wx:key="id"
+        >
+          <view
+            class="banner-item banner-theme-{{index % 3}}"
+            bind:tap="onBannerTap"
+            data-index="{{index}}"
+          >
+            <image
+              wx:if="{{item.imageUrl}}"
+              class="banner-bg-image"
+              src="{{item.imageUrl}}"
+              mode="aspectFill"
+            />
+            <view wx:if="{{item.imageUrl}}" class="banner-overlay"></view>
+            <view class="banner-content {{item.contentType === 1 && item.imageUrl ? 'banner-content-image-only' : ''}}">
+              <view class="banner-tag">{{item.tag}}</view>
+              <view wx:if="{{!(item.contentType === 1 && item.imageUrl)}}" class="banner-title">
+                <text wx:if="{{item.emoji}}">{{item.emoji}} </text>
+                <text>{{item.title}}</text>
+              </view>
+              <view wx:if="{{!(item.contentType === 1 && item.imageUrl) && item.subtitle}}" class="banner-subtitle">
+                {{item.subtitle}}
+              </view>
+            </view>
+          </view>
+        </swiper-item>
+      </swiper>
+      <view wx:if="{{hasNotice}}" class="notice-wrap">
+        <van-notice-bar
+          left-icon="volume-o"
+          scrollable
+          color="#5b4b00"
+          background="#fff7db"
+          text="{{noticeText}}"
+        />
+      </view>
+      <view class="brand-strip">
+        <image class="brand-strip-logo" src="../../assets/logo-icon.png" mode="aspectFit" />
+        <view class="brand-strip-main">
+          <text class="brand-strip-title">安修到家</text>
+          <text class="brand-strip-sub">家电维修 / 安装 / 清洗 / 售后，一站到家</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-card primary-entry">
+      <view class="section-title-row">
+        <text class="section-title">{{texts.quickPlaceOrder}}</text>
+        <text class="section-link" bind:tap="onPlaceOrderTap">{{texts.moreService}}</text>
+      </view>
+      <view class="main-order-btn" bind:tap="onPlaceOrderTap">
+        <view class="main-order-left">
+          <text class="main-order-title">{{texts.quickPlaceOrder}}</text>
+          <text class="main-order-sub">{{texts.quickPlaceOrderSub}}</text>
+        </view>
+        <van-icon name="arrow" color="#1677ff" size="20" />
+      </view>
+      <van-grid
+        class="quick-grid"
+        border="{{false}}"
+        column-num="4"
+        icon-size="24px"
+      >
+        <van-grid-item
+          wx:for="{{quickActions}}"
+          wx:key="key"
+          icon="{{item.icon}}"
+          text="{{item.text}}"
+          data-key="{{item.key}}"
+          bind:tap="onQuickActionTap"
+        />
+      </van-grid>
+    </view>
+
+    <view class="section-card" wx:if="{{isLogin}}">
+      <view class="section-title-row">
+        <text class="section-title">{{texts.myOrders}}</text>
+        <text class="section-link" data-key="all" bind:tap="onOrderSummaryTap">{{texts.viewAll}}</text>
+      </view>
+      <view class="order-summary-row">
+        <view
+          class="order-summary-item"
+          wx:for="{{orderSummary}}"
+          wx:key="key"
+          data-key="{{item.key}}"
+          bind:tap="onOrderSummaryTap"
+        >
+          <text class="order-count">{{item.count}}</text>
+          <text class="order-label">{{item.label}}</text>
+        </view>
+      </view>
+
+      <view class="latest-order-card" wx:if="{{latestOrder && latestOrder.orderNo}}" bind:tap="onLatestOrderTap">
+        <view class="latest-order-head">
+          <text class="latest-order-no">{{texts.orderNoPrefix}}{{latestOrder.orderNo}}</text>
+          <text class="latest-order-status">{{latestOrder.statusText}}</text>
+        </view>
+        <text class="latest-order-appliance">{{latestOrder.appliance}}</text>
+        <van-steps
+          active="{{latestOrder.stepActive}}"
+          active-color="#1677ff"
+          inactive-color="#b8bcc5"
+          steps="{{latestOrder.steps}}"
+        />
+      </view>
+      <view class="empty-latest-order" wx:else>
+        {{texts.noLatestOrder}}
+      </view>
+    </view>
+
+    <view class="section-card login-card" wx:else>
+      <view class="section-title-row">
+        <text class="section-title">{{texts.myOrders}}</text>
+      </view>
+      <text class="login-tip-text">{{texts.loginTip}}</text>
+      <van-button
+        type="primary"
+        round
+        size="small"
+        bind:tap="onLoginTap"
+      >
+        {{texts.goLogin}}
+      </van-button>
+    </view>
+
+    <view class="section-card" wx:if="{{isLogin}}">
+      <view class="section-title-row">
+        <text class="section-title">{{texts.followedWorkersTitle}}</text>
+        <text class="section-link" data-key="follow-workers" bind:tap="onQuickActionTap">{{texts.viewAll}}</text>
+      </view>
+      <scroll-view
+        wx:if="{{followedWorkers.length}}"
+        class="worker-scroll"
+        scroll-x
+        enhanced
+        show-scrollbar="{{false}}"
+      >
+        <view class="worker-list">
+          <view
+            class="worker-card"
+            wx:for="{{followedWorkers}}"
+            wx:key="id"
+            data-id="{{item.id}}"
+            bind:tap="onFollowedWorkerTap"
+          >
+            <view class="worker-top-row">
+              <image
+                wx:if="{{item.avatarUrl}}"
+                class="worker-avatar-image"
+                src="{{item.avatarUrl}}"
+                mode="aspectFill"
+              />
+              <view wx:else class="worker-avatar">{{item.initial}}</view>
+              <van-tag
+                round
+                plain
+                type="{{item.statusType}}"
+              >
+                {{item.statusText}}
+              </van-tag>
+            </view>
+            <text class="worker-name">{{item.name}}</text>
+            <text class="worker-skill">{{item.skill}}</text>
+            <text class="worker-score">{{texts.scorePrefix}}{{item.score}}</text>
+          </view>
+        </view>
+      </scroll-view>
+      <view wx:else class="empty-followed-workers">
+        {{texts.noFollowedWorkers}}
+      </view>
+    </view>
+
+    <view class="section-card">
+      <view class="section-title-row">
+        <text class="section-title">{{texts.hotCategoriesTitle}}</text>
+      </view>
+      <view class="category-list" wx:if="{{hotCategories.length}}">
+        <view
+          class="category-item"
+          wx:for="{{hotCategories}}"
+          wx:key="id"
+          data-id="{{item.id}}"
+          data-name="{{item.name}}"
+          bind:tap="onCategoryTap"
+        >
+          <view class="category-icon-wrap">
+            <image
+              wx:if="{{item.iconUrl}}"
+              class="category-icon-image"
+              src="{{item.iconUrl}}"
+              mode="aspectFill"
+            />
+            <view wx:else class="category-icon-empty">N/A</view>
+          </view>
+          <view class="category-main">
+            <text class="category-name">{{item.name}}</text>
+            <text class="category-desc">{{item.desc}}</text>
+          </view>
+          <van-icon name="arrow" size="16" color="#b6bbc3" />
+        </view>
+      </view>
+      <view wx:else class="empty-hot-categories">
+        {{texts.noHotCategories}}
+      </view>
+    </view>
+
+    <view class="section-card product-showcase-card">
+      <view class="section-title-row product-showcase-head">
+        <view>
+          <text class="section-title">{{texts.recommendedProductsTitle}}</text>
+          <text class="showcase-subtitle">{{texts.recommendedProductsSub}}</text>
+        </view>
+        <text class="section-link" bind:tap="onGoMallTap">{{texts.goMall}}</text>
+      </view>
+
+      <block wx:if="{{isLogin && recommendedFeatured}}">
+        <view
+          class="featured-product"
+          data-id="{{recommendedFeatured.id}}"
+          bind:tap="onRecommendedProductTap"
+        >
+          <view class="featured-product-main">
+            <view class="featured-product-badge-row">
+              <text class="featured-product-badge">店铺推荐</text>
+              <text wx:if="{{recommendedFeatured.isFreeShipping}}" class="featured-product-badge featured-product-badge-light">包邮</text>
+            </view>
+            <text class="featured-product-name">{{recommendedFeatured.name}}</text>
+            <text class="featured-product-meta">{{recommendedFeatured.brand || "品牌待补充"}} / {{recommendedFeatured.model || "型号待补充"}}</text>
+            <text wx:if="{{recommendedFeatured.categoryPath}}" class="featured-product-path">{{recommendedFeatured.categoryPath}}</text>
+            <view class="featured-product-price-row">
+              <text class="featured-product-price">￥{{recommendedFeatured.sellingPriceText}}</text>
+              <text class="featured-product-original">￥{{recommendedFeatured.originalPriceText}}</text>
+            </view>
+            <view class="featured-product-foot">
+              <text class="featured-product-foot-text">已售 {{recommendedFeatured.salesCount}}</text>
+              <text class="featured-product-foot-text">{{recommendedFeatured.isNew ? "新品优先" : "精选推荐"}}</text>
+            </view>
+          </view>
+          <view class="featured-product-media">
+            <image
+              wx:if="{{recommendedFeatured.mainImageUrl}}"
+              class="featured-product-image"
+              src="{{recommendedFeatured.mainImageUrl}}"
+              mode="aspectFill"
+            />
+            <view wx:else class="featured-product-image-empty">暂无图片</view>
+          </view>
+        </view>
+
+        <view wx:if="{{recommendedSecondary.length}}" class="secondary-product-grid">
+          <view
+            wx:for="{{recommendedSecondary}}"
+            wx:key="id"
+            class="secondary-product-card"
+            data-id="{{item.id}}"
+            bind:tap="onRecommendedProductTap"
+          >
+            <view class="secondary-product-media">
+              <image
+                wx:if="{{item.mainImageUrl}}"
+                class="secondary-product-image"
+                src="{{item.mainImageUrl}}"
+                mode="aspectFill"
+              />
+              <view wx:else class="secondary-product-image-empty">暂无图片</view>
+            </view>
+            <view class="secondary-product-body">
+              <text class="secondary-product-name">{{item.name}}</text>
+              <text class="secondary-product-meta">{{item.brand || "品牌待补充"}}</text>
+              <view class="secondary-product-foot">
+                <text class="secondary-product-price">￥{{item.sellingPriceText}}</text>
+                <text class="secondary-product-sales">已售 {{item.salesCount}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </block>
+
+      <view wx:elif="{{!isLogin}}" class="mall-login-tip">
+        <text class="mall-login-tip-text">{{texts.recommendedProductsGuest}}</text>
+        <van-button
+          type="primary"
+          round
+          size="small"
+          bind:tap="onGoMallTap"
+        >
+          {{texts.goLoginMall}}
+        </van-button>
+      </view>
+
+      <view wx:else class="empty-hot-categories">
+        {{texts.recommendedProductsEmpty}}
+      </view>
+    </view>
+  </view>
+</scroll-view>

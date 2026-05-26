@@ -1,0 +1,47 @@
+<view class="page technician-page">
+  <view class="hero-card">
+    <view class="hero-title">全部师傅</view>
+    <view class="hero-desc">按距离从近到远展示附近可查看的维修师傅，点击卡片可进入师傅主页进行关注。</view>
+    <view wx:if="{{referenceAddressText}}" class="hero-address">当前位置参考：{{referenceAddressText}}</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="loading-card">
+    <text class="loading-text">师傅列表加载中...</text>
+  </view>
+
+  <view wx:elif="{{technicians.length}}" class="tech-list">
+    <view
+      wx:for="{{technicians}}"
+      wx:key="id"
+      class="tech-card"
+      data-id="{{item.id}}"
+      bind:tap="onViewProfile"
+    >
+      <view class="tech-top">
+        <view class="tech-avatar">
+          <image wx:if="{{item.avatarUrl}}" class="avatar-img" src="{{item.avatarUrl}}" mode="aspectFill" />
+          <view wx:else class="avatar-fallback">{{item.name ? item.name.substring(0, 1) : "师"}}</view>
+        </view>
+        <view class="tech-main">
+          <view class="tech-name-row">
+            <text class="tech-name">{{item.name}}</text>
+            <text class="distance-tag">距您 {{item.distanceText}} km</text>
+          </view>
+          <view class="tech-meta">
+            <text class="tech-meta-item">评分 {{item.rating}}</text>
+            <text class="tech-meta-item">接单 {{item.orderCount}}</text>
+          </view>
+          <text class="status-pill status-{{item.workStatusType}}">{{item.workStatusText}}</text>
+        </view>
+      </view>
+      <view class="card-footer">
+        <text class="footer-tip">点击查看师傅主页并关注</text>
+        <text class="footer-link">查看主页</text>
+      </view>
+    </view>
+  </view>
+
+  <view wx:else class="empty-wrap">
+    <van-empty description="暂无可展示的师傅" />
+  </view>
+</view>

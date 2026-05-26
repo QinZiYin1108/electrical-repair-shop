@@ -1,0 +1,73 @@
+<view class="flow-page">
+  <view class="flow-header">
+    <text class="flow-step">{{labels.step}}</text>
+    <text class="flow-title">{{labels.title}}</text>
+    <text class="flow-sub">{{serviceModeName}} | {{serviceTypeName}}</text>
+  </view>
+
+  <view class="section-card">
+    <text class="section-title">{{labels.currentService}}</text>
+    <text class="sub-text">{{categoryPath}}</text>
+  </view>
+
+  <view class="section-card" wx:if="{{showAddressSection}}">
+    <text class="section-title">{{labels.addressTitle}}</text>
+    <view class="address-list">
+      <view
+        wx:for="{{addresses}}"
+        wx:key="id"
+        class="address-item {{selectedAddressId === item.id ? 'address-item-active' : ''}}"
+        data-id="{{item.id}}"
+        bind:tap="onSelectAddress"
+      >
+        <view class="address-top">
+          <text class="address-label">{{item.label}}</text>
+          <van-tag wx:if="{{item.isDefault === 1}}" plain round type="success">{{labels.defaultTag}}</van-tag>
+        </view>
+        <text class="address-detail">{{item.detail}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="section-card">
+    <view class="section-title-row">
+      <text class="section-title">{{labels.technicianTitle}}</text>
+      <view class="all-tech-entry" bind:tap="onViewAllTechnicians">
+        <text class="all-tech-text">{{labels.allTechnicians}}({{technicianTotal}})</text>
+        <van-icon name="arrow" size="14" color="#64748b" />
+      </view>
+    </view>
+    <text class="sub-text" wx:if="{{showAddressSection}}">{{labels.onsiteTip}}</text>
+    <text class="sub-text" wx:else>{{labels.offlineTip}}</text>
+
+    <view wx:if="{{technicianOptions.length}}" class="tech-list">
+      <view
+        wx:for="{{technicianOptions}}"
+        wx:key="id"
+        class="tech-item {{selectedTechnicianId === item.id ? 'tech-item-active' : ''}}"
+        data-id="{{item.id}}"
+        bind:tap="onSelectTechnician"
+      >
+        <view class="tech-top">
+          <view class="tech-name-wrap">
+            <text class="tech-name">{{item.name}}</text>
+            <van-tag wx:if="{{item.isRecommend}}" type="primary" round>{{labels.recommendTag}}</van-tag>
+          </view>
+          <text class="tech-distance">{{item.distanceText}} km</text>
+        </view>
+        <view class="tech-meta">
+          <text class="tech-meta-item">{{labels.rating}} {{item.rating}}</text>
+          <text class="tech-meta-item">{{labels.orderCount}} {{item.orderCount}}</text>
+          <text class="tech-meta-item">{{labels.maxDistance}} {{item.maxDistanceText}} km</text>
+        </view>
+        <van-tag round plain type="{{item.workStatusType}}">{{item.workStatusText}}</van-tag>
+      </view>
+    </view>
+    <view wx:else class="empty-tip">{{labels.emptyTechnician}}</view>
+  </view>
+</view>
+
+<view class="flow-footer">
+  <van-button plain round bind:tap="onPrev">{{labels.prev}}</van-button>
+  <van-button type="primary" round bind:tap="onNext">{{labels.next}}</van-button>
+</view>

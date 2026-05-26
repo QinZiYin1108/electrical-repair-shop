@@ -1,0 +1,8 @@
+export const SUCCESS_CODE = 200;
+
+export const HTTP_STATUS = {
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404
+};
+

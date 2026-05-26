@@ -1,0 +1,151 @@
+.page {
+  min-height: 100vh;
+  padding: 24rpx 24rpx 132rpx;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #eef6ff 0%, #f6f8fc 30%, #f5f6f8 100%);
+}
+
+.hero-card,
+.section-card {
+  border-radius: 28rpx;
+  box-shadow: 0 14rpx 36rpx rgba(15, 23, 42, 0.06);
+}
+
+.hero-card {
+  padding: 28rpx 24rpx;
+  background: linear-gradient(135deg, #0f766e 0%, #14b8a6 55%, #8ddacb 100%);
+  color: #fff;
+}
+
+.hero-title {
+  font-size: 38rpx;
+  font-weight: 700;
+}
+
+.hero-subtitle {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.section-card {
+  margin-top: 20rpx;
+  padding: 26rpx 24rpx;
+  background: #fff;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.section-tip {
+  flex-shrink: 0;
+  margin-left: 16rpx;
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  background: #ecfeff;
+  color: #0f766e;
+  font-size: 22rpx;
+}
+
+.field-list {
+  margin-top: 24rpx;
+}
+
+.field-item {
+  padding: 22rpx;
+  border-radius: 24rpx;
+  background: #f8fafc;
+  border: 2rpx solid #e2e8f0;
+  box-sizing: border-box;
+}
+
+.field-item + .field-item {
+  margin-top: 20rpx;
+}
+
+.field-item-highlight {
+  background: linear-gradient(180deg, #f8fbff 0%, #f8fafc 100%);
+}
+
+.field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.field-title {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.field-counter {
+  flex-shrink: 0;
+  margin-left: 16rpx;
+  font-size: 22rpx;
+  color: #64748b;
+}
+
+.field-input {
+  width: 100%;
+  height: 84rpx;
+  margin-top: 16rpx;
+  padding: 0 22rpx;
+  border-radius: 18rpx;
+  border: 2rpx solid #dbe4ef;
+  background: #fff;
+  box-sizing: border-box;
+  font-size: 24rpx;
+  color: #1f2937;
+  line-height: 84rpx;
+  display: block;
+}
+
+.field-textarea {
+  width: 100%;
+  min-height: 240rpx;
+  margin-top: 16rpx;
+  padding: 22rpx;
+  border-radius: 18rpx;
+  border: 2rpx solid #dbe4ef;
+  background: #fff;
+  box-sizing: border-box;
+  font-size: 24rpx;
+  color: #1f2937;
+  line-height: 1.7;
+  display: block;
+}
+
+.field-placeholder {
+  color: #94a3b8;
+}
+
+.submit-btn {
+  margin-top: 28rpx;
+  min-height: 88rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 600;
+  padding: 0 24rpx;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 16rpx 30rpx rgba(15, 118, 110, 0.2);
+}
+
+.submit-btn-disabled {
+  opacity: 0.5;
+}

@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -17,6 +19,8 @@ import java.util.Random;
 
 @Service
 public class AuthCodeServiceImpl implements AuthCodeService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthCodeServiceImpl.class);
 
     private static final String ADMIN_LOGIN_CODE_KEY = "admin:login:code:";
     private static final String ADMIN_RESET_CODE_KEY = "admin:reset:code:";
@@ -56,7 +60,9 @@ public class AuthCodeServiceImpl implements AuthCodeService {
 
         String subject = resolveSubject(type);
         String html = emailTemplateService.buildAuthCodeHtml(code, expireMinutes);
+        log.info("准备发送验证码邮件: to={}, subject={}", email, subject);
         sendHtmlMail(email, subject, html);
+        log.info("验证码邮件发送成功: to={}", email);
     }
 
     @Override
@@ -136,6 +142,7 @@ public class AuthCodeServiceImpl implements AuthCodeService {
             helper.setText(htmlContent, true);
             mailSender.send(mimeMessage);
         } catch (Exception e) {
+            log.error("发送邮件失败: to={}, error={}", email, e.getMessage(), e);
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "发送验证码邮件失败");
         }
     }

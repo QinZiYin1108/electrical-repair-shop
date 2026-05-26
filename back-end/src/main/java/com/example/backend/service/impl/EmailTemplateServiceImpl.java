@@ -13,6 +13,8 @@ import com.example.backend.service.FilesService;
 import com.example.backend.service.SystemConfigsService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
 import com.example.backend.utils.oss.OssUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
@@ -31,6 +33,8 @@ import java.util.UUID;
 
 @Service
 public class EmailTemplateServiceImpl implements EmailTemplateService {
+
+    private static final Logger log = LoggerFactory.getLogger(EmailTemplateServiceImpl.class);
 
     private static final String TYPE_AUTH_CODE = "auth_code";
     private static final String BUSINESS_TYPE_EMAIL_TEMPLATE = "EMAIL_TEMPLATE";
@@ -121,6 +125,10 @@ public class EmailTemplateServiceImpl implements EmailTemplateService {
     public String buildAuthCodeHtml(String code, int expireMinutes) {
         EmailTemplateMeta meta = requireMeta(TYPE_AUTH_CODE);
         Files file = getCurrentTemplateFile(meta);
+        log.info("构建邮件模板: type={}, hasCustomTemplate={}", TYPE_AUTH_CODE, file != null);
+        if (file != null) {
+            log.info("使用自定义模板: fileId={}, filePath={}", file.getId(), file.getFilePath());
+        }
         String template = file == null ? loadDefaultAuthCodeTemplate() : ossUtil.downloadAsString(file.getFilePath());
         return renderAuthCodeTemplate(template, code, expireMinutes);
     }

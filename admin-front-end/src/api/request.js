@@ -2,7 +2,7 @@ import axios from 'axios';
 import { getToken } from '../utils/auth';
 
 const apiBaseURL =
-  process.env.VUE_APP_API_BASE_URL || (process.env.NODE_ENV === 'development' ? 'https://leonyin.cn/api' : '/api');
+  process.env.VUE_APP_API_BASE_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:8080/api' : '/api');
 
 const service = axios.create({
   baseURL: apiBaseURL,

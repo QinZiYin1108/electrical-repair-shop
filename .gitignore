@@ -53,5 +53,5 @@ coverage/
 .cache/
 temp/
 tmp/
-main/
+/main/
 .claude/

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.backend.mapper.FundFlowsMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.backend.entity.FundFlows">
+            <id property="id" column="id" />
+            <result property="accountId" column="account_id" />
+            <result property="accountType" column="account_type" />
+            <result property="flowType" column="flow_type" />
+            <result property="amount" column="amount" />
+            <result property="balanceBefore" column="balance_before" />
+            <result property="balanceAfter" column="balance_after" />
+            <result property="businessType" column="business_type" />
+            <result property="businessId" column="business_id" />
+            <result property="description" column="description" />
+            <result property="remark" column="remark" />
+            <result property="createdTime" column="created_time" />
+            <result property="version" column="version" />
+            <result property="isDelete" column="is_delete" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,account_id,account_type,flow_type,amount,balance_before,
+        balance_after,business_type,business_id,description,remark,
+        created_time,version,is_delete
+    </sql>
+</mapper>

@@ -1,0 +1,165 @@
+@import "../common.wxss";
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  font-size: 23rpx;
+  color: #374151;
+  padding: 8rpx 0;
+}
+
+.row text:first-child {
+  color: #64748b;
+  flex: 0 0 auto;
+  margin-right: 20rpx;
+}
+
+.row text:last-child {
+  flex: 1;
+  text-align: right;
+}
+
+.row-total {
+  font-size: 27rpx;
+  color: #111827;
+  font-weight: 600;
+}
+
+.fault-summary-list {
+  margin-top: 8rpx;
+}
+
+.fault-summary-item {
+  border: 1rpx solid #e5e7eb;
+  border-radius: 12rpx;
+  padding: 12rpx;
+}
+
+.fault-summary-item + .fault-summary-item {
+  margin-top: 10rpx;
+}
+
+.fault-summary-name {
+  display: block;
+  font-size: 24rpx;
+  color: #111827;
+  font-weight: 600;
+}
+
+.fault-summary-desc {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: #4b5563;
+}
+
+.fault-summary-media {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: #64748b;
+}
+
+
+.pay-tip {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #64748b;
+}
+
+.pay-method-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16rpx;
+  padding: 18rpx 20rpx;
+  border: 1rpx solid #e5e7eb;
+  border-radius: 16rpx;
+  background: #f8fafc;
+}
+
+.pay-method-item--active {
+  border-color: #1677ff;
+  background: #eff6ff;
+  box-shadow: 0 6rpx 18rpx rgba(22, 119, 255, 0.08);
+}
+
+.pay-method-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.pay-method-name {
+  display: block;
+  font-size: 25rpx;
+  color: #111827;
+  font-weight: 600;
+}
+
+.pay-method-desc {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: #64748b;
+}
+
+.pay-method-check {
+  width: 28rpx;
+  height: 28rpx;
+  margin-left: 18rpx;
+  border-radius: 50%;
+  border: 2rpx solid #cbd5e1;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.pay-method-check--active {
+  border-color: #1677ff;
+  background: radial-gradient(circle at center, #1677ff 0, #1677ff 44%, #ffffff 48%, #ffffff 100%);
+}
+
+.submit-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  box-sizing: border-box;
+  padding: 14rpx 24rpx calc(14rpx + env(safe-area-inset-bottom));
+  background-color: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 -8rpx 18rpx rgba(0, 0, 0, 0.06);
+}
+
+.submit-amount {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.submit-label {
+  font-size: 22rpx;
+  color: #6b7280;
+}
+
+.submit-value {
+  font-size: 30rpx;
+  color: #1677ff;
+  font-weight: 600;
+}
+
+.submit-actions {
+  margin-top: 10rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.submit-actions .van-button {
+  width: 100%;
+}
+
+.restart-btn {
+  margin-top: 10rpx !important;
+  width: 100% !important;
+}

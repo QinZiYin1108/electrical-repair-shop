@@ -1,0 +1,60 @@
+<view class="flow-page">
+  <view class="flow-header">
+    <text class="flow-step">{{labels.step}}</text>
+    <text class="flow-title">{{labels.title}}</text>
+    <text class="flow-sub">{{serviceModeName}} | {{serviceTypeName}}</text>
+  </view>
+
+  <view class="section-card">
+    <text class="section-title">{{labels.infoTitle}}</text>
+    <text class="sub-text">{{labels.technician}}：{{technicianName}}</text>
+    <text class="sub-text">{{labels.address}}：{{addressDetail}}</text>
+  </view>
+
+  <view class="section-card">
+    <text class="section-title">{{labels.appointmentTitle}}</text>
+
+    <view class="work-window-title">{{labels.workWindow}}</view>
+    <view wx:if="{{workWindowSummaryList.length}}" class="work-window-list">
+      <view wx:for="{{workWindowSummaryList}}" wx:key="*this" class="work-window-item">{{item}}</view>
+    </view>
+    <view wx:else class="empty-tip">{{labels.emptyWindow}}</view>
+
+    <block wx:if="{{appointmentEditable}}">
+      <view class="picker-row">
+        <text class="picker-label">{{labels.date}}</text>
+        <picker mode="date" start="{{bookingStartDate}}" end="{{bookingEndDate}}" value="{{selectedDate}}" bindchange="onDateChange">
+          <view class="picker-value">{{selectedDate || labels.choose}}</view>
+        </picker>
+      </view>
+
+      <view class="picker-row">
+        <text class="picker-label">{{labels.time}}</text>
+        <picker mode="time" value="{{selectedTime}}" bindchange="onTimeChange">
+          <view class="picker-value">{{selectedTime || labels.choose}}</view>
+        </picker>
+      </view>
+    </block>
+    <block wx:else>
+      <view class="picker-row">
+        <text class="picker-label">{{labels.date}}</text>
+        <view class="picker-value">{{selectedDate || labels.choose}}</view>
+      </view>
+
+      <view class="picker-row">
+        <text class="picker-label">{{labels.time}}</text>
+        <view class="picker-value">{{selectedTime || labels.choose}}</view>
+      </view>
+    </block>
+
+    <text class="sub-text">{{labels.dayRange}}：{{currentDayWindowText}}</text>
+    <text class="sub-text">{{labels.selected}}：{{selectedAppointmentLabel || labels.choose}}</text>
+    <text class="sub-text">{{limitHintText}}</text>
+    <text wx:if="{{readonlyAppointmentTip}}" class="sub-text">{{readonlyAppointmentTip}}</text>
+  </view>
+</view>
+
+<view class="flow-footer">
+  <van-button plain round bind:tap="onPrev">{{labels.prev}}</van-button>
+  <van-button type="primary" round bind:tap="onNext">{{labels.next}}</van-button>
+</view>

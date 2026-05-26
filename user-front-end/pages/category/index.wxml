@@ -1,0 +1,67 @@
+<view class="page category-page">
+  <view wx:if="{{loading}}" class="loading-card">
+    <text class="loading-text">分类加载中...</text>
+  </view>
+
+  <view wx:elif="{{level1List.length}}" class="content-card">
+    <scroll-view class="tree-panel" scroll-y enhanced show-scrollbar="{{false}}">
+      <view wx:for="{{level1List}}" wx:key="id" wx:for-item="level1" class="tree-block">
+        <view
+          class="level1-item {{activeLevel1Id === level1.id ? 'level1-item-active' : ''}}"
+          data-id="{{level1.id}}"
+          bind:tap="onLevel1Tap"
+        >
+          <text class="level1-text">{{level1.name}}</text>
+        </view>
+
+        <view wx:if="{{activeLevel1Id === level1.id}}" class="level2-list">
+          <view
+            wx:for="{{level1.children}}"
+            wx:key="id"
+            wx:for-item="level2"
+            class="level2-item {{activeLevel2Id === level2.id ? 'level2-item-active' : ''}}"
+            data-level1-id="{{level1.id}}"
+            data-level2-id="{{level2.id}}"
+            bind:tap="onLevel2Tap"
+          >
+            <text class="level2-line"></text>
+            <text class="level2-text">{{level2.name}}</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+
+    <scroll-view class="main-panel" scroll-y enhanced show-scrollbar="{{false}}">
+      <view class="panel-header">
+        <text class="panel-title">{{activeLevel2Name || "请选择分类"}}</text>
+        <text class="panel-sub">三级分类</text>
+      </view>
+
+      <view wx:if="{{level3List.length}}" class="level3-grid">
+        <view
+          wx:for="{{level3List}}"
+          wx:key="id"
+          class="level3-card {{focusCategoryId === item.id ? 'level3-card-focus' : ''}}"
+          data-id="{{item.id}}"
+          data-name="{{item.name}}"
+          bind:tap="onCategoryTap"
+        >
+          <view class="level3-icon-wrap">
+            <image
+              wx:if="{{item.iconUrl}}"
+              class="level3-icon-image"
+              src="{{item.iconUrl}}"
+              mode="aspectFill"
+            />
+            <view wx:else class="level3-icon-text">{{item.iconText}}</view>
+          </view>
+          <text class="level3-name">{{item.name}}</text>
+        </view>
+      </view>
+
+      <van-empty wx:else description="当前二级分类下暂无三级分类" />
+    </scroll-view>
+  </view>
+
+  <van-empty wx:else description="暂无可用服务分类" />
+</view>

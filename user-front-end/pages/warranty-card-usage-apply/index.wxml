@@ -1,0 +1,63 @@
+<view class="page apply-page">
+  <view class="hero-card">
+    <view class="hero-title">提交保修申请</view>
+    <view class="hero-subtitle">填写故障信息后，管理员会尽快审核并处理。</view>
+  </view>
+
+  <view class="section-card form-card">
+    <view class="section-head">
+      <view class="section-title">申请信息</view>
+      <view class="section-tip">请保持联系方式畅通</view>
+    </view>
+
+    <view class="field-list">
+      <view class="field-item field-item-highlight">
+        <view class="field-head">
+          <view class="field-title">故障描述</view>
+          <view class="field-counter">{{issueDescriptionLength}} / 300</view>
+        </view>
+        <textarea
+          class="field-textarea"
+          maxlength="300"
+          auto-height
+          placeholder-class="field-placeholder"
+          placeholder="请尽量详细描述商品故障现象"
+          value="{{issueDescription}}"
+          bindinput="onIssueInput"
+        ></textarea>
+      </view>
+
+      <view class="field-item">
+        <view class="field-head">
+          <view class="field-title">联系人</view>
+        </view>
+        <input
+          class="field-input"
+          maxlength="30"
+          placeholder-class="field-placeholder"
+          placeholder="请输入联系人姓名"
+          value="{{contactName}}"
+          bindinput="onContactNameInput"
+        />
+      </view>
+
+      <view class="field-item">
+        <view class="field-head">
+          <view class="field-title">联系电话</view>
+        </view>
+        <input
+          class="field-input"
+          maxlength="20"
+          placeholder-class="field-placeholder"
+          placeholder="请输入联系电话"
+          value="{{contactPhone}}"
+          bindinput="onContactPhoneInput"
+        />
+      </view>
+    </view>
+  </view>
+
+  <view class="submit-btn {{submitting ? 'submit-btn-disabled' : ''}}" bind:tap="onSubmit">
+    {{submitting ? '提交中...' : '提交申请'}}
+  </view>
+</view>

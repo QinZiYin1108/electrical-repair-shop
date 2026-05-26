@@ -1,0 +1,97 @@
+<view class="flow-page">
+  <view class="flow-header">
+    <text class="flow-step">步骤 2 / 6</text>
+    <text class="flow-title">选择分类和服务类型</text>
+    <text class="flow-sub">服务方式：{{serviceModeName}}</text>
+  </view>
+
+  <view class="section-card">
+    <text class="section-title">一级分类搜索</text>
+    <input
+      class="search-input"
+      placeholder="输入一级分类名称，例如：家用电器"
+      value="{{level1Keyword}}"
+      bindinput="onKeywordInput"
+    />
+
+    <view class="tree-wrap">
+      <view class="tree-col level1-col">
+        <text class="tree-title">一级</text>
+        <scroll-view class="tree-scroll" scroll-y>
+          <view
+            wx:for="{{level1List}}"
+            wx:key="id"
+            class="tree-item {{selectedLevel1Id === item.id ? 'tree-item-active' : ''}}"
+            data-id="{{item.id}}"
+            bind:tap="onSelectLevel1"
+          >
+            {{item.name}}
+          </view>
+          <view wx:if="{{!level1List.length}}" class="empty-mini">无匹配项</view>
+        </scroll-view>
+      </view>
+
+      <view class="tree-col level2-col">
+        <text class="tree-title">二级</text>
+        <scroll-view class="tree-scroll" scroll-y>
+          <view
+            wx:for="{{level2List}}"
+            wx:key="id"
+            class="tree-item {{selectedLevel2Id === item.id ? 'tree-item-active' : ''}}"
+            data-id="{{item.id}}"
+            bind:tap="onSelectLevel2"
+          >
+            {{item.name}}
+          </view>
+          <view wx:if="{{!level2List.length}}" class="empty-mini">无二级分类</view>
+        </scroll-view>
+      </view>
+    </view>
+  </view>
+
+  <view class="section-card">
+    <text class="section-title">三级分类（下单必须选）</text>
+    <view class="chip-list">
+      <view
+        wx:for="{{level3List}}"
+        wx:key="id"
+        class="chip {{selectedCategoryId === item.id ? 'chip-active' : ''}}"
+        data-id="{{item.id}}"
+        bind:tap="onSelectCategory"
+      >
+        {{item.name}}
+      </view>
+    </view>
+    <view wx:if="{{!level3List.length}}" class="empty-tip">当前二级分类下没有三级分类</view>
+    <text wx:if="{{selectedCategoryPath}}" class="selected-path">已选路径：{{selectedCategoryPath}}</text>
+  </view>
+
+  <view class="section-card">
+    <text class="section-title">服务类型</text>
+    <view class="type-list" wx:if="{{serviceTypeOptions.length}}">
+      <view
+        wx:for="{{serviceTypeOptions}}"
+        wx:key="id"
+        class="type-item {{selectedServiceTypeId === item.id ? 'type-item-active' : ''}}"
+        data-id="{{item.id}}"
+        bind:tap="onSelectServiceType"
+      >
+        <view class="type-main">
+          <text class="type-name">{{item.name}}</text>
+          <text class="type-price">基础价 ¥{{item.basePrice}}</text>
+        </view>
+        <van-icon
+          name="{{selectedServiceTypeId === item.id ? 'checked' : 'circle'}}"
+          size="18"
+          color="{{selectedServiceTypeId === item.id ? '#1677ff' : '#9ca3af'}}"
+        />
+      </view>
+    </view>
+    <view wx:else class="empty-tip">当前三级分类下暂无该服务方式对应的服务类型</view>
+  </view>
+</view>
+
+<view class="flow-footer">
+  <van-button plain round bind:tap="onPrev">上一步</van-button>
+  <van-button type="primary" round bind:tap="onNext">下一步</van-button>
+</view>

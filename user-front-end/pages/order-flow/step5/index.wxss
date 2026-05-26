@@ -1,0 +1,48 @@
+@import "../common.wxss";
+
+.work-window-title {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #334155;
+  font-weight: 600;
+}
+
+.work-window-list {
+  margin-top: 8rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.work-window-item {
+  padding: 8rpx 14rpx;
+  border-radius: 10rpx;
+  background: #f1f5f9;
+  color: #0f172a;
+  font-size: 22rpx;
+}
+
+.picker-row {
+  margin-top: 14rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.picker-label {
+  min-width: 140rpx;
+  color: #334155;
+  font-size: 25rpx;
+}
+
+.picker-value {
+  min-width: 300rpx;
+  text-align: right;
+  border: 1rpx solid #dbe2ea;
+  border-radius: 12rpx;
+  padding: 10rpx 16rpx;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 24rpx;
+}

@@ -1,0 +1,45 @@
+<view class="page hot-page">
+  <view class="hero-card">
+    <view class="hero-title">热门维修分类</view>
+    <view class="hero-desc">首页推荐的高频维修分类都汇总在这里，点击分类可继续进入服务分类页。</view>
+    <view wx:if="{{focusCategoryName}}" class="focus-tag">当前选中：{{focusCategoryName}}</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="loading-card">
+    <text class="loading-text">热门分类加载中...</text>
+  </view>
+
+  <view wx:elif="{{categories.length}}" class="category-list">
+    <view
+      class="category-item {{focusCategoryId === item.id ? 'category-item-active' : ''}}"
+      wx:for="{{categories}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      data-name="{{item.name}}"
+      bind:tap="onCategoryTap"
+    >
+      <view class="category-icon-wrap">
+        <image
+          wx:if="{{item.iconUrl}}"
+          class="category-icon-image"
+          src="{{item.iconUrl}}"
+          mode="aspectFill"
+        />
+        <view wx:else class="category-icon-empty">HOT</view>
+      </view>
+      <view class="category-main">
+        <text class="category-name">{{item.name}}</text>
+        <text class="category-desc">{{item.desc}}</text>
+      </view>
+      <text class="category-link">去查看</text>
+    </view>
+  </view>
+
+  <view wx:else class="empty-wrap">
+    <van-empty description="暂无热门维修分类" />
+  </view>
+
+  <view class="bottom-action">
+    <van-button type="primary" round block bind:tap="onViewAllCategories">查看全部服务分类</van-button>
+  </view>
+</view>

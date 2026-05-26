@@ -58,7 +58,7 @@ public class OrderDoorQrServiceImpl implements OrderDoorQrService {
     private final OssUtil ossUtil;
     private final SystemConfigsService systemConfigsService;
 
-    @Value("${app.door-qr.base-url:http://localhost:8080/api/pass/door-qr/scan}")
+    @Value("${app.door-qr.base-url}")
     private String doorQrBaseUrl;
 
     public OrderDoorQrServiceImpl(

@@ -1,0 +1,135 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const services = [
+  { icon: '❄️', name: '空调维修', desc: '壁挂式、柜式、中央空调的安装、维修、加氟、清洗服务。常见故障：不制冷、漏水、异响、不启动、制冷效果差。', tags: ['热门'] },
+  { icon: '🧊', name: '冰箱维修', desc: '家用冰箱、冰柜的不制冷、结冰、噪音大、门封老化、压缩机故障等维修服务，支持主流品牌全型号。', tags: [] },
+  { icon: '👕', name: '洗衣机维修', desc: '波轮、滚筒洗衣机的进水故障、排水故障、不脱水、不转动、异响、漏水等维修，覆盖全品牌。', tags: [] },
+  { icon: '📺', name: '电视维修', desc: '液晶电视、OLED 电视的黑屏、花屏、无信号、无法开机、屏幕闪烁等故障维修，支持各尺寸。', tags: [] },
+  { icon: '🔥', name: '热水器维修', desc: '电热水器、燃气热水器、太阳能热水器的不加热、漏水、打不着火、水温不稳等维修。', tags: [] },
+  { icon: '🍳', name: '厨房电器维修', desc: '油烟机、燃气灶、集成灶、微波炉、电饭煲、消毒柜等厨房电器的安装与维修服务。', tags: [] },
+  { icon: '💡', name: '小家电维修', desc: '电风扇、取暖器、吸尘器、饮水机、空气净化器等生活小家电的故障维修。', tags: [] },
+  { icon: '🔌', name: '电路检修', desc: '家庭电路跳闸、开关插座更换、线路老化排查、配电箱维修等用电安全服务。', tags: [] },
+];
+---
+
+<BaseLayout title="服务项目" description="安修到家提供空调、冰箱、洗衣机、电视、热水器等全品类家电维修服务，专业师傅上门，透明定价。">
+  <section class="page-hero">
+    <div class="container">
+      <h1>服务项目</h1>
+      <p>覆盖全品类家电，专业维修，一站解决</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="services-detail-grid">
+        {services.map(s => (
+          <div class="service-detail-card">
+            <div class="sd-header">
+              <span class="sd-icon">{s.icon}</span>
+              <div>
+                <h3>{s.name}</h3>
+                {s.tags.map(t => <span class="sd-tag">{t}</span>)}
+              </div>
+            </div>
+            <p>{s.desc}</p>
+            <a href="/contact" class="sd-link">预约维修 →</a>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="background:var(--color-bg-alt);">
+    <div class="container" style="text-align:center;">
+      <h2 class="section-title">没找到需要的服务？</h2>
+      <p class="section-subtitle">联系我们，客服将为您匹配最合适的维修方案</p>
+      <a href="/contact" class="btn btn-primary">联系客服 →</a>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+.page-hero {
+  background: linear-gradient(135deg, var(--color-primary), #6366F1);
+  color: #fff;
+  padding: 120px 0 64px;
+  text-align: center;
+}
+.page-hero h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+.page-hero p {
+  font-size: 1.1rem;
+  opacity: .85;
+}
+
+.services-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.service-detail-card {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 28px;
+  transition: box-shadow .3s, border-color .3s;
+}
+.service-detail-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.sd-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+.sd-icon {
+  font-size: 2rem;
+}
+.sd-header h3 {
+  font-size: 1.1rem;
+  display: inline;
+}
+
+.sd-tag {
+  display: inline-block;
+  background: #FEF3C7;
+  color: var(--color-accent-dark);
+  font-size: .72rem;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 8px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.service-detail-card p {
+  font-size: .92rem;
+  color: var(--color-text-secondary);
+  line-height: 1.75;
+  margin-bottom: 14px;
+}
+
+.sd-link {
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: .92rem;
+}
+.sd-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .services-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

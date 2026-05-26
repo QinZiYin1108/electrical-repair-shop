@@ -1,0 +1,80 @@
+<section class="section" style="background:var(--color-bg-alt);">
+  <div class="container">
+    <h2 class="section-title">为什么选择安修到家</h2>
+    <p class="section-subtitle">四大核心优势，让维修变得简单放心</p>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <h3>一键预约</h3>
+        <p>微信小程序随时下单，填写故障信息，系统自动匹配附近师傅，全程线上操作无需打电话。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💰</div>
+        <h3>透明定价</h3>
+        <p>维修前明码标价，无隐形费用。支持多种支付方式，维修完成满意后再付款，消费明明白白。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">👨‍🔧</div>
+        <h3>专业认证</h3>
+        <p>所有师傅经过实名认证、技能考核、背景审核三重筛选，持证上岗，服务质量有保障。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🛡️</div>
+        <h3>售后无忧</h3>
+        <p>提供最长 90 天保修服务，维修后出现问题免费返修。专属客服全程跟进，不满意可申请售后。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+
+.feature-card {
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 36px 28px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+  transition: transform .3s, box-shadow .3s;
+}
+
+.feature-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-md);
+}
+
+.feature-icon {
+  font-size: 2.5rem;
+  margin-bottom: 16px;
+}
+
+.feature-card h3 {
+  font-size: 1.15rem;
+  margin-bottom: 10px;
+  color: var(--color-text);
+}
+
+.feature-card p {
+  font-size: .92rem;
+  color: var(--color-text-secondary);
+  line-height: 1.7;
+}
+
+@media (max-width: 768px) {
+  .features-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 480px) {
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

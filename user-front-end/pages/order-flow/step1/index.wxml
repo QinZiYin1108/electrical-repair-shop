@@ -1,0 +1,34 @@
+<view class="flow-page">
+  <view class="flow-header">
+    <text class="flow-step">步骤 1 / 6</text>
+    <text class="flow-title">选择服务方式</text>
+    <text class="flow-sub">上门维修、上门安装、线下维修</text>
+  </view>
+
+  <view class="section-card">
+    <text class="section-title">请选择本次下单的服务方式</text>
+    <view class="mode-list">
+      <view
+        wx:for="{{serviceModes}}"
+        wx:key="id"
+        class="mode-item {{selectedServiceMode === item.id ? 'mode-item-active' : ''}}"
+        data-mode="{{item.id}}"
+        bind:tap="onSelectMode"
+      >
+        <view class="mode-top">
+          <text class="mode-name">{{item.name}}</text>
+          <van-icon
+            name="{{selectedServiceMode === item.id ? 'passed' : 'circle'}}"
+            size="20"
+            color="{{selectedServiceMode === item.id ? '#1677ff' : '#9ca3af'}}"
+          />
+        </view>
+        <text class="mode-desc">{{item.desc}}</text>
+      </view>
+    </view>
+  </view>
+</view>
+
+<view class="flow-footer one-btn">
+  <van-button type="primary" round bind:tap="onNext">下一步</van-button>
+</view>

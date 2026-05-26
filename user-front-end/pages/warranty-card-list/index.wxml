@@ -1,0 +1,47 @@
+<view class="page warranty-page">
+  <view class="hero-card">
+    <view>
+      <view class="hero-title">我的保修卡</view>
+      <view class="hero-subtitle">购买带保修商品后，系统会自动生成专属保修卡。</view>
+    </view>
+    <view class="hero-badge">{{cardList.length}} 张</view>
+  </view>
+
+  <scroll-view class="tab-scroll" scroll-x enhanced show-scrollbar="false">
+    <view class="tab-list">
+      <view wx:for="{{tabs}}" wx:key="key" class="tab-item {{item.active ? 'tab-item-active' : ''}}" data-key="{{item.key}}" bind:tap="onTabTap">
+        {{item.label}}
+      </view>
+    </view>
+  </scroll-view>
+
+  <view wx:if="{{loading}}" class="section-card state-card">
+    <text class="state-text">正在加载保修卡...</text>
+  </view>
+
+  <view wx:elif="{{loadError}}" class="section-card state-card">
+    <view class="state-title">加载失败</view>
+    <view class="state-desc">{{loadError}}</view>
+    <view class="primary-btn" bind:tap="onRetryTap">重新加载</view>
+  </view>
+
+  <block wx:elif="{{cardList.length}}">
+    <view wx:for="{{cardList}}" wx:key="id" class="section-card card-item" data-id="{{item.id}}" bind:tap="onCardTap">
+      <view class="card-top">
+        <view>
+          <view class="card-name">{{item.productName}}</view>
+          <view class="card-model">型号：{{item.productModel}}</view>
+        </view>
+        <view class="card-badge">{{item.badgeText}}</view>
+      </view>
+      <view class="card-no">保修卡号：{{item.cardNo}}</view>
+      <view class="card-meta">状态：{{item.statusText}}</view>
+      <view class="card-meta">保修截止：{{item.warrantyEndDate}}</view>
+    </view>
+  </block>
+
+  <view wx:else class="section-card state-card">
+    <view class="state-title">暂无保修卡</view>
+    <view class="state-desc">购买支持保修的商品后，系统会自动为你生成保修卡。</view>
+  </view>
+</view>

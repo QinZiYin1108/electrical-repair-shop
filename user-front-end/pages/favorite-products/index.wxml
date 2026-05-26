@@ -1,0 +1,104 @@
+<view class="page favorite-page">
+  <view class="hero-section">
+    <view class="hero-decoration hero-decoration-left"></view>
+    <view class="hero-decoration hero-decoration-right"></view>
+
+    <view class="hero-card">
+      <view class="hero-top">
+        <view>
+          <view class="hero-title">{{texts.heroTitle}}</view>
+          <view class="hero-subtitle">{{texts.heroSubtitle}}</view>
+        </view>
+        <view class="hero-badge">
+          <text class="hero-badge-count">{{favorites.length}}</text>
+          <text class="hero-badge-label">{{texts.itemUnit}}</text>
+        </view>
+      </view>
+
+      <view class="hero-tips">
+        <view class="hero-tip-chip">{{texts.tipPullDown}}</view>
+        <view class="hero-tip-chip">{{texts.tipCancel}}</view>
+        <view class="hero-tip-chip">{{texts.tipSort}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="section-card loading-card">
+    <van-loading size="24px" color="#1677ff" />
+    <text class="loading-text">{{texts.loading}}</text>
+  </view>
+
+  <view wx:elif="{{loadError}}" class="section-card state-card">
+    <view class="state-title">{{texts.loadFailedTitle}}</view>
+    <view class="state-desc">{{loadError}}</view>
+    <view class="state-btn" bind:tap="onRetryTap">{{texts.retry}}</view>
+  </view>
+
+  <view wx:elif="{{favorites.length}}" class="favorite-list">
+    <view
+      wx:for="{{favorites}}"
+      wx:key="id"
+      class="favorite-card"
+      data-id="{{item.id}}"
+      bind:tap="onProductTap"
+    >
+      <view class="favorite-media">
+        <image
+          wx:if="{{item.mainImageUrl}}"
+          class="favorite-image"
+          src="{{item.mainImageUrl}}"
+          mode="aspectFill"
+        />
+        <view wx:else class="favorite-image-empty">{{texts.emptyImage}}</view>
+
+        <view class="badge-list">
+          <text wx:if="{{item.isRecommended}}" class="product-badge badge-recommend">{{texts.recommend}}</text>
+          <text wx:if="{{item.isHot}}" class="product-badge badge-hot">{{texts.hot}}</text>
+          <text wx:if="{{item.isNew}}" class="product-badge badge-new">{{texts.new}}</text>
+        </view>
+      </view>
+
+      <view class="favorite-body">
+        <view class="favorite-head">
+          <text class="favorite-type">{{item.productTypeText}}</text>
+          <text class="favorite-time">{{item.favoriteTimeLabel}}</text>
+        </view>
+
+        <text class="favorite-name">{{item.name}}</text>
+        <text class="favorite-meta">{{item.brandText}} / {{item.modelText}}</text>
+        <text wx:if="{{item.categoryPath}}" class="favorite-path">{{item.categoryPath}}</text>
+
+        <view class="price-row">
+          <text class="price-current">{{item.sellingPriceLabel}}</text>
+          <text wx:if="{{item.showOriginalPrice}}" class="price-original">{{item.originalPriceLabel}}</text>
+        </view>
+
+        <view class="flag-row">
+          <text class="flag-chip">{{item.shippingText}}</text>
+          <text class="flag-chip">{{item.stockText}}</text>
+          <text class="flag-chip">{{item.salesText}}</text>
+        </view>
+
+        <view class="action-row">
+          <view class="detail-link">
+            <van-icon name="arrow" size="14" color="#1677ff" />
+            <text>{{texts.viewDetail}}</text>
+          </view>
+          <view
+            class="cancel-btn {{removingId === item.id ? 'cancel-btn-disabled' : ''}}"
+            data-id="{{item.id}}"
+            catchtap="onCancelFavorite"
+          >
+            {{removingId === item.id ? texts.removing : texts.cancelFavorite}}
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:else class="section-card state-card">
+    <view class="state-title">{{texts.emptyTitle}}</view>
+    <view class="state-desc">{{texts.emptyDesc}}</view>
+    <view class="state-btn" bind:tap="onGoMallTap">{{texts.goMall}}</view>
+  </view>
+</view>

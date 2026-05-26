@@ -1,0 +1,303 @@
+<view class="order-detail-page">
+  <view wx:if="{{loading}}" class="state-card state-text">
+    {{texts.loading}}
+  </view>
+
+  <view wx:elif="{{loadError}}" class="state-card">
+    <view class="state-title">{{texts.loadFailed}}</view>
+    <view class="state-desc">{{loadError}}</view>
+    <view class="action-btn" bind:tap="onRetryTap">{{texts.retry}}</view>
+  </view>
+
+  <block wx:elif="{{detail}}">
+    <view class="hero-card">
+      <view class="hero-head">
+        <text class="hero-status">{{detail.displayStatusText}}</text>
+        <view class="copy-link" bind:tap="onCopyOrderNoTap">{{texts.copyOrderNo}}</view>
+      </view>
+      <view class="hero-title">{{detail.serviceTitle}}</view>
+      <view class="hero-no">{{detail.orderNo}}</view>
+    </view>
+
+    <view class="section-card">
+      <view class="section-head" data-key="summary" bind:tap="onToggleSection">
+        <view class="section-title">{{texts.summaryTitle}}</view>
+        <text class="section-toggle">{{collapseState.summary ? '展开' : '收起'}}</text>
+      </view>
+      <view wx:if="{{!collapseState.summary}}" class="section-content">
+        <view wx:for="{{summaryRows}}" wx:key="label" class="info-row">
+          <text class="info-label">{{item.label}}</text>
+          <text class="info-value">{{item.value}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-card">
+      <view class="section-head" data-key="service" bind:tap="onToggleSection">
+        <view class="section-title">{{texts.serviceInfoTitle}}</view>
+        <text class="section-toggle">{{collapseState.service ? '展开' : '收起'}}</text>
+      </view>
+      <view wx:if="{{!collapseState.service}}" class="section-content">
+        <view wx:for="{{serviceRows}}" wx:key="label" class="info-row">
+          <text class="info-label">{{item.label}}</text>
+          <text class="info-value">{{item.value}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{deviceRows.length}}" class="section-card">
+      <view class="section-head" data-key="device" bind:tap="onToggleSection">
+        <view class="section-title">{{texts.deviceInfoTitle}}</view>
+        <text class="section-toggle">{{collapseState.device ? '展开' : '收起'}}</text>
+      </view>
+      <view wx:if="{{!collapseState.device}}" class="section-content">
+        <view wx:for="{{deviceRows}}" wx:key="label" class="info-row">
+          <text class="info-label">{{item.label}}</text>
+          <text class="info-value">{{item.value}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-card">
+      <view class="section-head" data-key="fault" bind:tap="onToggleSection">
+        <view class="section-title">{{texts.faultInfoTitle}}</view>
+        <text class="section-toggle">{{collapseState.fault ? '展开' : '收起'}}</text>
+      </view>
+      <view wx:if="{{!collapseState.fault}}" class="section-content">
+        <block wx:if="{{faultList.length}}">
+          <view wx:for="{{faultList}}" wx:for-index="faultIndex" wx:key="id" class="fault-card">
+            <view class="fault-row">
+              <text class="fault-label">{{texts.phenomenonLabel}}</text>
+              <text class="fault-value">{{item.phenomenonName}}</text>
+            </view>
+            <view wx:if="{{item.phenomenonDescription}}" class="fault-row">
+              <text class="fault-label">{{texts.phenomenonDescLabel}}</text>
+              <text class="fault-value">{{item.phenomenonDescription}}</text>
+            </view>
+            <view wx:if="{{item.faultDescription}}" class="fault-row">
+              <text class="fault-label">{{texts.userDescLabel}}</text>
+              <text class="fault-value">{{item.faultDescription}}</text>
+            </view>
+
+            <view wx:if="{{item.images.length}}" class="media-section">
+              <view class="media-title">{{texts.imageLabel}}</view>
+              <view class="image-list">
+                <image
+                  wx:for="{{item.images}}"
+                  wx:for-item="imageItem"
+                  wx:for-index="imageIndex"
+                  wx:key="id"
+                  class="fault-image"
+                  src="{{imageItem.thumbnailUrl}}"
+                  mode="aspectFill"
+                  data-fault-index="{{faultIndex}}"
+                  data-image-index="{{imageIndex}}"
+                  data-urls="{{item.previewUrls}}"
+                  data-current="{{imageItem.url}}"
+                  bind:tap="onPreviewImageTap"
+                  binderror="onImageError"
+                />
+              </view>
+            </view>
+
+            <view wx:if="{{item.videos.length}}" class="media-section">
+              <view class="media-title">{{texts.videoLabel}}</view>
+              <view wx:for="{{item.videos}}" wx:for-item="videoItem" wx:for-index="videoIndex" wx:key="id" class="video-item">
+                <video
+                  class="fault-video"
+                  src="{{videoItem.url}}"
+                  poster="{{videoItem.thumbnailUrl}}"
+                  controls
+                  objectFit="cover"
+                  data-fault-index="{{faultIndex}}"
+                  data-video-index="{{videoIndex}}"
+                  binderror="onVideoError"
+                />
+                <view wx:if="{{videoItem.durationText}}" class="video-duration">{{videoItem.durationText}}</view>
+              </view>
+            </view>
+          </view>
+        </block>
+        <view wx:else class="empty-text">{{texts.noFault}}</view>
+      </view>
+    </view>
+
+    <view class="section-card">
+      <view class="section-head" data-key="fee" bind:tap="onToggleSection">
+        <view class="section-title">{{texts.feeInfoTitle}}</view>
+        <text class="section-toggle">{{collapseState.fee ? '展开' : '收起'}}</text>
+      </view>
+      <view wx:if="{{!collapseState.fee}}" class="section-content">
+        <view wx:for="{{feeRows}}" wx:key="label" class="info-row">
+          <text class="info-label">{{item.label}}</text>
+          <text class="info-value {{item.strong ? 'info-value-strong' : ''}}">{{item.value}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{extraRows.length}}" class="section-card">
+      <view class="section-head" data-key="extra" bind:tap="onToggleSection">
+        <view class="section-title">{{texts.extraInfoTitle}}</view>
+        <text class="section-toggle">{{collapseState.extra ? '展开' : '收起'}}</text>
+      </view>
+      <view wx:if="{{!collapseState.extra}}" class="section-content">
+        <view wx:for="{{extraRows}}" wx:key="label" class="info-row">
+          <text class="info-label">{{item.label}}</text>
+          <text class="info-value">{{item.value}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-card">
+      <view class="section-head" data-key="progress" bind:tap="onToggleSection">
+        <view class="section-title">{{texts.progressTitle}}</view>
+        <text class="section-toggle">{{collapseState.progress ? '展开' : '收起'}}</text>
+      </view>
+      <view wx:if="{{!collapseState.progress}}" class="section-content">
+        <block wx:if="{{progressList.length}}">
+          <view wx:for="{{progressList}}" wx:key="id" class="progress-item">
+            <view class="progress-dot"></view>
+            <view class="progress-main">
+              <view class="progress-head">
+                <text class="progress-status">{{item.statusText}}</text>
+                <text class="progress-time">{{item.createdTimeText}}</text>
+              </view>
+              <view wx:if="{{item.description}}" class="progress-desc">{{item.description}}</view>
+              <view wx:if="{{item.operatorName}}" class="progress-operator">{{item.operatorName}}</view>
+            </view>
+          </view>
+        </block>
+        <view wx:else class="empty-text">{{texts.noProgress}}</view>
+      </view>
+    </view>
+
+    <view wx:if="{{detail.hasDoorQr || detail.canPayTail || detail.hasModifyEntry || detail.canConfirmCompletion || detail.canCancel || detail.hasAfterSalesEntry || detail.hasReviewEntry}}" class="float-action-group">
+      <view wx:if="{{detail.hasDoorQr}}" class="door-qr-float-btn" bind:tap="onDoorQrTap">
+        {{texts.doorQrButton}}
+      </view>
+      <view wx:if="{{detail.hasModifyEntry}}" class="review-float-btn" bind:tap="onModifyOrderTap">
+        {{texts.modifyButton}}
+      </view>
+      <view wx:if="{{detail.canConfirmCompletion}}" class="confirm-float-btn" bind:tap="onConfirmCompletionTap">
+        {{texts.confirmCompletionButton}}
+      </view>
+      <view wx:if="{{detail.canCancel}}" class="cancel-float-btn" bind:tap="onCancelOrderTap">
+        {{texts.cancelButton}}
+      </view>
+      <view wx:if="{{detail.hasReviewEntry}}" class="review-float-btn" bind:tap="onReviewTap">
+        {{detail.hasReview ? texts.viewReviewButton : texts.reviewButton}}
+      </view>
+      <view wx:if="{{detail.hasAfterSalesEntry}}" class="after-sales-float-btn" bind:tap="onAfterSalesTap">
+        {{detail.afterSalesApplication ? texts.afterSalesViewButton : texts.afterSalesButton}}
+      </view>
+      <view wx:if="{{detail.canPayTail}}" class="pay-float-btn" bind:tap="onPayTap">
+        {{texts.payButton}}
+      </view>
+    </view>
+
+    <view wx:if="{{doorQrPopupVisible}}" class="modal-mask" catch:tap="onCloseDoorQrPopup">
+      <view class="door-qr-popup" catch:tap="onPopupInnerTap">
+        <view class="door-qr-title">{{texts.doorQrTitle}}</view>
+        <view wx:if="{{detail.orderNo}}" class="door-qr-order">{{detail.orderNo}}</view>
+        <view wx:if="{{doorQrPopupLoading}}" class="door-qr-loading">{{texts.doorQrLoading}}</view>
+        <block wx:elif="{{doorQrData}}">
+          <image wx:if="{{doorQrData.qrImageUrl}}" class="door-qr-image" src="{{doorQrData.qrImageUrl}}" mode="aspectFit" />
+          <view class="door-qr-status">{{doorQrData.statusText}}</view>
+          <view wx:if="{{doorQrData.expireTimeText}}" class="door-qr-expire">
+            {{texts.doorQrExpireLabel}} {{doorQrData.expireTimeText}}
+          </view>
+        </block>
+        <view class="door-qr-close" bind:tap="onCloseDoorQrPopup">{{texts.doorQrClose}}</view>
+      </view>
+    </view>
+
+    <view wx:if="{{payPopupVisible}}" class="modal-mask" catch:tap="onClosePayPopup">
+      <view class="pay-popup" catch:tap="onPopupInnerTap">
+        <view class="pay-title">{{texts.payTitle}}</view>
+        <view class="pay-subtitle">{{texts.paySubtitle}}</view>
+        <view wx:if="{{detail.orderNo}}" class="pay-order-no">{{detail.orderNo}}</view>
+
+        <view class="pay-section">
+          <view class="pay-section-title">{{texts.payIssueLabel}}</view>
+          <view class="pay-section-desc">{{detail.inspectionDiagnosis || texts.noInspectionSummary}}</view>
+        </view>
+
+        <view class="pay-section">
+          <view class="pay-section-title">{{texts.payPlanLabel}}</view>
+          <view class="pay-section-desc">{{detail.repairPlan || texts.noInspectionSummary}}</view>
+        </view>
+
+        <view class="pay-fee-card">
+          <view wx:for="{{paymentRows}}" wx:key="label" class="pay-fee-row">
+            <text class="pay-fee-label">{{item.label}}</text>
+            <text class="pay-fee-value {{item.strong ? 'pay-fee-value-strong' : ''}}">{{item.value}}</text>
+          </view>
+        </view>
+
+        <view class="pay-section-title pay-method-title">{{texts.payMethodsTitle}}</view>
+        <view class="pay-method-list">
+          <view
+            wx:for="{{paymentMethodOptions}}"
+            wx:key="id"
+            class="pay-method-item {{selectedPaymentMethod === item.id ? 'pay-method-item-active' : ''}}"
+            data-method="{{item.id}}"
+            bind:tap="onSelectPaymentMethod"
+          >
+            <view class="pay-method-main">
+              <text class="pay-method-label">{{item.label}}</text>
+              <view class="pay-method-indicator {{selectedPaymentMethod === item.id ? 'pay-method-indicator-active' : ''}}">
+                <view wx:if="{{selectedPaymentMethod === item.id}}" class="pay-method-indicator-dot"></view>
+              </view>
+            </view>
+            <view class="pay-method-desc">{{item.desc}}</view>
+          </view>
+        </view>
+
+        <view wx:if="{{selectedPaymentMethod === 5 && walletInsufficient}}" class="pay-warning">
+          {{texts.walletInsufficient}}
+        </view>
+
+        <view class="pay-actions">
+          <view class="pay-cancel-btn" bind:tap="onClosePayPopup">{{texts.payCancel}}</view>
+          <view class="pay-confirm-btn" bind:tap="onPayConfirm">{{paying ? texts.paying : payButtonText}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{cancelPopupVisible}}" class="modal-mask" catch:tap="onCloseCancelPopup">
+      <view class="action-popup" catch:tap="onPopupInnerTap">
+        <view class="pay-title">{{texts.cancelPopupTitle}}</view>
+        <view class="pay-subtitle">{{texts.cancelPopupSubtitle}}</view>
+        <view wx:if="{{detail.orderNo}}" class="pay-order-no">{{detail.orderNo}}</view>
+        <view class="pay-section-title pay-method-title">{{texts.reasonTitle}}</view>
+        <view class="reason-chip-list">
+          <view
+            wx:for="{{cancelReasonOptions}}"
+            wx:key="*this"
+            class="reason-chip {{selectedCancelReason === item ? 'reason-chip-active' : ''}}"
+            data-reason="{{item}}"
+            bind:tap="onSelectCancelReason"
+          >
+            {{item}}
+          </view>
+        </view>
+        <view class="pay-section-title pay-method-title">{{texts.descriptionTitle}}</view>
+        <textarea
+          class="action-textarea"
+          value="{{cancelRemark}}"
+          placeholder="{{texts.descriptionPlaceholder}}"
+          maxlength="120"
+          auto-height
+          bindinput="onCancelRemarkInput"
+        />
+        <view class="pay-actions">
+          <view class="pay-cancel-btn" bind:tap="onCloseCancelPopup">{{texts.payCancel}}</view>
+          <view class="pay-confirm-btn" bind:tap="onCancelConfirm">
+            {{actionSubmitting ? texts.actionProcessing : texts.submitCancel}}
+          </view>
+        </view>
+      </view>
+    </view>
+
+  </block>
+</view>

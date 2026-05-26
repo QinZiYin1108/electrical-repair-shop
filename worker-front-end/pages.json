@@ -1,0 +1,132 @@
+{
+  "pages": [
+    {
+      "path": "pages/login/index",
+      "style": {
+        "navigationBarTitleText": "安修到家师傅端"
+      }
+    },
+    {
+      "path": "pages/protocol/index",
+      "style": {
+        "navigationBarTitleText": "协议内容"
+      }
+    },
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "师傅首页"
+      }
+    },
+    {
+      "path": "pages/order-detail/index",
+      "style": {
+        "navigationBarTitleText": "订单详情"
+      }
+    },
+    {
+      "path": "pages/order-history/index",
+      "style": {
+        "navigationBarTitleText": "历史订单"
+      }
+    },
+    {
+      "path": "pages/message/index",
+      "style": {
+        "navigationBarTitleText": "消息中心"
+      }
+    },
+    {
+      "path": "pages/message/detail",
+      "style": {
+        "navigationBarTitleText": "消息详情"
+      }
+    },
+    {
+      "path": "pages/profile/index",
+      "style": {
+        "navigationBarTitleText": "个人资料"
+      }
+    },
+    {
+      "path": "pages/reviews/index",
+      "style": {
+        "navigationBarTitleText": "服务评价"
+      }
+    },
+    {
+      "path": "pages/funds/index",
+      "style": {
+        "navigationBarTitleText": "资金管理"
+      }
+    },
+    {
+      "path": "pages/funds/flows",
+      "style": {
+        "navigationBarTitleText": "资金流水"
+      }
+    },
+    {
+      "path": "pages/settings/index",
+      "style": {
+        "navigationBarTitleText": "设置"
+      }
+    },
+    {
+      "path": "pages/fee-policy/index",
+      "style": {
+        "navigationBarTitleText": "计费策略"
+      }
+    },
+    {
+      "path": "pages/work-time/index",
+      "style": {
+        "navigationBarTitleText": "工作时间"
+      }
+    },
+    {
+      "path": "pages/skills/index",
+      "style": {
+        "navigationBarTitleText": "技能管理"
+      }
+    },
+    {
+      "path": "pages/certification/index",
+      "style": {
+        "navigationBarTitleText": "实名认证"
+      }
+    },
+    {
+      "path": "pages/security/change-password",
+      "style": {
+        "navigationBarTitleText": "修改密码"
+      }
+    },
+    {
+      "path": "pages/security/reset-password",
+      "style": {
+        "navigationBarTitleText": "重置密码"
+      }
+    },
+    {
+      "path": "pages/security/reset-password-login",
+      "style": {
+        "navigationBarTitleText": "找回密码"
+      }
+    },
+    {
+      "path": "pages/security/change-email",
+      "style": {
+        "navigationBarTitleText": "修改邮箱"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "安修到家师傅端",
+    "navigationBarBackgroundColor": "#F8F8F8",
+    "backgroundColor": "#F8F8F8",
+    "navigationStyle": "custom"
+  },
+  "uniIdRouter": {}
+}

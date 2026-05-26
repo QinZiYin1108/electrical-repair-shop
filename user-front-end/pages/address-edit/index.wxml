@@ -1,0 +1,112 @@
+<view class="page address-edit-page">
+  <map
+    id="addressMap"
+    class="map-background"
+    latitude="{{mapCenterLatitude}}"
+    longitude="{{mapCenterLongitude}}"
+    scale="{{mapScale}}"
+    bindregionchange="onMapRegionChange"
+    bindtouchstart="onMapTouchStart"
+    bindtouchend="onMapTouchEnd"
+    bindtouchcancel="onMapTouchCancel"
+  />
+
+  <view class="map-center-pin">
+    <view class="pin-dot" />
+  </view>
+
+  <view class="relocate-btn">
+    <van-button
+      size="small"
+      plain
+      type="primary"
+      loading="{{locating}}"
+      bind:tap="onRelocateTap"
+    >
+      定位当前
+    </van-button>
+  </view>
+
+  <view class="floating-panel {{mapDragging ? 'floating-panel--dragging' : ''}}">
+    <view class="panel-tip">{{resolvingAddress ? '正在解析地址...' : '定位服务地址后可用于匹配附近可接单师傅，拖动地图可切换地址，点击地址可地图选点'}}</view>
+
+    <van-cell-group inset>
+      <van-field
+        label="联系人"
+        value="{{form.contactName}}"
+        placeholder="联系人姓名"
+        bind:change="onFieldChange"
+        data-field="contactName"
+      />
+      <van-field
+        label="手机号"
+        type="number"
+        maxlength="11"
+        value="{{form.contactPhone}}"
+        placeholder="联系人手机号"
+        bind:change="onFieldChange"
+        data-field="contactPhone"
+      />
+      <picker
+        mode="selector"
+        range="{{addressTypeOptions}}"
+        value="{{addressTypeIndex}}"
+        bindchange="onAddressTypeChange"
+      >
+        <van-field
+          label="地址类型"
+          value="{{addressTypeOptions[addressTypeIndex]}}"
+          readonly
+          is-link
+        />
+      </picker>
+      <view bind:tap="onChooseLocationTap">
+        <van-field
+          label="地址"
+          value="{{locationText || '定位中，请稍候...'}}"
+          readonly
+          is-link
+        />
+      </view>
+      <van-field
+        label="详细地址"
+        type="textarea"
+        autosize
+        value="{{form.detailedAddress}}"
+        placeholder="门牌号、楼层等"
+        bind:change="onFieldChange"
+        data-field="detailedAddress"
+      />
+      <van-field
+        label="邮编"
+        type="number"
+        maxlength="10"
+        value="{{form.postalCode}}"
+        placeholder="手动填写"
+        bind:change="onFieldChange"
+        data-field="postalCode"
+      />
+    </van-cell-group>
+
+    <view class="switch-row">
+      <text class="switch-label">设为默认地址</text>
+      <switch
+        checked="{{form.isDefault}}"
+        color="#00b578"
+        bindchange="onDefaultChange"
+      />
+    </view>
+
+    <view class="footer-actions">
+      <van-button
+        type="primary"
+        round
+        block
+        loading="{{saving}}"
+        bind:tap="onSave"
+      >
+        {{isEdit ? "保存" : "新增"}}
+      </van-button>
+    </view>
+  </view>
+</view>

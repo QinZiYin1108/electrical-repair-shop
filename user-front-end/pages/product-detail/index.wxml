@@ -1,0 +1,379 @@
+<view class="page detail-page">
+  <view wx:if="{{loading}}" class="loading-shell">
+    <van-loading size="24px" color="#1677ff" />
+    <text class="loading-text">商品详情加载中...</text>
+  </view>
+
+  <block wx:elif="{{detail}}">
+    <view class="hero-section">
+      <view class="hero-decoration hero-decoration-left"></view>
+      <view class="hero-decoration hero-decoration-right"></view>
+
+      <view class="detail-shell">
+        <view class="media-stage">
+          <swiper
+            wx:if="{{detail.mediaCount}}"
+            class="media-swiper"
+            indicator-dots
+            indicator-color="rgba(255,255,255,0.38)"
+            indicator-active-color="#ffffff"
+            circular
+            current="{{currentMediaIndex}}"
+            bindchange="onSwiperChange"
+          >
+            <swiper-item wx:for="{{detail.mediaItems}}" wx:key="index">
+              <block wx:if="{{item.isImage}}">
+                <image
+                  class="media-image"
+                  src="{{item.url}}"
+                  mode="aspectFill"
+                  data-url="{{item.url}}"
+                  bind:tap="onPreviewImage"
+                />
+              </block>
+              <block wx:else>
+                <video
+                  id="detail-video-{{index}}"
+                  class="media-video"
+                  src="{{item.url}}"
+                  controls
+                  show-center-play-btn
+                  enable-play-gesture
+                  preload="metadata"
+                />
+              </block>
+            </swiper-item>
+          </swiper>
+
+          <view wx:else class="media-empty">暂无商品媒体</view>
+
+          <view class="media-badge-row">
+            <text wx:if="{{detail.isRecommended}}" class="media-badge badge-recommend">推荐</text>
+            <text wx:if="{{detail.isHot}}" class="media-badge badge-hot">热销</text>
+            <text wx:if="{{detail.isNew}}" class="media-badge badge-new">新品</text>
+          </view>
+
+          <view wx:if="{{detail.mediaCount}}" class="media-index">
+            {{currentMediaIndex + 1}} / {{detail.mediaCount}}
+          </view>
+        </view>
+
+        <view class="summary-section">
+          <view class="price-row">
+            <text class="price-current">￥{{detail.sellingPriceText}}</text>
+            <text wx:if="{{detail.showOriginalPrice}}" class="price-original">￥{{detail.originalPriceText}}</text>
+          </view>
+
+          <view class="title-row">
+            <text class="product-title">{{detail.name}}</text>
+          </view>
+
+          <view class="meta-row">
+            <text class="meta-text">{{detail.brandText}} / {{detail.modelText}}</text>
+            <text wx:if="{{detail.categoryPath}}" class="meta-dot">·</text>
+            <text wx:if="{{detail.categoryPath}}" class="meta-text meta-text-light">{{detail.categoryPath}}</text>
+          </view>
+
+          <view class="mini-meta-row">
+            <view class="mini-meta-chip" data-type="review" bind:tap="onOpenSheet">
+              <text class="mini-meta-label">评分</text>
+              <text class="mini-meta-value">{{detail.reviewRatingText}}</text>
+            </view>
+            <view class="mini-meta-chip" data-type="review" bind:tap="onOpenSheet">
+              <text class="mini-meta-label">评价</text>
+              <text class="mini-meta-value">{{detail.reviewCount}}</text>
+            </view>
+            <view class="mini-meta-chip" bind:tap="onToggleFavorite">
+              <text class="mini-meta-label">收藏</text>
+              <text class="mini-meta-value">{{detail.favoriteCount}}</text>
+            </view>
+          </view>
+
+          <text class="price-tip">价格以下单结算页为准，活动优惠请以实际显示为准</text>
+        </view>
+
+        <view class="entry-section">
+          <view class="entry-row" data-type="info" bind:tap="onOpenSheet">
+            <view class="entry-main">
+              <text class="entry-label">商品信息</text>
+              <text class="entry-preview">{{detail.infoPreview}}</text>
+            </view>
+            <text class="entry-arrow">></text>
+          </view>
+
+          <view class="entry-row" data-type="service" bind:tap="onOpenSheet">
+            <view class="entry-main">
+              <text class="entry-label">服务保障</text>
+              <text class="entry-preview">{{detail.servicePreview}}</text>
+            </view>
+            <text class="entry-arrow">></text>
+          </view>
+
+          <view class="entry-row" data-type="spec" bind:tap="onOpenSheet">
+            <view class="entry-main">
+              <text class="entry-label">商品参数</text>
+              <text class="entry-preview">{{detail.specPreview}}</text>
+            </view>
+            <text class="entry-arrow">></text>
+          </view>
+
+          <view class="entry-row entry-row-last" data-type="address" bind:tap="onOpenSheet">
+            <view class="entry-main">
+              <text class="entry-label">收货地址</text>
+              <text class="entry-preview entry-preview-address">
+                {{selectedAddress ? selectedAddress.fullAddress : "请选择收货地址，查看更准确的配送信息"}}
+              </text>
+            </view>
+            <text class="entry-arrow">></text>
+          </view>
+        </view>
+
+        <view class="review-preview-section">
+          <view class="review-preview-head" data-type="review" bind:tap="onOpenSheet">
+            <view class="review-preview-title-wrap">
+              <text class="review-preview-title">商品评价</text>
+              <text class="review-preview-count">{{detail.reviewCount}}</text>
+            </view>
+            <text class="review-preview-link">查看全部 ></text>
+          </view>
+
+          <block wx:if="{{detail.reviewPreviewList.length}}">
+            <view
+              wx:for="{{detail.reviewPreviewList}}"
+              wx:key="id"
+              wx:for-index="reviewIndex"
+              class="review-preview-item"
+            >
+              <view class="review-preview-user-row">
+                <view class="review-preview-user-main">
+                  <text class="review-preview-user">{{item.userDisplayName}}</text>
+                  <view class="review-preview-meta-row">
+                    <view class="review-preview-stars">
+                      <text
+                        wx:for="{{item.stars}}"
+                        wx:key="value"
+                        wx:for-item="star"
+                        class="review-preview-star {{star.active ? 'review-preview-star-active' : ''}}"
+                      >★</text>
+                    </view>
+                    <view wx:if="{{item.summaryTags.length}}" class="review-preview-tags">
+                      <text
+                        wx:for="{{item.summaryTags}}"
+                        wx:key="*this"
+                        class="review-preview-tag"
+                      >{{item}}</text>
+                    </view>
+                  </view>
+                </view>
+                <text class="review-preview-time">{{item.createdTimeText}}</text>
+              </view>
+
+              <view wx:if="{{item.content}}" class="review-preview-content">{{item.content}}</view>
+
+              <view wx:if="{{item.images.length}}" class="review-preview-images">
+                <image
+                  wx:for="{{item.images}}"
+                  wx:key="id"
+                  wx:for-item="imageItem"
+                  class="review-preview-image"
+                  src="{{imageItem.thumbnailUrl}}"
+                  mode="aspectFill"
+                  data-review-index="{{reviewIndex}}"
+                  data-current="{{imageItem.url}}"
+                  bind:tap="onPreviewReviewImage"
+                />
+              </view>
+            </view>
+          </block>
+
+          <view wx:else class="review-preview-empty">暂时还没有商品评价</view>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <view wx:if="{{detail}}" class="bottom-bar-shell">
+    <view class="bottom-bar">
+      <view class="favorite-action" bind:tap="onToggleFavorite">
+        <van-icon name="{{detail.isFavorite ? 'star' : 'star-o'}}" size="22" color="{{detail.isFavorite ? '#1677ff' : '#64748b'}}" />
+        <text class="favorite-action-text">{{detail.isFavorite ? "已收藏" : "收藏"}}</text>
+      </view>
+      <view class="action-pill">
+        <view class="action-pill-btn action-pill-cart" bind:tap="onAddCartTap">加入购物车</view>
+        <view class="action-pill-btn action-pill-buy" bind:tap="onBuyNowTap">立即购买</view>
+      </view>
+    </view>
+  </view>
+
+  <van-popup
+    show="{{showSheet}}"
+    position="bottom"
+    custom-style="height: 72vh;"
+    bind:close="onCloseSheet"
+  >
+    <view class="sheet-panel">
+      <view class="sheet-handle"></view>
+      <view class="sheet-header">
+        <text class="sheet-title">{{sheetTitle}}</text>
+        <text class="sheet-close" bind:tap="onCloseSheet">完成</text>
+      </view>
+
+      <scroll-view
+        scroll-y
+        class="sheet-scroll {{activeSheet === 'address' ? 'sheet-scroll-address' : ''}}"
+      >
+        <block wx:if="{{activeSheet === 'info'}}">
+          <view class="sheet-section">
+            <text class="sheet-highlight">{{detail.descriptionText}}</text>
+          </view>
+          <view class="sheet-section">
+            <view class="sheet-item">
+              <text class="sheet-item-label">商品名称</text>
+              <text class="sheet-item-value">{{detail.name}}</text>
+            </view>
+            <view class="sheet-item">
+              <text class="sheet-item-label">品牌</text>
+              <text class="sheet-item-value">{{detail.brandText}}</text>
+            </view>
+            <view class="sheet-item">
+              <text class="sheet-item-label">型号</text>
+              <text class="sheet-item-value">{{detail.modelText}}</text>
+            </view>
+            <view class="sheet-item">
+              <text class="sheet-item-label">分类</text>
+              <text class="sheet-item-value">{{detail.categoryPath || "暂无分类信息"}}</text>
+            </view>
+          </view>
+        </block>
+
+        <block wx:elif="{{activeSheet === 'service'}}">
+          <view class="sheet-section">
+            <view class="sheet-item">
+              <text class="sheet-item-label">收货地址</text>
+              <text class="sheet-item-value">{{selectedAddress ? selectedAddress.fullAddress : "请选择收货地址"}}</text>
+            </view>
+            <view class="sheet-item">
+              <text class="sheet-item-label">库存状态</text>
+              <text class="sheet-item-value">{{detail.stockStatusText}}</text>
+            </view>
+            <view class="sheet-item">
+              <text class="sheet-item-label">保修期</text>
+              <text class="sheet-item-value">{{detail.warrantyText}}</text>
+            </view>
+            <view class="sheet-item">
+              <text class="sheet-item-label">配送说明</text>
+              <text class="sheet-item-value">
+                {{selectedAddress ? "将按所选地址确认配送范围与时效" : "选择地址后可查看更准确配送信息"}}
+              </text>
+            </view>
+          </view>
+        </block>
+
+        <block wx:elif="{{activeSheet === 'spec'}}">
+          <view wx:if="{{detail.specifications.length}}" class="sheet-section">
+            <view wx:for="{{detail.specifications}}" wx:key="index" class="sheet-item">
+              <text class="sheet-item-label">{{item.key || "参数"}}</text>
+              <text class="sheet-item-value">{{item.value || "-"}}</text>
+            </view>
+          </view>
+          <view wx:else class="sheet-empty">
+            <text class="sheet-empty-text">商家暂未补充商品参数</text>
+          </view>
+        </block>
+
+        <block wx:elif="{{activeSheet === 'review'}}">
+          <view wx:if="{{detail.reviews.length}}" class="sheet-section review-section">
+            <view wx:for="{{detail.reviews}}" wx:key="id" wx:for-index="reviewIndex" class="review-item">
+              <view class="review-head">
+                <view class="review-user-block">
+                  <text class="review-user">{{item.userDisplayName}}</text>
+                  <view class="review-meta-row">
+                    <view class="review-stars">
+                      <text
+                        wx:for="{{item.stars}}"
+                        wx:key="value"
+                        wx:for-item="star"
+                        class="review-star {{star.active ? 'review-star-active' : ''}}"
+                      >★</text>
+                      <text class="review-score">{{item.ratingText}}</text>
+                    </view>
+                    <view wx:if="{{item.summaryTags.length}}" class="review-tags">
+                      <text
+                        wx:for="{{item.summaryTags}}"
+                        wx:key="*this"
+                        class="review-tag"
+                      >{{item}}</text>
+                    </view>
+                  </view>
+                </view>
+                <text class="review-time">{{item.createdTimeText}}</text>
+              </view>
+              <view wx:if="{{item.content}}" class="review-content">{{item.content}}</view>
+              <view wx:if="{{item.images.length}}" class="review-images">
+                <image
+                  wx:for="{{item.images}}"
+                  wx:key="id"
+                  wx:for-item="imageItem"
+                  class="review-image"
+                  src="{{imageItem.thumbnailUrl}}"
+                  mode="aspectFill"
+                  data-review-index="{{reviewIndex}}"
+                  data-current="{{imageItem.url}}"
+                  bind:tap="onPreviewReviewImage"
+                />
+              </view>
+              <view wx:if="{{item.replyContent}}" class="review-reply">
+                <text class="review-reply-title">商家回复</text>
+                <text class="review-reply-content">{{item.replyContent}}</text>
+                <text wx:if="{{item.replyTimeText}}" class="review-reply-time">{{item.replyTimeText}}</text>
+              </view>
+            </view>
+          </view>
+          <view wx:else class="sheet-empty">
+            <text class="sheet-empty-text">暂时还没有商品评价</text>
+          </view>
+        </block>
+
+        <block wx:elif="{{activeSheet === 'address'}}">
+          <view wx:if="{{addressLoading}}" class="sheet-empty">
+            <van-loading size="24px" color="#1677ff" />
+            <text class="sheet-empty-text">地址加载中...</text>
+          </view>
+
+          <block wx:elif="{{addressList.length}}">
+            <view class="sheet-section address-section">
+              <view
+                wx:for="{{addressList}}"
+                wx:key="id"
+                class="address-item {{selectedAddressId === item.id ? 'address-item-selected' : ''}}"
+                data-id="{{item.id}}"
+                bind:tap="onSelectAddress"
+              >
+                <view class="address-top">
+                  <view class="address-person">
+                    <text class="address-name">{{item.contactName}}</text>
+                    <text class="address-phone">{{item.contactPhone}}</text>
+                  </view>
+                  <text wx:if="{{item.isDefault}}" class="address-tag">默认</text>
+                </view>
+                <view class="address-meta">
+                  <text class="address-type">{{item.addressTypeName}}</text>
+                  <text class="address-detail">{{item.fullAddress}}</text>
+                </view>
+              </view>
+            </view>
+          </block>
+
+          <view wx:else class="sheet-empty">
+            <text class="sheet-empty-text">还没有收货地址，先新增一个吧</text>
+          </view>
+        </block>
+      </scroll-view>
+
+      <view wx:if="{{activeSheet === 'address'}}" class="sheet-footer">
+        <view class="sheet-footer-btn sheet-footer-ghost" bind:tap="onManageAddress">地址管理</view>
+        <view class="sheet-footer-btn sheet-footer-primary" bind:tap="onAddAddress">新增地址</view>
+      </view>
+    </view>
+  </van-popup>
+</view>

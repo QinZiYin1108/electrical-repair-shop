@@ -7,6 +7,7 @@ public class AdminProfileDetailResponse {
     private String phone;
     private String email;
     private Integer adminType;
+    private Integer adminRole;
     private Integer accountStatus;
     private String realName;
     private String department;
@@ -51,6 +52,14 @@ public class AdminProfileDetailResponse {
 
     public void setAdminType(Integer adminType) {
         this.adminType = adminType;
+    }
+
+    public Integer getAdminRole() {
+        return adminRole;
+    }
+
+    public void setAdminRole(Integer adminRole) {
+        this.adminRole = adminRole;
     }
 
     public Integer getAccountStatus() {

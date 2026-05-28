@@ -12,13 +12,13 @@ public interface AdminProductManageService {
 
     List<AdminProductCategoryResponse> listProductCategories();
 
-    List<AdminProductResponse> listProducts(Integer productType, String keyword, String categoryId, Integer status);
+    List<AdminProductResponse> listProducts(Integer productType, String keyword, String categoryId, Integer status, String storeId);
 
-    AdminProductResponse createProduct(Integer productType, AdminProductSaveRequest request);
+    AdminProductResponse createProduct(Integer productType, AdminProductSaveRequest request, String storeId);
 
-    AdminProductResponse updateProduct(Integer productType, String id, AdminProductSaveRequest request);
+    AdminProductResponse updateProduct(Integer productType, String id, AdminProductSaveRequest request, String storeId);
 
     AdminProductUploadMediaResponse uploadProductMedia(String mediaType, MultipartFile file);
 
-    void deleteProduct(Integer productType, String id);
+    void deleteProduct(Integer productType, String id, String storeId);
 }

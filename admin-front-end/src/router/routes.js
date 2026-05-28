@@ -27,6 +27,7 @@ import AdminOfflineOrderCreateView from '../views/admin/AdminOfflineOrderCreateV
 import AdminProductOrdersView from '../views/admin/AdminProductOrdersView.vue';
 import AdminProductOrderDetailView from '../views/admin/AdminProductOrderDetailView.vue';
 import AdminSystemSettingsView from '../views/admin/AdminSystemSettingsView.vue';
+import AdminStoreListView from '../views/admin/AdminStoreListView.vue';
 import ProtocolViewerView from '../views/common/ProtocolViewerView.vue';
 
 const routes = [
@@ -87,6 +88,12 @@ const routes = [
         name: 'AdminProductOrderDetail',
         component: AdminProductOrderDetailView,
         meta: { title: '商品订单详情', description: '用于查看商品订单明细和物流信息。' }
+      },
+      {
+        path: 'stores/list',
+        name: 'AdminStoresList',
+        component: AdminStoreListView,
+        meta: { title: '门店列表', description: '用于创建和管理门店及门店管理员。' }
       },
       {
         path: 'products/categories',

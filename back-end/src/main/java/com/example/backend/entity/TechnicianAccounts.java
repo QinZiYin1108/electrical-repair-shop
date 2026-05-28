@@ -15,6 +15,8 @@ public class TechnicianAccounts {
     @TableId
     private String id;
 
+    private String storeId;
+
     private String username;
 
     private String phone;
@@ -38,6 +40,8 @@ public class TechnicianAccounts {
     private Integer workStatus;
 
     private BigDecimal rating;
+
+    private Integer creditScore;
 
     private Integer orderCount;
 

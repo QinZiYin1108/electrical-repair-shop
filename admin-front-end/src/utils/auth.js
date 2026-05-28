@@ -10,3 +10,20 @@ export function clearToken() {
   localStorage.removeItem('token');
 }
 
+export function getAdminRole() {
+  const v = localStorage.getItem('adminRole');
+  return v ? parseInt(v, 10) : null;
+}
+
+export function setAdminRole(role) {
+  if (role != null) {
+    localStorage.setItem('adminRole', String(role));
+  } else {
+    localStorage.removeItem('adminRole');
+  }
+}
+
+export function clearAuth() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('adminRole');
+}

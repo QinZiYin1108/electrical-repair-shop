@@ -1638,4 +1638,339 @@ CREATE TABLE `warranty_cards`  (
 -- Records of warranty_cards
 -- ----------------------------
 
+-- ============================================================
+-- v0.2.0 新增表结构
+-- ============================================================
+
+-- ----------------------------
+-- Table structure for stores
+-- ----------------------------
+DROP TABLE IF EXISTS `stores`;
+CREATE TABLE `stores`  (
+  `id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '主键，ST+雪花ID',
+  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '门店名称',
+  `logo_image_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '门店Logo图片ID',
+  `store_admin_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '门店管理员ID，关联admin_accounts.id',
+  `contact_phone` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '联系电话',
+  `address` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '门店地址',
+  `latitude` decimal(10, 7) NULL DEFAULT NULL COMMENT '纬度',
+  `longitude` decimal(10, 7) NULL DEFAULT NULL COMMENT '经度',
+  `business_status` int NOT NULL DEFAULT 1 COMMENT '营业状态：1-营业中，2-休息中，3-已关闭',
+  `rating` decimal(3, 1) NULL DEFAULT NULL COMMENT '门店评分，1.0-5.0，NULL表示暂无评分',
+  `rating_count` int NOT NULL DEFAULT 0 COMMENT '有效评价数，>=3后开始展示评分',
+  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '门店介绍',
+  `business_license` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '营业执照URL',
+  `audit_status` int NOT NULL DEFAULT 1 COMMENT '审核状态：1-待审核，2-审核通过，3-审核拒绝',
+  `audit_remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '审核备注',
+  `audit_time` bigint NULL DEFAULT NULL COMMENT '审核时间戳',
+  `is_online` int NOT NULL DEFAULT 1 COMMENT '是否在线：0-离线，1-在线',
+  `created_time` bigint NOT NULL COMMENT '创建时间戳',
+  `updated_time` bigint NOT NULL COMMENT '更新时间戳',
+  `version` int NOT NULL DEFAULT 1 COMMENT '乐观锁版本号',
+  `is_delete` int NOT NULL DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_name`(`name` ASC) USING BTREE,
+  INDEX `idx_store_admin_id`(`store_admin_id` ASC) USING BTREE,
+  INDEX `idx_business_status`(`business_status` ASC) USING BTREE,
+  INDEX `idx_audit_status`(`audit_status` ASC) USING BTREE,
+  INDEX `idx_is_delete`(`is_delete` ASC) USING BTREE,
+  CONSTRAINT `fk_stores_store_admin_id` FOREIGN KEY (`store_admin_id`) REFERENCES `admin_accounts` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '门店表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of stores
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for store_business_hours
+-- ----------------------------
+DROP TABLE IF EXISTS `store_business_hours`;
+CREATE TABLE `store_business_hours`  (
+  `id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '主键，SBH+雪花ID',
+  `store_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '门店ID',
+  `day_of_week` int NOT NULL COMMENT '星期：1-7（周一到周日）',
+  `start_time` time NOT NULL COMMENT '开始营业时间',
+  `end_time` time NOT NULL COMMENT '结束营业时间',
+  `is_available` int NOT NULL DEFAULT 1 COMMENT '是否营业：0-休息，1-营业',
+  `created_time` bigint NOT NULL COMMENT '创建时间戳',
+  `updated_time` bigint NOT NULL COMMENT '更新时间戳',
+  `version` int NOT NULL DEFAULT 1 COMMENT '乐观锁版本号',
+  `is_delete` int NOT NULL DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_store_day`(`store_id` ASC, `day_of_week` ASC) USING BTREE,
+  INDEX `idx_day_of_week`(`day_of_week` ASC) USING BTREE,
+  INDEX `idx_is_delete`(`is_delete` ASC) USING BTREE,
+  CONSTRAINT `fk_store_business_hours_store_id` FOREIGN KEY (`store_id`) REFERENCES `stores` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '门店营业时间表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of store_business_hours
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for content_check_rules
+-- ----------------------------
+DROP TABLE IF EXISTS `content_check_rules`;
+CREATE TABLE `content_check_rules`  (
+  `id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '主键，CCR+雪花ID',
+  `keyword` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '违规词或正则表达式',
+  `match_type` int NOT NULL DEFAULT 2 COMMENT '匹配方式：1-精确匹配，2-包含匹配，3-正则匹配',
+  `severity` int NOT NULL DEFAULT 1 COMMENT '违规等级：1-一级，2-二级，3-三级，4-四级',
+  `category` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '分类：political/porn/violence/abuse/spam/other',
+  `is_active` int NOT NULL DEFAULT 1 COMMENT '是否启用：0-禁用，1-启用',
+  `created_by` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '创建人ID',
+  `created_time` bigint NOT NULL COMMENT '创建时间戳',
+  `updated_time` bigint NOT NULL COMMENT '更新时间戳',
+  `version` int NOT NULL DEFAULT 1 COMMENT '乐观锁版本号',
+  `is_delete` int NOT NULL DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_category`(`category` ASC) USING BTREE,
+  INDEX `idx_severity`(`severity` ASC) USING BTREE,
+  INDEX `idx_is_active`(`is_active` ASC) USING BTREE,
+  INDEX `idx_is_delete`(`is_delete` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '违规内容规则库表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of content_check_rules
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for content_check_logs
+-- ----------------------------
+DROP TABLE IF EXISTS `content_check_logs`;
+CREATE TABLE `content_check_logs`  (
+  `id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '主键，CCL+雪花ID',
+  `account_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '提交人账号ID',
+  `account_type` int NOT NULL COMMENT '提交人类型：1-用户，2-师傅，3-门店管理员',
+  `content_type` int NOT NULL COMMENT '内容类型：1-文字，2-图片URL',
+  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '原始内容',
+  `check_result` int NOT NULL COMMENT '审核结果：1-通过，2-拦截，3-待审',
+  `hit_rule_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '命中规则ID',
+  `hit_keyword` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '命中关键词',
+  `source` int NULL DEFAULT NULL COMMENT '检测来源：1-自建库，2-第三方库',
+  `created_time` bigint NOT NULL COMMENT '创建时间戳',
+  `is_delete` int NOT NULL DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_account`(`account_id` ASC, `account_type` ASC) USING BTREE,
+  INDEX `idx_check_result`(`check_result` ASC) USING BTREE,
+  INDEX `idx_created_time`(`created_time` ASC) USING BTREE,
+  INDEX `idx_is_delete`(`is_delete` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '内容审核日志表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of content_check_logs
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for image_review_queue
+-- ----------------------------
+DROP TABLE IF EXISTS `image_review_queue`;
+CREATE TABLE `image_review_queue`  (
+  `id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '主键，IRQ+雪花ID',
+  `image_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '关联图片ID，对应images.id',
+  `business_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '业务类型：AVATAR/STORE/PRODUCT/CASE',
+  `business_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '业务ID',
+  `status` int NOT NULL DEFAULT 1 COMMENT '审核状态：1-待审核，2-审核通过，3-审核拒绝',
+  `reviewer_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '审核人ID',
+  `reject_reason` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '拒绝原因',
+  `review_time` bigint NULL DEFAULT NULL COMMENT '审核时间戳',
+  `created_time` bigint NOT NULL COMMENT '创建时间戳',
+  `updated_time` bigint NOT NULL COMMENT '更新时间戳',
+  `version` int NOT NULL DEFAULT 1 COMMENT '乐观锁版本号',
+  `is_delete` int NOT NULL DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_image_id`(`image_id` ASC) USING BTREE,
+  INDEX `idx_business`(`business_type` ASC, `business_id` ASC) USING BTREE,
+  INDEX `idx_status`(`status` ASC) USING BTREE,
+  INDEX `idx_is_delete`(`is_delete` ASC) USING BTREE,
+  CONSTRAINT `fk_image_review_queue_image_id` FOREIGN KEY (`image_id`) REFERENCES `images` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '图片审核队列表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of image_review_queue
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for reports
+-- ----------------------------
+DROP TABLE IF EXISTS `reports`;
+CREATE TABLE `reports`  (
+  `id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '主键，RP+雪花ID',
+  `reporter_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '举报人账号ID',
+  `reporter_type` int NOT NULL COMMENT '举报人类型：1-用户，2-师傅，3-门店管理员',
+  `target_type` int NOT NULL COMMENT '举报对象类型：1-账号，2-门店，3-订单，4-商品',
+  `target_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '举报对象ID',
+  `target_field` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '举报字段或节点',
+  `reason_category` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '举报原因分类',
+  `description` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '补充说明',
+  `evidence_images` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '截图JSON数组',
+  `status` int NOT NULL DEFAULT 1 COMMENT '处理状态：1-待处理，2-处理中，3-已成立，4-已驳回',
+  `result` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '处理结果说明',
+  `handler_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '处理人ID',
+  `handle_time` bigint NULL DEFAULT NULL COMMENT '处理时间戳',
+  `created_time` bigint NOT NULL COMMENT '创建时间戳',
+  `updated_time` bigint NOT NULL COMMENT '更新时间戳',
+  `version` int NOT NULL DEFAULT 1 COMMENT '乐观锁版本号',
+  `is_delete` int NOT NULL DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_reporter_target`(`reporter_id` ASC, `target_type` ASC, `target_id` ASC, `status` ASC) USING BTREE COMMENT '同一举报人对同一对象的未处理举报不重复',
+  INDEX `idx_reporter`(`reporter_id` ASC, `reporter_type` ASC) USING BTREE,
+  INDEX `idx_target`(`target_type` ASC, `target_id` ASC) USING BTREE,
+  INDEX `idx_status`(`status` ASC) USING BTREE,
+  INDEX `idx_created_time`(`created_time` ASC) USING BTREE,
+  INDEX `idx_is_delete`(`is_delete` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '举报表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of reports
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for credit_records
+-- ----------------------------
+DROP TABLE IF EXISTS `credit_records`;
+CREATE TABLE `credit_records`  (
+  `id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '主键，CR+雪花ID',
+  `account_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '账号ID',
+  `account_type` int NOT NULL COMMENT '账号类型：1-用户，2-师傅，3-门店管理员',
+  `change_type` int NOT NULL COMMENT '变动类型：1-违规扣分，2-自动恢复，3-举报奖励，4-完单恢复，5-申诉恢复',
+  `score_change` int NOT NULL COMMENT '积分变动值（负数为扣分）',
+  `score_before` int NOT NULL COMMENT '变动前积分',
+  `score_after` int NOT NULL COMMENT '变动后积分',
+  `reason` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '变动原因',
+  `related_record_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '关联记录ID',
+  `created_time` bigint NOT NULL COMMENT '创建时间戳',
+  `is_delete` int NOT NULL DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_account`(`account_id` ASC, `account_type` ASC) USING BTREE,
+  INDEX `idx_change_type`(`change_type` ASC) USING BTREE,
+  INDEX `idx_created_time`(`created_time` ASC) USING BTREE,
+  INDEX `idx_is_delete`(`is_delete` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '信用积分变动记录表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of credit_records
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for penalty_records
+-- ----------------------------
+DROP TABLE IF EXISTS `penalty_records`;
+CREATE TABLE `penalty_records`  (
+  `id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '主键，PN+雪花ID',
+  `account_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '被处罚账号ID',
+  `account_type` int NOT NULL COMMENT '账号类型：1-用户，2-师傅，3-门店管理员',
+  `report_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '关联举报ID',
+  `violation_level` int NOT NULL COMMENT '违规等级：1-一级，2-二级，3-三级，4-四级',
+  `score_deducted` int NOT NULL COMMENT '扣分分值',
+  `penalty_type` int NOT NULL DEFAULT 1 COMMENT '处罚类型：1-警告，2-功能限制，3-封禁',
+  `restricted_functions` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '被限制的功能JSON',
+  `ban_duration_hours` int NULL DEFAULT NULL COMMENT '封禁时长（小时），NULL为永久',
+  `ban_start_time` bigint NULL DEFAULT NULL COMMENT '封禁开始时间戳',
+  `ban_end_time` bigint NULL DEFAULT NULL COMMENT '封禁结束时间戳',
+  `status` int NOT NULL DEFAULT 1 COMMENT '状态：1-执行中，2-已解除，3-已过期',
+  `operator_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '操作人ID',
+  `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
+  `appeal_status` int NOT NULL DEFAULT 0 COMMENT '申诉状态：0-未申诉，1-申诉中，2-申诉通过，3-申诉驳回',
+  `appeal_reason` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '申诉原因',
+  `appeal_time` bigint NULL DEFAULT NULL COMMENT '申诉时间戳',
+  `appeal_result` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '申诉处理结果',
+  `created_time` bigint NOT NULL COMMENT '创建时间戳',
+  `updated_time` bigint NOT NULL COMMENT '更新时间戳',
+  `version` int NOT NULL DEFAULT 1 COMMENT '乐观锁版本号',
+  `is_delete` int NOT NULL DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_account`(`account_id` ASC, `account_type` ASC) USING BTREE,
+  INDEX `idx_status`(`status` ASC) USING BTREE,
+  INDEX `idx_appeal_status`(`appeal_status` ASC) USING BTREE,
+  INDEX `idx_violation_level`(`violation_level` ASC) USING BTREE,
+  INDEX `idx_created_time`(`created_time` ASC) USING BTREE,
+  INDEX `idx_is_delete`(`is_delete` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '处罚记录表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of penalty_records
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for cancel_reasons
+-- ----------------------------
+DROP TABLE IF EXISTS `cancel_reasons`;
+CREATE TABLE `cancel_reasons`  (
+  `id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '主键，CLR+雪花ID',
+  `order_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '订单ID',
+  `order_type` int NOT NULL COMMENT '订单类型：1-维修订单，2-商品订单',
+  `reason_code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '原因编码',
+  `reason_label` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '原因标签',
+  `user_remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '用户备注',
+  `created_time` bigint NOT NULL COMMENT '创建时间戳',
+  `is_delete` int NOT NULL DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_order`(`order_id` ASC, `order_type` ASC) USING BTREE,
+  INDEX `idx_reason_code`(`reason_code` ASC) USING BTREE,
+  INDEX `idx_is_delete`(`is_delete` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '订单取消原因表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of cancel_reasons
+-- ----------------------------
+
+-- ============================================================
+-- v0.2.0 已有表新增字段（ALTER TABLE）
+-- ============================================================
+
+ALTER TABLE `products`
+  ADD COLUMN `store_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '归属门店ID' AFTER `category_id`,
+  ADD COLUMN `fulfillment_type` int NULL DEFAULT NULL COMMENT '履约方式：1-自取，2-送货上门' AFTER `is_recommended`,
+  ADD COLUMN `delivery_range_km` decimal(8, 2) NULL DEFAULT NULL COMMENT '配送范围（公里）' AFTER `fulfillment_type`,
+  ADD COLUMN `delivery_fee` decimal(8, 2) NULL DEFAULT NULL COMMENT '配送费' AFTER `delivery_range_km`,
+  ADD COLUMN `need_appointment` int NOT NULL DEFAULT 0 COMMENT '送货上门是否需要预约：0-否，1-是' AFTER `delivery_fee`,
+  ADD COLUMN `audit_status` int NOT NULL DEFAULT 1 COMMENT '审核状态：1-待审核，2-审核通过，3-审核拒绝' AFTER `status`,
+  ADD COLUMN `is_frozen` int NOT NULL DEFAULT 0 COMMENT '是否冻结：0-正常，1-已冻结' AFTER `audit_status`,
+  ADD COLUMN `frozen_time` bigint NULL DEFAULT NULL COMMENT '冻结时间戳' AFTER `is_frozen`,
+  ADD COLUMN `frozen_by` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '冻结操作人ID' AFTER `frozen_time`,
+  ADD INDEX `idx_store_id`(`store_id` ASC),
+  ADD INDEX `idx_audit_status`(`audit_status` ASC),
+  ADD INDEX `idx_is_frozen`(`is_frozen` ASC);
+
+ALTER TABLE `technician_accounts`
+  ADD COLUMN `store_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '归属门店ID' AFTER `id`,
+  ADD COLUMN `credit_score` int NOT NULL DEFAULT 100 COMMENT '信用积分，初始100分' AFTER `rating`,
+  ADD INDEX `idx_technician_store_id`(`store_id` ASC);
+
+ALTER TABLE `admin_accounts`
+  ADD COLUMN `admin_role` int NOT NULL DEFAULT 1 COMMENT '角色类型：1-超级管理员，2-门店管理员，3-客服（补充角色字段，原admin_type保留）' AFTER `admin_type`;
+
+ALTER TABLE `user_accounts`
+  ADD COLUMN `credit_score` int NOT NULL DEFAULT 100 COMMENT '信用积分，初始100分' AFTER `balance`;
+
+ALTER TABLE `repair_orders`
+  ADD COLUMN `cancel_reason_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '关联取消原因ID' AFTER `cancel_time`,
+  ADD INDEX `idx_cancel_reason_id`(`cancel_reason_id` ASC);
+
+ALTER TABLE `product_orders`
+  ADD COLUMN `cancel_reason_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '关联取消原因ID' AFTER `cancel_time`,
+  ADD COLUMN `fulfillment_type` int NULL DEFAULT NULL COMMENT '履约方式：1-自取，2-送货上门' AFTER `cancel_reason_id`,
+  ADD INDEX `idx_product_order_cancel_reason_id`(`cancel_reason_id` ASC);
+
+-- ============================================================
+-- v0.2.0 信用系统配置项
+-- ============================================================
+
+INSERT INTO `system_configs` (`id`, `config_key`, `config_value`, `config_type`, `description`, `group_name`, `is_system`, `is_encrypted`, `created_time`, `updated_time`, `version`, `is_delete`)
+VALUES
+('SC900000000000000016', 'credit.score_initial', '100', 2, '信用积分初始值', 'credit', 1, 0, UNIX_TIMESTAMP(NOW())*1000, UNIX_TIMESTAMP(NOW())*1000, 1, 0),
+('SC900000000000000017', 'credit.score_redline', '40', 2, '信用积分红线值，低于此值触发封禁', 'credit', 1, 0, UNIX_TIMESTAMP(NOW())*1000, UNIX_TIMESTAMP(NOW())*1000, 1, 0),
+('SC900000000000000018', 'credit.score_warning', '60', 2, '信用积分预警值，低于此值限制部分功能', 'credit', 1, 0, UNIX_TIMESTAMP(NOW())*1000, UNIX_TIMESTAMP(NOW())*1000, 1, 0),
+('SC900000000000000019', 'credit.deduct_level1', '5', 2, '一级违规扣分', 'credit', 1, 0, UNIX_TIMESTAMP(NOW())*1000, UNIX_TIMESTAMP(NOW())*1000, 1, 0),
+('SC900000000000000020', 'credit.deduct_level2', '10', 2, '二级违规扣分', 'credit', 1, 0, UNIX_TIMESTAMP(NOW())*1000, UNIX_TIMESTAMP(NOW())*1000, 1, 0),
+('SC900000000000000021', 'credit.deduct_level3', '20', 2, '三级违规扣分', 'credit', 1, 0, UNIX_TIMESTAMP(NOW())*1000, UNIX_TIMESTAMP(NOW())*1000, 1, 0),
+('SC900000000000000022', 'credit.deduct_level4', '40', 2, '四级违规扣分', 'credit', 1, 0, UNIX_TIMESTAMP(NOW())*1000, UNIX_TIMESTAMP(NOW())*1000, 1, 0),
+('SC900000000000000023', 'credit.recover_clean_days', '30', 2, '无违规天数阈值，达到后恢复积分', 'credit', 1, 0, UNIX_TIMESTAMP(NOW())*1000, UNIX_TIMESTAMP(NOW())*1000, 1, 0),
+('SC900000000000000024', 'credit.recover_clean_score', '5', 2, '周期内无违规恢复积分', 'credit', 1, 0, UNIX_TIMESTAMP(NOW())*1000, UNIX_TIMESTAMP(NOW())*1000, 1, 0),
+('SC900000000000000025', 'credit.recover_report_score', '2', 2, '有效举报每次恢复积分', 'credit', 1, 0, UNIX_TIMESTAMP(NOW())*1000, UNIX_TIMESTAMP(NOW())*1000, 1, 0),
+('SC900000000000000026', 'credit.recover_report_monthly_max', '10', 2, '举报恢复每月积分上限', 'credit', 1, 0, UNIX_TIMESTAMP(NOW())*1000, UNIX_TIMESTAMP(NOW())*1000, 1, 0),
+('SC900000000000000027', 'credit.recover_order_monthly_max', '10', 2, '完单恢复每月积分上限', 'credit', 1, 0, UNIX_TIMESTAMP(NOW())*1000, UNIX_TIMESTAMP(NOW())*1000, 1, 0),
+('SC900000000000000028', 'report.daily_max_count', '10', 2, '每人每天最大举报次数', 'report', 1, 0, UNIX_TIMESTAMP(NOW())*1000, UNIX_TIMESTAMP(NOW())*1000, 1, 0);
+
 SET FOREIGN_KEY_CHECKS = 1;

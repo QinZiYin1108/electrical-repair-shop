@@ -30,6 +30,12 @@
           <u-icon name="arrow-right" size="16" color="#c0c4cc" />
         </view>
       </view>
+      <view class="row clickable" @click="goStoreAddressPage">
+        <text class="label">门店地址</text>
+        <view class="right">
+          <u-icon name="arrow-right" size="16" color="#c0c4cc" />
+        </view>
+      </view>
     </view>
 
     <view class="card">
@@ -227,6 +233,11 @@ export default {
     goSkillPage() {
       uni.navigateTo({
         url: '/pages/skills/index'
+      });
+    },
+    goStoreAddressPage() {
+      uni.navigateTo({
+        url: '/pages/store-address/index'
       });
     },
     logout() {

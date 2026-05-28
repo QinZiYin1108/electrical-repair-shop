@@ -39,6 +39,11 @@ public class Products {
     private String categoryId;
 
     /**
+     * 归属门店ID
+     */
+    private String storeId;
+
+    /**
      * 品牌
      */
     private String brand;
@@ -157,6 +162,46 @@ public class Products {
      * 是否推荐：0-否，1-是
      */
     private Integer isRecommended;
+
+    /**
+     * 履约方式：1-自取，2-送货上门
+     */
+    private Integer fulfillmentType;
+
+    /**
+     * 配送范围（公里）
+     */
+    private BigDecimal deliveryRangeKm;
+
+    /**
+     * 配送费
+     */
+    private BigDecimal deliveryFee;
+
+    /**
+     * 送货上门是否需要预约：0-否，1-是
+     */
+    private Integer needAppointment;
+
+    /**
+     * 审核状态：1-待审核，2-审核通过，3-审核拒绝
+     */
+    private Integer auditStatus;
+
+    /**
+     * 是否冻结：0-正常，1-已冻结
+     */
+    private Integer isFrozen;
+
+    /**
+     * 冻结时间戳
+     */
+    private Long frozenTime;
+
+    /**
+     * 冻结操作人ID
+     */
+    private String frozenBy;
 
     /**
      * 排序

@@ -1,12 +1,16 @@
 package com.example.backend.controller.admin;
 
+import com.example.backend.common.ErrorCode;
 import com.example.backend.common.Result;
+import com.example.backend.exception.BusinessException;
 import com.example.backend.model.admin.AdminProductCategoryCreateRequest;
 import com.example.backend.model.admin.AdminProductCategoryResponse;
 import com.example.backend.model.admin.AdminProductCategoryUpdateRequest;
 import com.example.backend.model.admin.AdminProductResponse;
 import com.example.backend.model.admin.AdminProductSaveRequest;
 import com.example.backend.model.admin.AdminProductUploadMediaResponse;
+import com.example.backend.security.context.AuthUserContext;
+import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.AdminProductCategoryManageService;
 import com.example.backend.service.AdminProductManageService;
 import jakarta.validation.Valid;
@@ -36,6 +40,27 @@ public class AdminProductManageController {
     ) {
         this.adminProductCategoryManageService = adminProductCategoryManageService;
         this.adminProductManageService = adminProductManageService;
+    }
+
+    /** 获取当前管理员的店铺ID（店铺管理员返回自己的storeId，超管返回null表示不过滤） */
+    private String getStoreFilterId() {
+        LoginUserInfo user = AuthUserContext.get();
+        if (user == null || !user.isStoreAdmin()) {
+            return null; // 超管不过滤
+        }
+        return user.getStoreId();
+    }
+
+    /** 店铺管理员必须传storeId，超管可传可不传 */
+    private String requireStoreIdForCreate() {
+        LoginUserInfo user = AuthUserContext.get();
+        if (user.isStoreAdmin()) {
+            if (user.getStoreId() == null) {
+                throw new BusinessException(ErrorCode.FORBIDDEN, "店铺管理员未绑定门店");
+            }
+            return user.getStoreId();
+        }
+        return null;
     }
 
     @GetMapping("/categories")
@@ -81,12 +106,12 @@ public class AdminProductManageController {
         @RequestParam(value = "categoryId", required = false) String categoryId,
         @RequestParam(value = "status", required = false) Integer status
     ) {
-        return Result.success(adminProductManageService.listProducts(1, keyword, categoryId, status));
+        return Result.success(adminProductManageService.listProducts(1, keyword, categoryId, status, getStoreFilterId()));
     }
 
     @PostMapping("/main/create")
     public Result<AdminProductResponse> createMainProduct(@Valid @RequestBody AdminProductSaveRequest request) {
-        return Result.success(adminProductManageService.createProduct(1, request));
+        return Result.success(adminProductManageService.createProduct(1, request, requireStoreIdForCreate()));
     }
 
     @PostMapping("/main/{id}/update")
@@ -94,12 +119,12 @@ public class AdminProductManageController {
         @PathVariable("id") String id,
         @Valid @RequestBody AdminProductSaveRequest request
     ) {
-        return Result.success(adminProductManageService.updateProduct(1, id, request));
+        return Result.success(adminProductManageService.updateProduct(1, id, request, getStoreFilterId()));
     }
 
     @PostMapping("/main/{id}/delete")
     public Result<Void> deleteMainProduct(@PathVariable("id") String id) {
-        adminProductManageService.deleteProduct(1, id);
+        adminProductManageService.deleteProduct(1, id, getStoreFilterId());
         return Result.success();
     }
 
@@ -109,12 +134,12 @@ public class AdminProductManageController {
         @RequestParam(value = "categoryId", required = false) String categoryId,
         @RequestParam(value = "status", required = false) Integer status
     ) {
-        return Result.success(adminProductManageService.listProducts(2, keyword, categoryId, status));
+        return Result.success(adminProductManageService.listProducts(2, keyword, categoryId, status, getStoreFilterId()));
     }
 
     @PostMapping("/second-hand/create")
     public Result<AdminProductResponse> createSecondHandProduct(@Valid @RequestBody AdminProductSaveRequest request) {
-        return Result.success(adminProductManageService.createProduct(2, request));
+        return Result.success(adminProductManageService.createProduct(2, request, requireStoreIdForCreate()));
     }
 
     @PostMapping("/second-hand/{id}/update")
@@ -122,12 +147,12 @@ public class AdminProductManageController {
         @PathVariable("id") String id,
         @Valid @RequestBody AdminProductSaveRequest request
     ) {
-        return Result.success(adminProductManageService.updateProduct(2, id, request));
+        return Result.success(adminProductManageService.updateProduct(2, id, request, getStoreFilterId()));
     }
 
     @PostMapping("/second-hand/{id}/delete")
     public Result<Void> deleteSecondHandProduct(@PathVariable("id") String id) {
-        adminProductManageService.deleteProduct(2, id);
+        adminProductManageService.deleteProduct(2, id, getStoreFilterId());
         return Result.success();
     }
 }

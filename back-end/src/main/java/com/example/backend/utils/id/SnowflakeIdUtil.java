@@ -233,4 +233,48 @@ public class SnowflakeIdUtil {
     public static String nextSystemConfigId() {
         return "SC" + DEFAULT.nextId();
     }
+
+    public static String nextStoreId() {
+        return "STR" + DEFAULT.nextId();
+    }
+
+    public static String nextOperationLogId() {
+        return "OL" + DEFAULT.nextId();
+    }
+
+    public static String nextStoreBusinessHoursId() {
+        return "SBH" + DEFAULT.nextId();
+    }
+
+    public static String nextCancelReasonId() {
+        return "CLR" + DEFAULT.nextId();
+    }
+
+    public static String nextReportId() {
+        return "RP" + DEFAULT.nextId();
+    }
+
+    public static String nextCreditRecordId() {
+        return "CDR" + DEFAULT.nextId();
+    }
+
+    public static String nextPenaltyRecordId() {
+        return "PN" + DEFAULT.nextId();
+    }
+
+    public static String nextContentCheckRuleId() {
+        return "CCR" + DEFAULT.nextId();
+    }
+
+    public static String nextContentCheckLogId() {
+        return "CCL" + DEFAULT.nextId();
+    }
+
+    public static String nextImageReviewQueueId() {
+        return "IRQ" + DEFAULT.nextId();
+    }
+
+    public static String nextAdminId() {
+        return "AA" + DEFAULT.nextId();
+    }
 }

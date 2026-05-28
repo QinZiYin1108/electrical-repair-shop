@@ -10,4 +10,23 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface ProductsService extends IService<Products> {
 
+    /**
+     * 冻结商品
+     */
+    void freezeProduct(String productId, String operatorId);
+
+    /**
+     * 解冻商品
+     */
+    void unfreezeProduct(String productId);
+
+    /**
+     * 审核商品
+     */
+    void auditProduct(String productId, Integer auditStatus, String remark);
+
+    /**
+     * 判断商品是否可购买（未冻结 + 审核通过 + 上架）
+     */
+    boolean isPurchasable(String productId);
 }

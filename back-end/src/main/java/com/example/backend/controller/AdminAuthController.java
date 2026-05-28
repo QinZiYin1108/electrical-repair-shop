@@ -10,6 +10,8 @@ import com.example.backend.security.model.AccountRole;
 import com.example.backend.security.token.JwtTokenService;
 import com.example.backend.service.AdminAccountsService;
 import com.example.backend.service.AuthCodeService;
+import com.example.backend.service.StoresService;
+import com.example.backend.entity.Stores;
 import com.example.backend.model.auth.AdminLoginByPasswordRequest;
 import com.example.backend.model.auth.AdminSendCodeRequest;
 import com.example.backend.model.auth.AdminLoginByCodeRequest;
@@ -31,15 +33,18 @@ public class AdminAuthController {
     private final AdminAccountsService adminAccountsService;
     private final JwtTokenService jwtTokenService;
     private final AuthCodeService authCodeService;
+    private final StoresService storesService;
 
     public AdminAuthController(
         AdminAccountsService adminAccountsService,
         JwtTokenService jwtTokenService,
-        AuthCodeService authCodeService
+        AuthCodeService authCodeService,
+        StoresService storesService
     ) {
         this.adminAccountsService = adminAccountsService;
         this.jwtTokenService = jwtTokenService;
         this.authCodeService = authCodeService;
+        this.storesService = storesService;
     }
 
     @PostMapping("/login/password")
@@ -57,9 +62,10 @@ public class AdminAuthController {
         if (!expectedHash.equals(admin.getPasswordHash())) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "邮箱或者密码有误");
         }
-        String token = jwtTokenService.generateToken(admin.getId(), AccountRole.ADMIN);
+        String token = jwtTokenService.generateToken(admin.getId(), AccountRole.ADMIN, buildAdminExtraClaims(admin));
         Map<String, Object> data = new HashMap<>();
         data.put("token", token);
+        data.put("adminRole", admin.getAdminRole());
         return Result.success(data);
     }
 
@@ -81,9 +87,10 @@ public class AdminAuthController {
         if (admin == null) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "邮箱或者验证码有误");
         }
-        String token = jwtTokenService.generateToken(admin.getId(), AccountRole.ADMIN);
+        String token = jwtTokenService.generateToken(admin.getId(), AccountRole.ADMIN, buildAdminExtraClaims(admin));
         Map<String, Object> data = new HashMap<>();
         data.put("token", token);
+        data.put("adminRole", admin.getAdminRole());
         return Result.success(data);
     }
 
@@ -119,5 +126,27 @@ public class AdminAuthController {
         }
         adminAccountsService.update(updateEntity, wrapper);
         return Result.success();
+    }
+
+    /**
+     * 构建管理员 JWT 额外 claims（adminRole、storeId）
+     */
+    private Map<String, Object> buildAdminExtraClaims(AdminAccounts admin) {
+        Map<String, Object> claims = new HashMap<>();
+        Integer adminRole = admin.getAdminRole();
+        claims.put("adminRole", adminRole != null ? adminRole : 1);
+
+        // 门店管理员：查询归属门店ID
+        if (adminRole != null && adminRole == 2) {
+            Stores store = storesService.getOne(
+                new LambdaQueryWrapper<Stores>()
+                    .eq(Stores::getStoreAdminId, admin.getId())
+                    .eq(Stores::getIsDelete, 0)
+            );
+            if (store != null) {
+                claims.put("storeId", store.getId());
+            }
+        }
+        return claims;
     }
 }

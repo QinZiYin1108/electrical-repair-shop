@@ -1,6 +1,8 @@
 package com.example.backend.controller.admin;
 
+import com.example.backend.common.ErrorCode;
 import com.example.backend.common.Result;
+import com.example.backend.exception.BusinessException;
 import com.example.backend.model.admin.AdminFaultPhenomenonCreateRequest;
 import com.example.backend.model.admin.AdminFaultPhenomenonBatchCopyRequest;
 import com.example.backend.model.admin.AdminFaultPhenomenonResponse;
@@ -12,6 +14,8 @@ import com.example.backend.model.admin.AdminServiceTypeBatchCopyRequest;
 import com.example.backend.model.admin.AdminServiceTypeCreateRequest;
 import com.example.backend.model.admin.AdminServiceTypeResponse;
 import com.example.backend.model.admin.AdminServiceTypeUpdateRequest;
+import com.example.backend.security.context.AuthUserContext;
+import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.AdminServiceConfigService;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
@@ -33,6 +37,14 @@ public class AdminServiceConfigController {
 
     private final AdminServiceConfigService adminServiceConfigService;
 
+    /** 服务配置仅超级管理员可用 */
+    private void requireSuperAdmin() {
+        LoginUserInfo user = AuthUserContext.get();
+        if (user == null || !user.isSuperAdmin()) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "仅超级管理员可操作服务配置");
+        }
+    }
+
     public AdminServiceConfigController(AdminServiceConfigService adminServiceConfigService) {
         this.adminServiceConfigService = adminServiceConfigService;
     }
@@ -44,6 +56,7 @@ public class AdminServiceConfigController {
 
     @PostMapping("/categories/create")
     public Result<AdminServiceCategoryResponse> createCategory(@Valid @RequestBody AdminServiceCategoryCreateRequest request) {
+        requireSuperAdmin();
         return Result.success(adminServiceConfigService.createServiceCategory(request));
     }
 
@@ -52,11 +65,13 @@ public class AdminServiceConfigController {
         @PathVariable("id") String id,
         @Valid @RequestBody AdminServiceCategoryUpdateRequest request
     ) {
+        requireSuperAdmin();
         return Result.success(adminServiceConfigService.updateServiceCategory(id, request));
     }
 
     @PostMapping("/categories/{id}/delete")
     public Result<Void> deleteCategory(@PathVariable("id") String id) {
+        requireSuperAdmin();
         adminServiceConfigService.deleteServiceCategory(id);
         return Result.success();
     }
@@ -73,11 +88,13 @@ public class AdminServiceConfigController {
 
     @PostMapping("/types/create")
     public Result<AdminServiceTypeResponse> createType(@Valid @RequestBody AdminServiceTypeCreateRequest request) {
+        requireSuperAdmin();
         return Result.success(adminServiceConfigService.createServiceType(request));
     }
 
     @PostMapping("/types/copy")
     public Result<List<AdminServiceTypeResponse>> copyTypes(@Valid @RequestBody AdminServiceTypeBatchCopyRequest request) {
+        requireSuperAdmin();
         return Result.success(adminServiceConfigService.copyServiceTypes(request));
     }
 
@@ -86,11 +103,13 @@ public class AdminServiceConfigController {
         @PathVariable("id") String id,
         @Valid @RequestBody AdminServiceTypeUpdateRequest request
     ) {
+        requireSuperAdmin();
         return Result.success(adminServiceConfigService.updateServiceType(id, request));
     }
 
     @PostMapping("/types/{id}/delete")
     public Result<Void> deleteType(@PathVariable("id") String id) {
+        requireSuperAdmin();
         adminServiceConfigService.deleteServiceType(id);
         return Result.success();
     }
@@ -102,11 +121,13 @@ public class AdminServiceConfigController {
 
     @PostMapping("/faults/create")
     public Result<AdminFaultPhenomenonResponse> createFault(@Valid @RequestBody AdminFaultPhenomenonCreateRequest request) {
+        requireSuperAdmin();
         return Result.success(adminServiceConfigService.createFaultPhenomenon(request));
     }
 
     @PostMapping("/faults/copy")
     public Result<List<AdminFaultPhenomenonResponse>> copyFaults(@Valid @RequestBody AdminFaultPhenomenonBatchCopyRequest request) {
+        requireSuperAdmin();
         return Result.success(adminServiceConfigService.copyFaultPhenomena(request));
     }
 
@@ -115,11 +136,13 @@ public class AdminServiceConfigController {
         @PathVariable("id") String id,
         @Valid @RequestBody AdminFaultPhenomenonUpdateRequest request
     ) {
+        requireSuperAdmin();
         return Result.success(adminServiceConfigService.updateFaultPhenomenon(id, request));
     }
 
     @PostMapping("/faults/{id}/delete")
     public Result<Void> deleteFault(@PathVariable("id") String id) {
+        requireSuperAdmin();
         adminServiceConfigService.deleteFaultPhenomenon(id);
         return Result.success();
     }

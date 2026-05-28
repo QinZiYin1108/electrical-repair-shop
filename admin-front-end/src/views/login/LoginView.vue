@@ -239,9 +239,11 @@ import {
   adminSendLoginCode,
   adminSendResetCode
 } from '../../api/adminAuth';
-import { setToken } from '../../utils/auth';
+import { setToken, setAdminRole } from '../../utils/auth';
+import { useAdminStore } from '../../stores/admin';
 
 const router = useRouter();
+const adminStore = useAdminStore();
 
 const brandHighlights = ['专业', '高效', '便捷', '安心'];
 const rememberedEmailKey = 'admin-remembered-email';
@@ -334,9 +336,14 @@ function syncRememberedEmail(email) {
   localStorage.removeItem(rememberedEmailKey);
 }
 
-function handleLoginSuccess(token, email) {
+function handleLoginSuccess(resData, email) {
+  const token = resData?.token;
   if (token) {
     setToken(token);
+  }
+  if (resData?.adminRole != null) {
+    adminStore.setAdminRole(resData.adminRole);
+    setAdminRole(resData.adminRole);
   }
   syncRememberedEmail(email);
   ElMessage.success('登录成功');
@@ -401,7 +408,7 @@ function handlePasswordLogin() {
         ElMessage.error(res.message || '登录失败');
         return;
       }
-      handleLoginSuccess(res.data?.token, passwordForm.email);
+      handleLoginSuccess(res.data, passwordForm.email);
     } catch (e) {
       ElMessage.error('登录失败');
     } finally {
@@ -450,7 +457,7 @@ function handleCodeLogin() {
         ElMessage.error(res.message || '登录失败');
         return;
       }
-      handleLoginSuccess(res.data?.token, codeForm.email);
+      handleLoginSuccess(res.data, codeForm.email);
     } catch (e) {
       ElMessage.error('登录失败');
     } finally {

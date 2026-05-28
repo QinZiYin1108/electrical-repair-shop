@@ -1,9 +1,13 @@
 package com.example.backend.controller.admin;
 
+import com.example.backend.common.ErrorCode;
 import com.example.backend.common.Result;
+import com.example.backend.exception.BusinessException;
 import com.example.backend.model.admin.AdminAnnouncementCreateRequest;
 import com.example.backend.model.admin.AdminAnnouncementResponse;
 import com.example.backend.model.admin.AdminAnnouncementUpdateRequest;
+import com.example.backend.security.context.AuthUserContext;
+import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.AdminAnnouncementService;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
@@ -29,6 +33,13 @@ public class AdminAnnouncementController {
         this.adminAnnouncementService = adminAnnouncementService;
     }
 
+    private void requireSuperAdmin() {
+        LoginUserInfo user = AuthUserContext.get();
+        if (user == null || !user.isSuperAdmin()) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "仅超级管理员可管理公告");
+        }
+    }
+
     @GetMapping
     public Result<List<AdminAnnouncementResponse>> list(@RequestParam(value = "channel", required = false) Integer channel) {
         return Result.success(adminAnnouncementService.listAnnouncements(channel));
@@ -36,6 +47,7 @@ public class AdminAnnouncementController {
 
     @PostMapping("/create")
     public Result<AdminAnnouncementResponse> create(@Valid @RequestBody AdminAnnouncementCreateRequest request) {
+        requireSuperAdmin();
         return Result.success(adminAnnouncementService.createAnnouncement(request));
     }
 
@@ -44,18 +56,20 @@ public class AdminAnnouncementController {
         @PathVariable("id") String id,
         @Valid @RequestBody AdminAnnouncementUpdateRequest request
     ) {
+        requireSuperAdmin();
         return Result.success(adminAnnouncementService.updateAnnouncement(id, request));
     }
 
     @PostMapping("/{id}/delete")
     public Result<Void> delete(@PathVariable("id") String id) {
+        requireSuperAdmin();
         adminAnnouncementService.deleteAnnouncement(id);
         return Result.success();
     }
 
     @PostMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Result<String> uploadImage(@PathVariable("id") String id, @RequestPart("file") MultipartFile file) {
+        requireSuperAdmin();
         return Result.success(adminAnnouncementService.uploadAnnouncementImage(id, file));
     }
 }
-

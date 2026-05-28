@@ -50,6 +50,13 @@ public class JwtUtil {
      * 生成包含账号ID和角色的 JWT 字符串
      */
     public String generateToken(String accountId, AccountRole role) {
+        return generateToken(accountId, role, null);
+    }
+
+    /**
+     * 生成 JWT 字符串，支持额外 claims（如 adminRole、storeId）
+     */
+    public String generateToken(String accountId, AccountRole role, Map<String, Object> extraClaims) {
         long now = Instant.now().getEpochSecond();
         long exp = now + expireSeconds;
 
@@ -62,6 +69,9 @@ public class JwtUtil {
         payload.put("role", role.name());
         payload.put("iat", now);
         payload.put("exp", exp);
+        if (extraClaims != null) {
+            payload.putAll(extraClaims);
+        }
 
         try {
             String headerJson = objectMapper.writeValueAsString(header);
@@ -118,6 +128,17 @@ public class JwtUtil {
             LoginUserInfo userInfo = new LoginUserInfo();
             userInfo.setAccountId(accountId);
             userInfo.setRole(role);
+
+            // 解析管理员扩展字段
+            Object adminRoleObj = payload.get("adminRole");
+            if (adminRoleObj != null) {
+                userInfo.setAdminRole(toInt(adminRoleObj));
+            }
+            Object storeIdObj = payload.get("storeId");
+            if (storeIdObj != null && storeIdObj instanceof String) {
+                userInfo.setStoreId((String) storeIdObj);
+            }
+
             return userInfo;
         } catch (BusinessException e) {
             throw e;
@@ -147,5 +168,12 @@ public class JwtUtil {
             return ((Number) value).longValue();
         }
         return Long.parseLong(String.valueOf(value));
+    }
+
+    private int toInt(Object value) {
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        return Integer.parseInt(String.valueOf(value));
     }
 }

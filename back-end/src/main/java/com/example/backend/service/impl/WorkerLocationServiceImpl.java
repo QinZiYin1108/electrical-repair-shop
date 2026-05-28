@@ -12,6 +12,11 @@ import com.example.backend.security.model.AccountRole;
 import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.TechnicianProfilesService;
 import com.example.backend.service.TechnicianServiceAreasService;
+import com.example.backend.entity.Stores;
+import com.example.backend.entity.TechnicianAccounts;
+import com.example.backend.model.worker.WorkerStoreAddressRequest;
+import com.example.backend.service.StoresService;
+import com.example.backend.service.TechnicianAccountsService;
 import com.example.backend.service.WorkerLocationService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -53,16 +58,22 @@ public class WorkerLocationServiceImpl implements WorkerLocationService {
 
     private final TechnicianServiceAreasService technicianServiceAreasService;
     private final TechnicianProfilesService technicianProfilesService;
+    private final TechnicianAccountsService technicianAccountsService;
+    private final StoresService storesService;
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public WorkerLocationServiceImpl(
         TechnicianServiceAreasService technicianServiceAreasService,
-        TechnicianProfilesService technicianProfilesService
+        TechnicianProfilesService technicianProfilesService,
+        TechnicianAccountsService technicianAccountsService,
+        StoresService storesService
     ) {
         this.technicianServiceAreasService = technicianServiceAreasService;
         this.technicianProfilesService = technicianProfilesService;
+        this.technicianAccountsService = technicianAccountsService;
+        this.storesService = storesService;
     }
 
     @Override
@@ -127,6 +138,48 @@ public class WorkerLocationServiceImpl implements WorkerLocationService {
             response.setDistrict(geocode.district);
         }
         response.setLocationUpdateTime(now);
+        return response;
+    }
+
+    @Override
+    public WorkerLocationUpdateResponse updateStoreAddress(WorkerStoreAddressRequest request) {
+        LoginUserInfo user = requireWorker();
+        if (request == null || request.getLatitude() == null || request.getLongitude() == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "经纬度不能为空");
+        }
+        if (!isValidLatLng(request.getLatitude(), request.getLongitude())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "非法的经纬度");
+        }
+
+        // 获取师傅的归属门店
+        TechnicianAccounts techAccount = technicianAccountsService.getById(user.getAccountId());
+        if (techAccount == null || !StringUtils.hasText(techAccount.getStoreId())) {
+            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "您未绑定门店，无法设置门店地址");
+        }
+
+        Stores store = storesService.getById(techAccount.getStoreId());
+        if (store == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "门店不存在");
+        }
+
+        // 逆地理编码
+        ReverseGeocodeResult geocode = reverseGeocode(request.getLatitude(), request.getLongitude(), request.getCoordType());
+
+        // 更新门店地址
+        store.setAddress(geocode.address);
+        store.setLatitude(request.getLatitude());
+        store.setLongitude(request.getLongitude());
+        store.setUpdatedTime(System.currentTimeMillis());
+        storesService.updateById(store);
+
+        WorkerLocationUpdateResponse response = new WorkerLocationUpdateResponse();
+        response.setLatitude(request.getLatitude());
+        response.setLongitude(request.getLongitude());
+        response.setAddress(geocode.address);
+        response.setProvince(geocode.province);
+        response.setCity(geocode.city);
+        response.setDistrict(geocode.district);
+        response.setLocationUpdateTime(System.currentTimeMillis());
         return response;
     }
 

@@ -74,7 +74,7 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
     }
 
     @Override
-    public List<AdminProductResponse> listProducts(Integer productType, String keyword, String categoryId, Integer status) {
+    public List<AdminProductResponse> listProducts(Integer productType, String keyword, String categoryId, Integer status, String storeId) {
         int normalizedProductType = normalizeProductType(productType);
         List<ProductCategories> categories = listAllCategories();
         Map<String, ProductCategories> categoryMap = categories.stream()
@@ -82,6 +82,11 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
 
         LambdaQueryWrapper<Products> wrapper = new LambdaQueryWrapper<>();
         applyProductTypeCondition(wrapper, normalizedProductType);
+
+        // 店铺管理员只能看到自己门店的商品
+        if (StringUtils.hasText(storeId)) {
+            wrapper.eq(Products::getStoreId, storeId);
+        }
 
         String normalizedKeyword = normalizeBlankToNull(keyword);
         if (StringUtils.hasText(normalizedKeyword)) {
@@ -125,7 +130,7 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public AdminProductResponse createProduct(Integer productType, AdminProductSaveRequest request) {
+    public AdminProductResponse createProduct(Integer productType, AdminProductSaveRequest request, String storeId) {
         int normalizedProductType = normalizeProductType(productType);
         validateSaveRequest(request);
         Map<String, ProductCategories> categoryMap = loadCategoryMap();
@@ -145,6 +150,12 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
         product.setCreatedTime(now);
         product.setUpdatedTime(now);
 
+        // 店铺管理员创建的商品自动归属其门店
+        if (StringUtils.hasText(storeId)) {
+            product.setStoreId(storeId);
+            product.setAuditStatus(2); // 店铺管理员创建的商品自动审核通过
+        }
+
         if (!productsService.save(product)) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "新增商品失败");
         }
@@ -153,11 +164,16 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public AdminProductResponse updateProduct(Integer productType, String id, AdminProductSaveRequest request) {
+    public AdminProductResponse updateProduct(Integer productType, String id, AdminProductSaveRequest request, String storeId) {
         int normalizedProductType = normalizeProductType(productType);
         validateSaveRequest(request);
 
         Products current = requireProduct(id, normalizedProductType);
+
+        // 店铺管理员只能编辑自己门店的商品
+        if (StringUtils.hasText(storeId) && !storeId.equals(current.getStoreId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权编辑其他门店的商品");
+        }
         Map<String, ProductCategories> categoryMap = loadCategoryMap();
         requireCategory(request.getCategoryId(), categoryMap);
 
@@ -205,7 +221,7 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deleteProduct(Integer productType, String id) {
+    public void deleteProduct(Integer productType, String id, String storeId) {
         int normalizedProductType = normalizeProductType(productType);
         Products current = productsService.getById(id);
         if (current == null) {
@@ -213,6 +229,10 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
         }
         if (!isProductMatchedType(current, normalizedProductType)) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "商品不存在");
+        }
+        // 店铺管理员只能删除自己门店的商品
+        if (StringUtils.hasText(storeId) && !storeId.equals(current.getStoreId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权删除其他门店的商品");
         }
         productsService.removeById(id);
     }

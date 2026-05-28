@@ -57,6 +57,11 @@ public class AdminAccounts {
     private Integer adminType;
 
     /**
+     * 角色类型：1-超级管理员，2-门店管理员，3-客服（补充角色字段）
+     */
+    private Integer adminRole;
+
+    /**
      * 权限列表JSON
      */
     private String permissions;

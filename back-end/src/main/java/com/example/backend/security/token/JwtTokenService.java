@@ -28,4 +28,11 @@ public class JwtTokenService implements TokenService {
     public String generateToken(String accountId, AccountRole role) {
         return jwtUtil.generateToken(accountId, role);
     }
+
+    /**
+     * 生成包含额外 claims 的 JWT（用于管理员的 adminRole、storeId）
+     */
+    public String generateToken(String accountId, AccountRole role, java.util.Map<String, Object> extraClaims) {
+        return jwtUtil.generateToken(accountId, role, extraClaims);
+    }
 }

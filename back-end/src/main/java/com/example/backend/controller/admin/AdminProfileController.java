@@ -95,6 +95,7 @@ public class AdminProfileController {
         resp.setPhone(admin.getPhone());
         resp.setEmail(admin.getEmail());
         resp.setAdminType(admin.getAdminType());
+        resp.setAdminRole(admin.getAdminRole());
         resp.setAccountStatus(admin.getAccountStatus());
         if (profile != null) {
             resp.setRealName(profile.getRealName());

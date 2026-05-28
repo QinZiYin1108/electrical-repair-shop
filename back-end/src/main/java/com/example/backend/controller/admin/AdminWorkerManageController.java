@@ -10,6 +10,7 @@ import com.example.backend.entity.RepairOrders;
 import com.example.backend.entity.ServiceCategories;
 import com.example.backend.entity.ServiceTypes;
 import com.example.backend.entity.SystemMessages;
+import com.example.backend.entity.Stores;
 import com.example.backend.entity.TechnicianAccounts;
 import com.example.backend.entity.TechnicianProfiles;
 import com.example.backend.entity.TechnicianServiceAreas;
@@ -41,6 +42,7 @@ import com.example.backend.service.OperationLogsService;
 import com.example.backend.service.RepairOrdersService;
 import com.example.backend.service.ServiceCategoriesService;
 import com.example.backend.service.ServiceTypesService;
+import com.example.backend.service.StoresService;
 import com.example.backend.service.SystemMessagesService;
 import com.example.backend.service.TechnicianAccountsService;
 import com.example.backend.service.TechnicianProfilesService;
@@ -120,6 +122,7 @@ public class AdminWorkerManageController {
     private final OssUtil ossUtil;
     private final OperationLogsService operationLogsService;
     private final SystemMessagesService systemMessagesService;
+    private final StoresService storesService;
 
     public AdminWorkerManageController(
         TechnicianAccountsService technicianAccountsService,
@@ -135,7 +138,8 @@ public class AdminWorkerManageController {
         ImagesService imagesService,
         OssUtil ossUtil,
         OperationLogsService operationLogsService,
-        SystemMessagesService systemMessagesService
+        SystemMessagesService systemMessagesService,
+        StoresService storesService
     ) {
         this.technicianAccountsService = technicianAccountsService;
         this.technicianProfilesService = technicianProfilesService;
@@ -151,6 +155,7 @@ public class AdminWorkerManageController {
         this.ossUtil = ossUtil;
         this.operationLogsService = operationLogsService;
         this.systemMessagesService = systemMessagesService;
+        this.storesService = storesService;
     }
 
     @GetMapping
@@ -159,12 +164,18 @@ public class AdminWorkerManageController {
         @RequestParam(value = "pageSize", defaultValue = "10") long pageSize,
         @RequestParam(value = "keyword", required = false) String keyword
     ) {
-        requireAdmin();
+        LoginUserInfo admin = requireAdmin();
         long currentPage = pageNum <= 0 ? 1 : pageNum;
         long currentSize = pageSize <= 0 ? 10 : pageSize;
 
         LambdaQueryWrapper<TechnicianAccounts> wrapper = new LambdaQueryWrapper<TechnicianAccounts>()
             .eq(TechnicianAccounts::getIsDelete, 0);
+
+        // 门店管理员只能看到自己门店的师傅
+        if (admin.isStoreAdmin() && admin.getStoreId() != null) {
+            wrapper.eq(TechnicianAccounts::getStoreId, admin.getStoreId());
+        }
+
         if (StringUtils.hasText(keyword)) {
             String trimmedKeyword = keyword.trim();
             wrapper.and(w -> w.like(TechnicianAccounts::getUsername, trimmedKeyword)
@@ -221,8 +232,15 @@ public class AdminWorkerManageController {
 
     @GetMapping("/{id}")
     public Result<AdminWorkerDetailResponse> getWorkerDetail(@PathVariable("id") String id) {
-        requireAdmin();
+        LoginUserInfo admin = requireAdmin();
         TechnicianAccounts account = getAndCheckWorkerAccount(id);
+
+        // 门店管理员只能查看自己门店的师傅
+        if (admin.isStoreAdmin()) {
+            if (!StringUtils.hasText(account.getStoreId()) || !account.getStoreId().equals(admin.getStoreId())) {
+                throw new BusinessException(ErrorCode.FORBIDDEN, "无权查看其他门店的师傅");
+            }
+        }
         TechnicianProfiles profile = queryWorkerProfile(id);
         TechnicianServiceAreas serviceArea = queryDefaultServiceArea(id);
 
@@ -580,6 +598,59 @@ public class AdminWorkerManageController {
             "ADMIN_WORKER_STATUS",
             1,
             now
+        );
+        return Result.success();
+    }
+
+    @PostMapping("/{id}/bind-store")
+    public Result<Void> bindWorkerToStore(
+        @PathVariable("id") String id,
+        @RequestBody Map<String, String> body
+    ) {
+        LoginUserInfo admin = requireAdmin();
+        // 仅超级管理员可绑定师傅到门店
+        if (admin.getAdminRole() != null && admin.getAdminRole() != 1) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "仅超级管理员可绑定师傅到门店");
+        }
+        TechnicianAccounts account = getAndCheckWorkerAccount(id);
+        String storeId = body.get("storeId");
+        if (!StringUtils.hasText(storeId)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "门店ID不能为空");
+        }
+        Stores store = storesService.getById(storeId);
+        if (store == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "门店不存在");
+        }
+        technicianAccountsService.bindStore(id, storeId);
+
+        saveOperationLog(
+            admin.getAccountId(),
+            "UPDATE",
+            "绑定师傅到门店：" + store.getName(),
+            "/admin/workers/" + id + "/bind-store",
+            "{\"storeId\":\"" + storeId + "\"}"
+        );
+        return Result.success();
+    }
+
+    @PostMapping("/{id}/unbind-store")
+    public Result<Void> unbindWorkerFromStore(@PathVariable("id") String id) {
+        LoginUserInfo admin = requireAdmin();
+        if (admin.getAdminRole() != null && admin.getAdminRole() != 1) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "仅超级管理员可解绑师傅");
+        }
+        TechnicianAccounts account = getAndCheckWorkerAccount(id);
+        if (!StringUtils.hasText(account.getStoreId())) {
+            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "该师傅未绑定门店");
+        }
+        technicianAccountsService.unbindStore(id);
+
+        saveOperationLog(
+            admin.getAccountId(),
+            "UPDATE",
+            "解绑师傅门店",
+            "/admin/workers/" + id + "/unbind-store",
+            "{}"
         );
         return Result.success();
     }

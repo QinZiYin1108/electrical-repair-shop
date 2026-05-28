@@ -119,6 +119,12 @@
       "style": {
         "navigationBarTitleText": "修改邮箱"
       }
+    },
+    {
+      "path": "pages/store-address/index",
+      "style": {
+        "navigationBarTitleText": "门店地址"
+      }
     }
   ],
   "globalStyle": {

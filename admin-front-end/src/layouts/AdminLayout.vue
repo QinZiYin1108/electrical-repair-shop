@@ -43,6 +43,11 @@
             <span>仪表盘</span>
           </el-menu-item>
 
+          <el-sub-menu v-if="adminStore.adminRole === 1" index="/admin/stores">
+            <template #title><span>门店管理</span></template>
+            <el-menu-item index="/admin/stores/list">门店列表</el-menu-item>
+          </el-sub-menu>
+
           <el-sub-menu index="/admin/orders">
             <template #title><span>订单管理</span></template>
             <el-menu-item index="/admin/orders/reserve">预约订单列表</el-menu-item>
@@ -103,7 +108,7 @@ import { computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { RefreshRight } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { clearToken } from '../utils/auth';
+import { clearAuth } from '../utils/auth';
 import { useAdminStore } from '../stores/admin';
 import { fetchAdminProfile } from '../api/adminAccount';
 import brandLogoIcon from '../assets/logo-icon.png';
@@ -167,7 +172,7 @@ function handleUserCommand(command) {
   if (command === 'logout') {
     ElMessageBox.confirm('确定要退出登录吗？', '提示', { type: 'warning' })
       .then(() => {
-        clearToken();
+        clearAuth();
         adminStore.clear();
         ElMessage.success('已退出登录');
         router.push('/login');

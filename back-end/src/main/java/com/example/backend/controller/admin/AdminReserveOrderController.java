@@ -118,12 +118,26 @@ public class AdminReserveOrderController {
         @RequestParam(value = "appointmentStart", required = false) Long appointmentStart,
         @RequestParam(value = "appointmentEnd", required = false) Long appointmentEnd
     ) {
-        requireAdmin();
+        LoginUserInfo admin = requireAdmin();
         long currentPage = pageNum <= 0 ? 1 : pageNum;
         long currentSize = pageSize <= 0 ? 10 : pageSize;
 
         LambdaQueryWrapper<RepairOrders> wrapper = new LambdaQueryWrapper<RepairOrders>()
             .eq(RepairOrders::getIsDelete, 0);
+
+        // 店铺管理员只能看自己门店的订单
+        if (admin.isStoreAdmin() && admin.getStoreId() != null) {
+            List<TechnicianAccounts> storeTechs = technicianAccountsService.list(
+                new LambdaQueryWrapper<TechnicianAccounts>()
+                    .eq(TechnicianAccounts::getStoreId, admin.getStoreId())
+                    .select(TechnicianAccounts::getId)
+            );
+            if (storeTechs.isEmpty()) {
+                return Result.success(emptyPage(currentPage, currentSize));
+            }
+            wrapper.in(RepairOrders::getTechnicianAccountId,
+                storeTechs.stream().map(TechnicianAccounts::getId).collect(java.util.stream.Collectors.toSet()));
+        }
         if (status != null) {
             wrapper.eq(RepairOrders::getStatus, status);
         }

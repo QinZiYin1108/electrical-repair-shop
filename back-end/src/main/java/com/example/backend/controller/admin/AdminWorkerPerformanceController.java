@@ -73,11 +73,11 @@ public class AdminWorkerPerformanceController {
         @RequestParam(value = "pageSize", defaultValue = "10") long pageSize,
         @RequestParam(value = "keyword", required = false) String keyword
     ) {
-        requireAdmin();
+        LoginUserInfo admin = requireAdmin();
         long currentPage = pageNum <= 0 ? 1 : pageNum;
         long currentSize = pageSize <= 0 ? 10 : pageSize;
 
-        List<TechnicianAccounts> workers = technicianAccountsService.list(buildWorkerQuery(keyword));
+        List<TechnicianAccounts> workers = technicianAccountsService.list(buildWorkerQuery(keyword, admin));
         AdminWorkerPerformancePageResponse response = new AdminWorkerPerformancePageResponse();
         response.setPageNum(currentPage);
         response.setPageSize(currentSize);
@@ -261,9 +261,13 @@ public class AdminWorkerPerformanceController {
         return Result.success(response);
     }
 
-    private LambdaQueryWrapper<TechnicianAccounts> buildWorkerQuery(String keyword) {
+    private LambdaQueryWrapper<TechnicianAccounts> buildWorkerQuery(String keyword, LoginUserInfo admin) {
         LambdaQueryWrapper<TechnicianAccounts> wrapper = new LambdaQueryWrapper<TechnicianAccounts>()
             .eq(TechnicianAccounts::getIsDelete, 0);
+        // 门店管理员：仅查看本门店师傅
+        if (admin != null && admin.isStoreAdmin() && StringUtils.hasText(admin.getStoreId())) {
+            wrapper.eq(TechnicianAccounts::getStoreId, admin.getStoreId());
+        }
         if (StringUtils.hasText(keyword)) {
             String trimmedKeyword = keyword.trim();
             wrapper.and(query -> query.like(TechnicianAccounts::getUsername, trimmedKeyword)

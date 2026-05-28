@@ -486,8 +486,8 @@ public class ReviewsServiceImpl extends ServiceImpl<ReviewsMapper, Reviews> impl
                 wrapper.and(q -> q.isNull(Reviews::getReplyContent).or().eq(Reviews::getReplyContent, ""));
             }
         }
-        if (targetIds != null && !targetIds.isEmpty()) {
-            wrapper.in(Reviews::getTargetId, targetIds);
+        if (targetIds != null) {
+            wrapper.in(Reviews::getTargetId, targetIds.isEmpty() ? java.util.Collections.singleton("-1") : targetIds);
         }
         applyKeywordFilter(wrapper, keyword);
         wrapper.orderByDesc(Reviews::getCreatedTime);

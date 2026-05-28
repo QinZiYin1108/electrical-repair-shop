@@ -113,21 +113,27 @@ public class AdminDashboardController {
             new LambdaQueryWrapper<com.example.backend.entity.UserAccounts>()
                 .eq(com.example.backend.entity.UserAccounts::getIsDelete, 0)
         ));
-        response.setTotalWorkers(isStoreMode && storeTechIds != null ? (long) storeTechIds.size() : technicianAccountsService.count(
-            new LambdaQueryWrapper<com.example.backend.entity.TechnicianAccounts>()
-                .eq(com.example.backend.entity.TechnicianAccounts::getIsDelete, 0)
-        ));
-        response.setActiveWorkers(isStoreMode && storeTechIds != null && !storeTechIds.isEmpty()
-            ? (long) technicianAccountsService.count(new LambdaQueryWrapper<com.example.backend.entity.TechnicianAccounts>()
-                .in(com.example.backend.entity.TechnicianAccounts::getId, storeTechIds)
-                .eq(com.example.backend.entity.TechnicianAccounts::getAccountStatus, 1)
-            )
-            : technicianAccountsService.count(new LambdaQueryWrapper<com.example.backend.entity.TechnicianAccounts>()
+        // 门店管理员：师傅数只统计本门店
+        if (isStoreMode) {
+            response.setTotalWorkers(storeTechIds != null ? (long) storeTechIds.size() : 0L);
+            response.setActiveWorkers(storeTechIds != null && !storeTechIds.isEmpty()
+                ? (long) technicianAccountsService.count(new LambdaQueryWrapper<com.example.backend.entity.TechnicianAccounts>()
+                    .in(com.example.backend.entity.TechnicianAccounts::getId, storeTechIds)
+                    .eq(com.example.backend.entity.TechnicianAccounts::getAccountStatus, 1)
+                )
+                : 0L
+            );
+        } else {
+            response.setTotalWorkers(technicianAccountsService.count(
+                new LambdaQueryWrapper<com.example.backend.entity.TechnicianAccounts>()
+                    .eq(com.example.backend.entity.TechnicianAccounts::getIsDelete, 0)
+            ));
+            response.setActiveWorkers(technicianAccountsService.count(new LambdaQueryWrapper<com.example.backend.entity.TechnicianAccounts>()
                 .eq(com.example.backend.entity.TechnicianAccounts::getIsDelete, 0)
                 .eq(com.example.backend.entity.TechnicianAccounts::getAccountStatus, 1)
                 .in(com.example.backend.entity.TechnicianAccounts::getWorkStatus, 1, 2, 3)
-            )
-        );
+            ));
+        }
 
         response.setTotalOrders(repairOrdersService.count(buildOrderWrapper(storeTechIds)));
         response.setTodayOrders(repairOrdersService.count(buildOrderWrapper(storeTechIds).ge(RepairOrders::getCreatedTime, todayStart)));

@@ -164,7 +164,6 @@ async function fetchDetail() {
       store.value = res.data;
       const hours = res.data.businessHours || [];
       if (hours.length === 0) {
-        // 默认 7 天 09:00-18:00
         for (let d = 1; d <= 7; d++) {
           hours.push({
             dayOfWeek: d,
@@ -176,8 +175,8 @@ async function fetchDetail() {
       }
       businessHours.value = hours.map(h => ({
         ...h,
-        _startTime: h.startTime ? new Date('2000-01-01 ' + h.startTime) : new Date('2000-01-01 09:00:00'),
-        _endTime: h.endTime ? new Date('2000-01-01 ' + h.endTime) : new Date('2000-01-01 18:00:00')
+        _startTime: h.startTime || '09:00:00',
+        _endTime: h.endTime || '18:00:00'
       }));
     }
   } finally { loading.value = false; }
@@ -269,8 +268,8 @@ async function saveBusinessHours() {
   try {
     const hours = businessHours.value.map(h => ({
       dayOfWeek: h.dayOfWeek,
-      startTime: formatTime(h._startTime),
-      endTime: formatTime(h._endTime),
+      startTime: typeof h._startTime === 'string' ? h._startTime : formatTime(h._startTime),
+      endTime: typeof h._endTime === 'string' ? h._endTime : formatTime(h._endTime),
       isAvailable: h.isAvailable
     }));
     await request({ url: `/admin/stores/${store.value.id}/business-hours`, method: 'post', data: { hours } });

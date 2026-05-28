@@ -57,11 +57,11 @@
 
           <el-sub-menu index="/admin/products">
             <template #title><span>商品管理</span></template>
-            <el-menu-item index="/admin/products/categories">商品分类管理</el-menu-item>
+            <el-menu-item v-if="isSuperAdmin" index="/admin/products/categories">商品分类管理</el-menu-item>
             <el-menu-item index="/admin/products/main">商品信息管理</el-menu-item>
             <el-menu-item index="/admin/products/second-hand">二手商品管理</el-menu-item>
-            <el-menu-item index="/admin/products/warranty">保修卡管理</el-menu-item>
-            <el-menu-item index="/admin/products/coupons">优惠券管理</el-menu-item>
+            <el-menu-item v-if="isSuperAdmin" index="/admin/products/warranty">保修卡管理</el-menu-item>
+            <el-menu-item v-if="isSuperAdmin" index="/admin/products/coupons">优惠券管理</el-menu-item>
           </el-sub-menu>
 
           <el-sub-menu index="/admin/workers">
@@ -77,17 +77,17 @@
             <el-menu-item index="/admin/aftersales/reviews">评价管理</el-menu-item>
           </el-sub-menu>
 
-          <el-sub-menu index="/admin/config">
+          <el-sub-menu v-if="isSuperAdmin" index="/admin/config">
             <template #title><span>系统配置</span></template>
             <el-menu-item index="/admin/config/services">服务项目配置</el-menu-item>
           </el-sub-menu>
 
-          <el-sub-menu index="/admin/users">
+          <el-sub-menu v-if="isSuperAdmin" index="/admin/users">
             <template #title><span>用户管理</span></template>
             <el-menu-item index="/admin/users/list">用户列表</el-menu-item>
           </el-sub-menu>
 
-          <el-sub-menu index="/admin/system">
+          <el-sub-menu v-if="isSuperAdmin" index="/admin/system">
             <template #title><span>系统管理</span></template>
             <el-menu-item index="/admin/system/operation-logs">操作日志</el-menu-item>
             <el-menu-item index="/admin/system/announcements">公告管理</el-menu-item>
@@ -116,6 +116,7 @@ import brandLogoIcon from '../assets/logo-icon.png';
 const route = useRoute();
 const router = useRouter();
 const adminStore = useAdminStore();
+const isSuperAdmin = computed(() => adminStore.adminRole === 1);
 
 const activeMenu = computed(() => {
   if (route.path.startsWith('/admin/workers/info/')) {

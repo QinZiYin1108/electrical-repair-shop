@@ -46,7 +46,8 @@ public interface ReviewsService extends IService<Reviews> {
         Integer reviewType,
         Integer status,
         Integer rating,
-        Integer hasReply
+        Integer hasReply,
+        java.util.Set<String> targetIds
     );
 
     ReviewItemResponse updateAdminReviewStatus(String reviewId, Integer status);

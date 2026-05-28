@@ -457,7 +457,8 @@ public class ReviewsServiceImpl extends ServiceImpl<ReviewsMapper, Reviews> impl
         Integer reviewType,
         Integer status,
         Integer rating,
-        Integer hasReply
+        Integer hasReply,
+        java.util.Set<String> targetIds
     ) {
         long currentPage = pageNum <= 0 ? 1 : pageNum;
         long currentSize = pageSize <= 0 ? 10 : pageSize;
@@ -484,6 +485,9 @@ public class ReviewsServiceImpl extends ServiceImpl<ReviewsMapper, Reviews> impl
             } else if (hasReply == 0) {
                 wrapper.and(q -> q.isNull(Reviews::getReplyContent).or().eq(Reviews::getReplyContent, ""));
             }
+        }
+        if (targetIds != null && !targetIds.isEmpty()) {
+            wrapper.in(Reviews::getTargetId, targetIds);
         }
         applyKeywordFilter(wrapper, keyword);
         wrapper.orderByDesc(Reviews::getCreatedTime);

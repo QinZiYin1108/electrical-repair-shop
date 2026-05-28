@@ -9,6 +9,16 @@
           </el-button>
         </div>
 
+        <div class="store-avatar-row">
+          <el-avatar :size="64" :src="store.logoImageUrl" shape="square" style="border:1px solid #e4e7ed">
+            {{ store.name?.charAt(0) || '门' }}
+          </el-avatar>
+          <div class="store-avatar-info">
+            <div class="store-avatar-name">{{ store.name }}</div>
+            <div class="store-avatar-id">ID: {{ store.id }}</div>
+          </div>
+        </div>
+
         <el-divider content-position="left">门店信息</el-divider>
         <el-descriptions :column="2" border>
           <el-descriptions-item label="门店名称">
@@ -51,36 +61,28 @@
           <el-descriptions-item label="邮箱">{{ store.storeAdminEmail || '-' }}</el-descriptions-item>
         </el-descriptions>
 
-        <el-divider content-position="left">营业时间</el-divider>
-        <el-table :data="businessHours" border size="small" class="hours-table">
-          <el-table-column label="星期" width="120">
-            <template #default="{ row }">{{ weekDayText(row.dayOfWeek) }}</template>
-          </el-table-column>
-          <el-table-column label="开始时间" width="160">
-            <template #default="{ row }">
-              <el-time-picker v-if="editingHours" v-model="row._startTime" format="HH:mm" value-format="HH:mm:ss" size="small" style="width:130px" />
-              <span v-else>{{ row.startTime }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="结束时间" width="160">
-            <template #default="{ row }">
-              <el-time-picker v-if="editingHours" v-model="row._endTime" format="HH:mm" value-format="HH:mm:ss" size="small" style="width:130px" />
-              <span v-else>{{ row.endTime }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="营业" width="80" align="center">
-            <template #default="{ row }">
-              <el-switch v-if="editingHours" v-model="row.isAvailable" :active-value="1" :inactive-value="0" size="small" />
-              <el-tag v-else :type="row.isAvailable ? 'success' : 'info'" size="small">{{ row.isAvailable ? '是' : '否' }}</el-tag>
-            </template>
-          </el-table-column>
-        </el-table>
-        <div style="margin-top: 12px">
-          <el-button v-if="!editingHours && canEdit()" size="small" @click="startEditHours">编辑营业时间</el-button>
+        <el-divider content-position="left">
+          <span>营业时间</span>
+          <el-button v-if="!editingHours && canEdit()" size="small" style="margin-left:12px" @click="startEditHours">编辑</el-button>
           <template v-if="editingHours">
-            <el-button size="small" type="primary" :loading="savingHours" @click="saveBusinessHours">保存</el-button>
-            <el-button size="small" @click="cancelEditHours">取消</el-button>
+            <el-button size="small" type="primary" :loading="savingHours" style="margin-left:12px" @click="saveBusinessHours">保存</el-button>
+            <el-button size="small" style="margin-left:4px" @click="cancelEditHours">取消</el-button>
           </template>
+        </el-divider>
+        <div class="hours-grid">
+          <div v-for="(h, idx) in businessHours" :key="idx" class="hours-row" :class="{ 'hours-row-off': !h.isAvailable && !editingHours }">
+            <span class="hours-day">{{ weekDayText(h.dayOfWeek) }}</span>
+            <template v-if="editingHours">
+              <el-time-picker v-model="h._startTime" format="HH:mm" value-format="HH:mm:ss" size="small" style="width:120px" />
+              <span class="hours-sep">—</span>
+              <el-time-picker v-model="h._endTime" format="HH:mm" value-format="HH:mm:ss" size="small" style="width:120px" />
+              <el-switch v-model="h.isAvailable" :active-value="1" :inactive-value="0" size="small" style="margin-left:12px" />
+            </template>
+            <template v-else>
+              <span class="hours-time">{{ h.startTime ? h.startTime.substring(0,5) : '--:--' }} — {{ h.endTime ? h.endTime.substring(0,5) : '--:--' }}</span>
+              <el-tag :type="h.isAvailable ? 'success' : 'info'" size="small" class="hours-tag">{{ h.isAvailable ? '营业' : '休息' }}</el-tag>
+            </template>
+          </div>
         </div>
       </template>
       <el-empty v-else description="门店不存在" />
@@ -255,5 +257,17 @@ function formatTimestamp(ts) {
 .store-detail-page { padding: 16px; box-sizing: border-box; }
 .store-detail-card { width: 100%; }
 .back-row { margin-bottom: 8px; overflow: hidden; }
-.hours-table { max-width: 600px; }
+.store-avatar-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.store-avatar-info { display: flex; flex-direction: column; }
+.store-avatar-name { font-size: 16px; font-weight: 600; color: #303133; }
+.store-avatar-id { font-size: 12px; color: #909399; margin-top: 2px; }
+
+.hours-grid { max-width: 520px; }
+.hours-row { display: flex; align-items: center; padding: 10px 12px; border-bottom: 1px solid #f0f0f0; gap: 10px; }
+.hours-row:last-child { border-bottom: none; }
+.hours-row-off { opacity: 0.5; }
+.hours-day { width: 48px; font-size: 14px; font-weight: 500; color: #303133; flex-shrink: 0; }
+.hours-time { font-size: 14px; color: #606266; }
+.hours-sep { color: #c0c4cc; }
+.hours-tag { margin-left: auto; }
 </style>

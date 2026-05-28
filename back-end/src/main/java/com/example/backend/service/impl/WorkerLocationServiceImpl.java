@@ -343,14 +343,17 @@ public class WorkerLocationServiceImpl implements WorkerLocationService {
             .queryParam("location", lat + "," + lng)
             .toUriString();
 
+        log.info("腾讯逆地理编码请求: url={}", url);
         String body;
         try {
             body = restTemplate.getForObject(url, String.class);
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "逆地理编码失败");
+            log.error("腾讯逆地理编码 HTTP 请求失败: {}", e.getMessage(), e);
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "逆地理编码失败: " + e.getMessage());
         }
         if (!StringUtils.hasText(body)) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "逆地理编码失败");
+            log.error("腾讯逆地理编码返回空响应");
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "逆地理编码返回空响应");
         }
 
         try {

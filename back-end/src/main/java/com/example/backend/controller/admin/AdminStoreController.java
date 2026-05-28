@@ -12,12 +12,15 @@ import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.*;
 import com.example.backend.utils.PasswordUtil;
 import com.example.backend.utils.id.SnowflakeIdUtil;
+import com.example.backend.utils.oss.OssUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.math.BigDecimal;
@@ -47,6 +50,7 @@ public class AdminStoreController {
     private final AdminAccountsService adminAccountsService;
     private final ImagesService imagesService;
     private final OperationLogsService operationLogsService;
+    private final OssUtil ossUtil;
 
     public AdminStoreController(
             StoresService storesService,
@@ -54,7 +58,8 @@ public class AdminStoreController {
             TechnicianAccountsService technicianAccountsService,
             AdminAccountsService adminAccountsService,
             ImagesService imagesService,
-            OperationLogsService operationLogsService
+            OperationLogsService operationLogsService,
+            OssUtil ossUtil
     ) {
         this.storesService = storesService;
         this.storeBusinessHoursService = storeBusinessHoursService;
@@ -62,6 +67,7 @@ public class AdminStoreController {
         this.adminAccountsService = adminAccountsService;
         this.imagesService = imagesService;
         this.operationLogsService = operationLogsService;
+        this.ossUtil = ossUtil;
     }
 
     // ==================== 门店 CRUD ====================
@@ -299,6 +305,40 @@ public class AdminStoreController {
         saveLog(user, "UPDATE", "更新门店营业时间：" + store.getName(),
                 "/admin/stores/" + id + "/business-hours", "");
         return Result.success();
+    }
+
+    // ==================== Logo 上传 ====================
+
+    @PostMapping(value = "/{id}/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Result<String> uploadLogo(@PathVariable String id, @RequestPart("file") MultipartFile file) {
+        LoginUserInfo user = AuthUserContext.get();
+        boolean isStoreOwner = user.isStoreAdmin() && id.equals(user.getStoreId());
+        if (!user.isSuperAdmin() && !isStoreOwner) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此门店");
+        }
+        Stores store = storesService.getById(id);
+        if (store == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "门店不存在");
+        }
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "请选择图片");
+        }
+        try {
+            String ext = "";
+            String originalFilename = file.getOriginalFilename();
+            if (originalFilename != null) {
+                int idx = originalFilename.lastIndexOf('.');
+                if (idx >= 0 && idx < originalFilename.length() - 1) ext = originalFilename.substring(idx);
+            }
+            String objectName = "stores/" + id + "/logo" + ext;
+            String url = ossUtil.upload(objectName, file.getInputStream());
+            store.setLogoImageId(url);
+            store.setUpdatedTime(System.currentTimeMillis());
+            storesService.updateById(store);
+            return Result.success(url);
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传Logo失败");
+        }
     }
 
     // ==================== 逆地理编码 ====================

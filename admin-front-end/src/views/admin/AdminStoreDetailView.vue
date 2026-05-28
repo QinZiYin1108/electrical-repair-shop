@@ -10,7 +10,19 @@
         </div>
 
         <div class="store-avatar-row">
-          <el-avatar :size="64" :src="store.logoImageUrl" shape="square" style="border:1px solid #e4e7ed">
+          <el-upload
+            v-if="canEdit()"
+            :show-file-list="false"
+            accept="image/*"
+            :http-request="handleLogoUpload"
+            class="logo-upload"
+          >
+            <el-avatar :size="64" :src="store.logoImageUrl" class="store-logo-avatar">
+              {{ store.name?.charAt(0) || '门' }}
+            </el-avatar>
+            <div class="logo-upload-tip">更换</div>
+          </el-upload>
+          <el-avatar v-else :size="64" :src="store.logoImageUrl" class="store-logo-avatar">
             {{ store.name?.charAt(0) || '门' }}
           </el-avatar>
           <div class="store-avatar-info">
@@ -121,6 +133,27 @@ function goBack() { router.push('/admin/stores/list'); }
 
 function canEdit() { return isSuperAdmin.value || (isStoreAdmin.value && store.value && store.value.id === adminStore.storeId); }
 
+async function handleLogoUpload(options) {
+  const formData = new FormData();
+  formData.append('file', options.file);
+  try {
+    const res = await request({
+      url: `/admin/stores/${store.value.id}/logo`,
+      method: 'post',
+      data: formData,
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    if (res.code === 200) {
+      store.value.logoImageUrl = res.data + '?t=' + Date.now();
+      ElMessage.success('Logo已更新');
+    } else {
+      ElMessage.error(res.message || '上传失败');
+    }
+  } catch (e) {
+    ElMessage.error('上传失败');
+  }
+}
+
 async function fetchDetail() {
   const id = route.params.id;
   if (!id) return;
@@ -129,10 +162,22 @@ async function fetchDetail() {
     const res = await request({ url: `/admin/stores/${id}`, method: 'get' });
     if (res.code === 200 && res.data) {
       store.value = res.data;
-      businessHours.value = (res.data.businessHours || []).map(h => ({
+      const hours = res.data.businessHours || [];
+      if (hours.length === 0) {
+        // 默认 7 天 09:00-18:00
+        for (let d = 1; d <= 7; d++) {
+          hours.push({
+            dayOfWeek: d,
+            startTime: '09:00:00',
+            endTime: '18:00:00',
+            isAvailable: 1
+          });
+        }
+      }
+      businessHours.value = hours.map(h => ({
         ...h,
-        _startTime: h.startTime ? new Date('2000-01-01 ' + h.startTime) : null,
-        _endTime: h.endTime ? new Date('2000-01-01 ' + h.endTime) : null
+        _startTime: h.startTime ? new Date('2000-01-01 ' + h.startTime) : new Date('2000-01-01 09:00:00'),
+        _endTime: h.endTime ? new Date('2000-01-01 ' + h.endTime) : new Date('2000-01-01 18:00:00')
       }));
     }
   } finally { loading.value = false; }
@@ -258,6 +303,12 @@ function formatTimestamp(ts) {
 .store-detail-card { width: 100%; }
 .back-row { margin-bottom: 8px; overflow: hidden; }
 .store-avatar-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.store-logo-avatar { border: 2px solid #e4e7ed; cursor: default; }
+.logo-upload { position: relative; cursor: pointer; }
+.logo-upload :deep(.el-upload) { display: block; }
+.logo-upload-tip { position: absolute; bottom: 0; left: 0; right: 0; text-align: center; font-size: 10px; color: #fff; background: rgba(0,0,0,.5); border-radius: 0 0 50% 50%; padding: 2px 0; opacity: 0; transition: opacity .2s; }
+.logo-upload:hover .logo-upload-tip { opacity: 1; }
+.logo-upload:hover .store-logo-avatar { border-color: #409eff; }
 .store-avatar-info { display: flex; flex-direction: column; }
 .store-avatar-name { font-size: 16px; font-weight: 600; color: #303133; }
 .store-avatar-id { font-size: 12px; color: #909399; margin-top: 2px; }

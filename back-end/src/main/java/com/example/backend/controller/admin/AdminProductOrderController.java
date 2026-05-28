@@ -13,9 +13,11 @@ import com.example.backend.model.admin.AdminProductOrderModel;
 import com.example.backend.security.context.AuthUserContext;
 import com.example.backend.security.model.AccountRole;
 import com.example.backend.security.model.LoginUserInfo;
+import com.example.backend.entity.Products;
 import com.example.backend.service.OrderItemsService;
 import com.example.backend.service.PaymentRecordsService;
 import com.example.backend.service.ProductOrdersService;
+import com.example.backend.service.ProductsService;
 import com.example.backend.service.UserAccountsService;
 import jakarta.validation.Valid;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,17 +68,20 @@ public class AdminProductOrderController {
     private final OrderItemsService orderItemsService;
     private final UserAccountsService userAccountsService;
     private final PaymentRecordsService paymentRecordsService;
+    private final ProductsService productsService;
 
     public AdminProductOrderController(
         ProductOrdersService productOrdersService,
         OrderItemsService orderItemsService,
         UserAccountsService userAccountsService,
-        PaymentRecordsService paymentRecordsService
+        PaymentRecordsService paymentRecordsService,
+        ProductsService productsService
     ) {
         this.productOrdersService = productOrdersService;
         this.orderItemsService = orderItemsService;
         this.userAccountsService = userAccountsService;
         this.paymentRecordsService = paymentRecordsService;
+        this.productsService = productsService;
     }
 
     @GetMapping
@@ -88,8 +93,11 @@ public class AdminProductOrderController {
         @RequestParam(value = "paymentStatus", required = false) Integer paymentStatus,
         @RequestParam(value = "deliveryStatus", required = false) Integer deliveryStatus
     ) {
-        requireAdmin();
+        LoginUserInfo admin = requireAdmin();
         long currentPage = pageNum <= 0 ? 1 : pageNum;
+
+        // 门店管理员：仅查看本门店商品产生的订单
+        applyStoreFilter(admin, wrapper);
         long currentSize = pageSize <= 0 ? 10 : pageSize;
 
         LambdaQueryWrapper<ProductOrders> wrapper = new LambdaQueryWrapper<ProductOrders>()
@@ -367,6 +375,36 @@ public class AdminProductOrderController {
             throw new BusinessException(ErrorCode.NOT_FOUND, "商品订单不存在");
         }
         return order;
+    }
+
+    /**
+     * 门店管理员过滤：仅查看本门店商品产生的订单
+     */
+    private void applyStoreFilter(LoginUserInfo admin, LambdaQueryWrapper<ProductOrders> wrapper) {
+        if (admin == null || !admin.isStoreAdmin() || !StringUtils.hasText(admin.getStoreId())) {
+            return;
+        }
+        List<Products> storeProducts = productsService.list(
+            new LambdaQueryWrapper<Products>()
+                .eq(Products::getStoreId, admin.getStoreId())
+                .eq(Products::getIsDelete, 0)
+        );
+        if (storeProducts.isEmpty()) {
+            wrapper.eq(ProductOrders::getId, "-1");
+            return;
+        }
+        Set<String> productIds = storeProducts.stream().map(Products::getId).collect(Collectors.toSet());
+        List<OrderItems> items = orderItemsService.list(
+            new LambdaQueryWrapper<OrderItems>()
+                .in(OrderItems::getProductId, productIds)
+                .eq(OrderItems::getIsDelete, 0)
+        );
+        if (items.isEmpty()) {
+            wrapper.eq(ProductOrders::getId, "-1");
+            return;
+        }
+        Set<String> orderIds = items.stream().map(OrderItems::getOrderId).collect(Collectors.toSet());
+        wrapper.in(ProductOrders::getId, orderIds);
     }
 
     private LoginUserInfo requireAdmin() {

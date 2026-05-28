@@ -141,13 +141,16 @@ public class AdminAfterSalesController {
         @RequestParam(value = "keyword", required = false) String keyword,
         @RequestParam(value = "status", required = false) Integer status
     ) {
-        requireAdmin();
+        LoginUserInfo admin = requireAdmin();
         long currentPage = pageNum <= 0 ? 1 : pageNum;
         long currentSize = pageSize <= 0 ? 10 : pageSize;
 
         LambdaQueryWrapper<AfterSalesApplications> wrapper = new LambdaQueryWrapper<AfterSalesApplications>()
             .eq(AfterSalesApplications::getOrderType, ORDER_TYPE_REPAIR)
             .eq(AfterSalesApplications::getIsDelete, 0);
+
+        // 门店管理员：仅查看本门店师傅的售后
+        applyStoreFilter(admin, wrapper);
         if (StringUtils.hasText(keyword)) {
             String normalizedKeyword = keyword.trim();
             wrapper.and(q -> q.like(AfterSalesApplications::getOrderId, normalizedKeyword)
@@ -989,6 +992,36 @@ public class AdminAfterSalesController {
 
     private int safeInt(Integer value) {
         return value == null ? 0 : value;
+    }
+
+    /**
+     * 门店管理员过滤：仅查看本门店师傅的售后申请
+     */
+    private void applyStoreFilter(LoginUserInfo admin, LambdaQueryWrapper<AfterSalesApplications> wrapper) {
+        if (admin == null || !admin.isStoreAdmin() || !StringUtils.hasText(admin.getStoreId())) {
+            return;
+        }
+        List<TechnicianAccounts> storeTechs = technicianAccountsService.list(
+            new LambdaQueryWrapper<TechnicianAccounts>()
+                .eq(TechnicianAccounts::getStoreId, admin.getStoreId())
+                .eq(TechnicianAccounts::getIsDelete, 0)
+        );
+        if (storeTechs.isEmpty()) {
+            wrapper.eq(AfterSalesApplications::getId, "-1");
+            return;
+        }
+        Set<String> techIds = storeTechs.stream().map(TechnicianAccounts::getId).collect(Collectors.toSet());
+        List<RepairOrders> orders = repairOrdersService.list(
+            new LambdaQueryWrapper<RepairOrders>()
+                .in(RepairOrders::getTechnicianId, techIds)
+                .eq(RepairOrders::getIsDelete, 0)
+        );
+        if (orders.isEmpty()) {
+            wrapper.eq(AfterSalesApplications::getId, "-1");
+            return;
+        }
+        Set<String> orderIds = orders.stream().map(RepairOrders::getId).collect(Collectors.toSet());
+        wrapper.in(AfterSalesApplications::getOrderId, orderIds);
     }
 
     private LoginUserInfo requireAdmin() {

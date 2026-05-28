@@ -25,9 +25,11 @@ import com.example.backend.service.AccountBalancesService;
 import com.example.backend.service.AfterSalesApplicationsService;
 import com.example.backend.service.FundFlowsService;
 import com.example.backend.service.ImagesService;
+import com.example.backend.entity.Products;
 import com.example.backend.service.OrderItemsService;
 import com.example.backend.service.PaymentRecordsService;
 import com.example.backend.service.ProductOrdersService;
+import com.example.backend.service.ProductsService;
 import com.example.backend.service.UserAccountsService;
 import com.example.backend.service.VideosService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
@@ -93,6 +95,7 @@ public class AdminProductAfterSalesController {
     private final PaymentRecordsService paymentRecordsService;
     private final ImagesService imagesService;
     private final VideosService videosService;
+    private final ProductsService productsService;
 
     public AdminProductAfterSalesController(
         AfterSalesApplicationsService afterSalesApplicationsService,
@@ -103,7 +106,8 @@ public class AdminProductAfterSalesController {
         FundFlowsService fundFlowsService,
         PaymentRecordsService paymentRecordsService,
         ImagesService imagesService,
-        VideosService videosService
+        VideosService videosService,
+        ProductsService productsService
     ) {
         this.afterSalesApplicationsService = afterSalesApplicationsService;
         this.productOrdersService = productOrdersService;
@@ -114,6 +118,7 @@ public class AdminProductAfterSalesController {
         this.paymentRecordsService = paymentRecordsService;
         this.imagesService = imagesService;
         this.videosService = videosService;
+        this.productsService = productsService;
     }
 
     @GetMapping
@@ -124,13 +129,16 @@ public class AdminProductAfterSalesController {
         @RequestParam(value = "status", required = false) Integer status,
         @RequestParam(value = "applicationType", required = false) Integer applicationType
     ) {
-        requireAdmin();
+        LoginUserInfo admin = requireAdmin();
         long currentPage = pageNum <= 0 ? 1 : pageNum;
         long currentSize = pageSize <= 0 ? 10 : pageSize;
 
         LambdaQueryWrapper<AfterSalesApplications> wrapper = new LambdaQueryWrapper<AfterSalesApplications>()
             .eq(AfterSalesApplications::getOrderType, ORDER_TYPE_PRODUCT)
             .eq(AfterSalesApplications::getIsDelete, 0);
+
+        // 门店管理员：仅查看本门店商品的售后申请
+        applyStoreFilter(admin, wrapper);
         if (status != null) {
             wrapper.eq(AfterSalesApplications::getStatus, status);
         }
@@ -724,6 +732,36 @@ public class AdminProductAfterSalesController {
         item.setMimeType(safe(video.getMimeType()));
         item.setDuration(video.getDuration());
         return item;
+    }
+
+    /**
+     * 门店管理员过滤：仅查看本门店商品产生的售后申请
+     */
+    private void applyStoreFilter(LoginUserInfo admin, LambdaQueryWrapper<AfterSalesApplications> wrapper) {
+        if (admin == null || !admin.isStoreAdmin() || !StringUtils.hasText(admin.getStoreId())) {
+            return;
+        }
+        List<Products> storeProducts = productsService.list(
+            new LambdaQueryWrapper<Products>()
+                .eq(Products::getStoreId, admin.getStoreId())
+                .eq(Products::getIsDelete, 0)
+        );
+        if (storeProducts.isEmpty()) {
+            wrapper.eq(AfterSalesApplications::getId, "-1");
+            return;
+        }
+        Set<String> productIds = storeProducts.stream().map(Products::getId).collect(Collectors.toSet());
+        List<OrderItems> items = orderItemsService.list(
+            new LambdaQueryWrapper<OrderItems>()
+                .in(OrderItems::getProductId, productIds)
+                .eq(OrderItems::getIsDelete, 0)
+        );
+        if (items.isEmpty()) {
+            wrapper.eq(AfterSalesApplications::getId, "-1");
+            return;
+        }
+        Set<String> orderIds = items.stream().map(OrderItems::getOrderId).collect(Collectors.toSet());
+        wrapper.in(AfterSalesApplications::getOrderId, orderIds);
     }
 
     private LoginUserInfo requireAdmin() {

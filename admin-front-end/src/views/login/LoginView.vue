@@ -340,6 +340,13 @@ function handleLoginSuccess(resData, email) {
   const token = resData?.token;
   if (token) {
     setToken(token);
+    // 从 JWT 中提取 storeId 存入 admin store
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.storeId) {
+        adminStore.storeId = payload.storeId;
+      }
+    } catch (e) { /* ignore */ }
   }
   if (resData?.adminRole != null) {
     adminStore.setAdminRole(resData.adminRole);

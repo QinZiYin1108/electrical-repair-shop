@@ -23,6 +23,17 @@ export function setAdminRole(role) {
   }
 }
 
+export function getStoreId() {
+  const token = localStorage.getItem('token');
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.storeId || null;
+  } catch (e) {
+    return null;
+  }
+}
+
 export function clearAuth() {
   localStorage.removeItem('token');
   localStorage.removeItem('adminRole');

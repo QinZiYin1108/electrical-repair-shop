@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { getAdminRole } from '../utils/auth';
+import { getAdminRole, getStoreId } from '../utils/auth';
 
 export const useAdminStore = defineStore('admin', {
   state: () => ({
@@ -8,6 +8,7 @@ export const useAdminStore = defineStore('admin', {
     email: '',
     adminType: null,
     adminRole: getAdminRole(),
+    storeId: getStoreId(),
     accountStatus: null,
     avatar: '',
     loaded: false

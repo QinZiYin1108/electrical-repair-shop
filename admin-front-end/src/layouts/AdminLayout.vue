@@ -172,7 +172,12 @@ function handleUserCommand(command) {
     return;
   }
   if (command === 'store') {
-    router.push('/admin/stores/list');
+    const storeId = adminStore.storeId;
+    if (storeId) {
+      router.push(`/admin/stores/list/${storeId}`);
+    } else {
+      router.push('/admin/stores/list');
+    }
     return;
   }
   if (command === 'logout') {

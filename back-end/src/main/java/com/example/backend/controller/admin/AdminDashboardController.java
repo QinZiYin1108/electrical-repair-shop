@@ -103,6 +103,12 @@ public class AdminDashboardController {
         Set<String> storeTechIds = resolveStoreTechIds(storeId);
         Set<String> storeOrderIds = resolveStoreOrderIds(storeTechIds);
         boolean isStoreMode = storeId != null && StringUtils.hasText(storeId);
+        System.out.println("[Dashboard] adminRole=" + (admin != null ? admin.getAdminRole() : "null")
+            + " isStoreAdmin=" + (admin != null && admin.isStoreAdmin())
+            + " storeId=" + storeId
+            + " storeTechIds.size=" + (storeTechIds != null ? storeTechIds.size() : 0)
+            + " storeOrderIds.size=" + (storeOrderIds != null ? storeOrderIds.size() : 0)
+            + " isStoreMode=" + isStoreMode);
 
         long now = System.currentTimeMillis();
         long todayStart = startOfDay(now);
@@ -175,6 +181,9 @@ public class AdminDashboardController {
         LoginUserInfo admin = requireAdmin();
         String storeId = (admin != null && admin.isStoreAdmin()) ? admin.getStoreId() : null;
         boolean isStoreMode = storeId != null && StringUtils.hasText(storeId);
+        System.out.println("[Dashboard] product-sales - adminRole=" + (admin != null ? admin.getAdminRole() : "null")
+            + " isStoreAdmin=" + (admin != null && admin.isStoreAdmin())
+            + " storeId=" + storeId + " isStoreMode=" + isStoreMode);
 
         long now = System.currentTimeMillis();
         long todayStart = startOfDay(now);

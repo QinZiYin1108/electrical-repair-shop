@@ -38,8 +38,8 @@ public class AdminStoreController {
     private static final int ADMIN_OPERATOR_TYPE = 3;
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm:ss");
 
-    @Value("${baidu.map.ak:}")
-    private String baiduAk;
+    @Value("${tencent.map.key:}")
+    private String tencentMapKey;
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -368,14 +368,12 @@ public class AdminStoreController {
     public Result<java.util.Map<String, String>> reverseGeocode(
             @RequestParam BigDecimal latitude,
             @RequestParam BigDecimal longitude) {
-        if (!StringUtils.hasText(baiduAk)) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "百度地图AK未配置");
+        if (!StringUtils.hasText(tencentMapKey)) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "腾讯地图Key未配置");
         }
         String url = UriComponentsBuilder
-                .fromHttpUrl("https://api.map.baidu.com/reverse_geocoding/v3/")
-                .queryParam("ak", baiduAk)
-                .queryParam("output", "json")
-                .queryParam("coordtype", "gcj02ll")
+                .fromHttpUrl("https://apis.map.qq.com/ws/geocoder/v1/")
+                .queryParam("key", tencentMapKey)
                 .queryParam("location", latitude + "," + longitude)
                 .toUriString();
         String body;
@@ -391,14 +389,14 @@ public class AdminStoreController {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "逆地理编码失败");
             }
             Object resultObj = root.get("result");
-            String formattedAddress = null;
+            String address = null;
             if (resultObj instanceof java.util.Map) {
                 java.util.Map<?, ?> result = (java.util.Map<?, ?>) resultObj;
-                Object addr = result.get("formatted_address");
-                if (addr != null) formattedAddress = addr.toString();
+                Object addr = result.get("address");
+                if (addr != null) address = addr.toString();
             }
             java.util.Map<String, String> ret = new java.util.HashMap<>();
-            ret.put("address", formattedAddress != null ? formattedAddress : latitude + "," + longitude);
+            ret.put("address", address != null ? address : latitude + "," + longitude);
             return Result.success(ret);
         } catch (BusinessException e) {
             throw e;

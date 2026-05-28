@@ -34,8 +34,8 @@ public class UserAddressesServiceImpl extends ServiceImpl<UserAddressesMapper, U
     private static final int DEFAULT_YES = 1;
     private static final int ADDRESS_TYPE_HOME = 1;
 
-    @Value("${baidu.map.ak:}")
-    private String baiduAk;
+    @Value("${tencent.map.key:}")
+    private String tencentMapKey;
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -408,16 +408,13 @@ public class UserAddressesServiceImpl extends ServiceImpl<UserAddressesMapper, U
     }
 
     private ReverseGeocodeResult reverseGeocode(BigDecimal latitude, BigDecimal longitude) {
-        if (!StringUtils.hasText(baiduAk)) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "百度地图AK未配置");
+        if (!StringUtils.hasText(tencentMapKey)) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "腾讯地图Key未配置");
         }
 
         String url = UriComponentsBuilder
-            .fromHttpUrl("https://api.map.baidu.com/reverse_geocoding/v3/")
-            .queryParam("ak", baiduAk)
-            .queryParam("output", "json")
-            .queryParam("coordtype", "gcj02ll")
-            .queryParam("extensions_poi", "0")
+            .fromHttpUrl("https://apis.map.qq.com/ws/geocoder/v1/")
+            .queryParam("key", tencentMapKey)
             .queryParam("location", latitude + "," + longitude)
             .toUriString();
 
@@ -442,7 +439,7 @@ public class UserAddressesServiceImpl extends ServiceImpl<UserAddressesMapper, U
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "逆地理编码失败");
             }
             Map<?, ?> result = (Map<?, ?>) resultObj;
-            Object componentObj = result.get("addressComponent");
+            Object componentObj = result.get("address_component");
             if (!(componentObj instanceof Map)) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "逆地理编码失败");
             }

@@ -48,8 +48,8 @@ public class WorkerLocationServiceImpl implements WorkerLocationService {
     private static final String[] CITY_SUFFIXES = {"自治州", "地区", "盟", "市"};
     private static final String[] COUNTY_SUFFIXES = {"自治县", "自治旗", "矿区", "林区", "特区", "县", "区", "旗", "市"};
 
-    @Value("${baidu.map.ak:}")
-    private String baiduAk;
+    @Value("${tencent.map.key:}")
+    private String tencentMapKey;
 
     private final TechnicianServiceAreasService technicianServiceAreasService;
     private final TechnicianProfilesService technicianProfilesService;
@@ -329,17 +329,13 @@ public class WorkerLocationServiceImpl implements WorkerLocationService {
     }
 
     private ReverseGeocodeResult reverseGeocode(BigDecimal lat, BigDecimal lng, String coordType) {
-        if (!StringUtils.hasText(baiduAk)) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "百度地图AK未配置");
+        if (!StringUtils.hasText(tencentMapKey)) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "腾讯地图Key未配置");
         }
 
-        String realCoordType = StringUtils.hasText(coordType) ? coordType.trim() : "gcj02ll";
         String url = UriComponentsBuilder
-            .fromHttpUrl("https://api.map.baidu.com/reverse_geocoding/v3/")
-            .queryParam("ak", baiduAk)
-            .queryParam("output", "json")
-            .queryParam("coordtype", realCoordType)
-            .queryParam("extensions_poi", "1")
+            .fromHttpUrl("https://apis.map.qq.com/ws/geocoder/v1/")
+            .queryParam("key", tencentMapKey)
             .queryParam("location", lat + "," + lng)
             .toUriString();
 
@@ -365,17 +361,12 @@ public class WorkerLocationServiceImpl implements WorkerLocationService {
             }
 
             Map<?, ?> result = (Map<?, ?>) resultObj;
-            String formattedAddress = asText(result.get("formatted_address"));
-            String sematic = asText(result.get("sematic_description"));
-            String address = formattedAddress;
-            if (StringUtils.hasText(sematic) && (address == null || !address.contains(sematic))) {
-                address = StringUtils.hasText(address) ? address + sematic : sematic;
-            }
+            String address = asText(result.get("address"));
 
             String province = null;
             String city = null;
             String district = null;
-            Object componentObj = result.get("addressComponent");
+            Object componentObj = result.get("address_component");
             if (componentObj instanceof Map) {
                 Map<?, ?> component = (Map<?, ?>) componentObj;
                 province = asText(component.get("province"));

@@ -76,13 +76,15 @@ public class AdminWarrantyCardController {
         @RequestParam(value = "keyword", required = false) String keyword,
         @RequestParam(value = "warrantyStatus", required = false) Integer warrantyStatus
     ) {
-        requireAdmin();
+        LoginUserInfo admin = requireAdmin();
         refreshExpiredCards();
         LambdaQueryWrapper<WarrantyCards> wrapper = new LambdaQueryWrapper<WarrantyCards>()
             .like(StringUtils.hasText(keyword), WarrantyCards::getCardNo, keyword == null ? null : keyword.trim())
             .eq(warrantyStatus != null, WarrantyCards::getWarrantyStatus, warrantyStatus)
             .orderByDesc(WarrantyCards::getUpdatedTime)
             .orderByDesc(WarrantyCards::getCreatedTime);
+        // 门店管理员：仅查看本门店商品关联的保修卡
+        applyStoreFilter(admin, wrapper);
         Page<WarrantyCards> page = warrantyCardsService.page(new Page<>(Math.max(pageNum, 1L), Math.max(pageSize, 1L)), wrapper);
         Page<AdminWarrantyCardModel.ListItemResponse> response = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
         response.setRecords(buildListItems(page.getRecords()));
@@ -402,6 +404,26 @@ public class AdminWarrantyCardController {
 
     private String buildCardNo(String id) {
         return "BW" + id.substring(2);
+    }
+
+    /**
+     * 门店管理员过滤：通过 product_id → products.store_id 关联
+     */
+    private void applyStoreFilter(LoginUserInfo admin, LambdaQueryWrapper<WarrantyCards> wrapper) {
+        if (admin == null || !admin.isStoreAdmin() || !StringUtils.hasText(admin.getStoreId())) {
+            return;
+        }
+        List<Products> storeProducts = productsService.list(
+            new LambdaQueryWrapper<Products>()
+                .eq(Products::getStoreId, admin.getStoreId())
+                .eq(Products::getIsDelete, 0)
+        );
+        if (storeProducts.isEmpty()) {
+            wrapper.eq(WarrantyCards::getId, "-1");
+            return;
+        }
+        Set<String> productIds = storeProducts.stream().map(Products::getId).collect(Collectors.toSet());
+        wrapper.in(WarrantyCards::getProductId, productIds);
     }
 
     private LoginUserInfo requireAdmin() {

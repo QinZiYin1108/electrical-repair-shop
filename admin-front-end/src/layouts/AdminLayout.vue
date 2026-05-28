@@ -60,8 +60,8 @@
             <el-menu-item v-if="isSuperAdmin" index="/admin/products/categories">商品分类管理</el-menu-item>
             <el-menu-item index="/admin/products/main">商品信息管理</el-menu-item>
             <el-menu-item index="/admin/products/second-hand">二手商品管理</el-menu-item>
-            <el-menu-item v-if="isSuperAdmin" index="/admin/products/warranty">保修卡管理</el-menu-item>
-            <el-menu-item v-if="isSuperAdmin" index="/admin/products/coupons">优惠券管理</el-menu-item>
+            <el-menu-item index="/admin/products/warranty">保修卡管理</el-menu-item>
+            <el-menu-item index="/admin/products/coupons">优惠券管理</el-menu-item>
           </el-sub-menu>
 
           <el-sub-menu index="/admin/workers">

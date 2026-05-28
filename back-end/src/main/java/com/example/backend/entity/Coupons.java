@@ -110,6 +110,11 @@ public class Coupons {
     @TableLogic
     private Integer isDelete;
 
+    /**
+     * 归属门店ID（平台优惠券为NULL）
+     */
+    private String storeId;
+
     @Override
     public boolean equals(Object that) {
         if (this == that) {

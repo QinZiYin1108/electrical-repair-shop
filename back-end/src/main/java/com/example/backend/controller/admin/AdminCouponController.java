@@ -69,13 +69,15 @@ public class AdminCouponController {
         @RequestParam(value = "status", required = false) Integer status,
         @RequestParam(value = "applicableType", required = false) Integer applicableType
     ) {
-        requireAdmin();
+        LoginUserInfo admin = requireAdmin();
         LambdaQueryWrapper<Coupons> wrapper = new LambdaQueryWrapper<Coupons>()
             .like(StringUtils.hasText(keyword), Coupons::getName, keyword == null ? null : keyword.trim())
             .eq(status != null, Coupons::getStatus, status)
             .eq(applicableType != null, Coupons::getApplicableType, applicableType)
             .orderByDesc(Coupons::getUpdatedTime)
             .orderByDesc(Coupons::getCreatedTime);
+        // 门店管理员：仅查看本门店优惠券 + 平台优惠券
+        applyStoreFilter(admin, wrapper);
         Page<Coupons> page = couponsService.page(new Page<>(Math.max(pageNum, 1L), Math.max(pageSize, 1L)), wrapper);
         Page<AdminCouponModel.ListItemResponse> response = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
         response.setRecords(buildCouponItems(page.getRecords()));
@@ -84,7 +86,7 @@ public class AdminCouponController {
 
     @PostMapping
     public Result<Void> createCoupon(@Valid @RequestBody AdminCouponModel.SaveRequest request) {
-        requireAdmin();
+        LoginUserInfo admin = requireAdmin();
         long now = System.currentTimeMillis();
         Coupons coupon = buildCouponEntity(new Coupons(), request, now);
         coupon.setId(SnowflakeIdUtil.nextCouponId());
@@ -92,6 +94,10 @@ public class AdminCouponController {
         coupon.setCreatedTime(now);
         coupon.setVersion(0);
         coupon.setIsDelete(0);
+        // 门店管理员创建的优惠券自动归属其门店
+        if (admin.isStoreAdmin() && StringUtils.hasText(admin.getStoreId())) {
+            coupon.setStoreId(admin.getStoreId());
+        }
         if (!couponsService.save(coupon)) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "新增优惠券失败");
         }
@@ -390,6 +396,16 @@ public class AdminCouponController {
 
     private BigDecimal normalizeMoney(BigDecimal value) {
         return (value == null ? BigDecimal.ZERO : value).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * 门店管理员：仅查看本门店优惠券 + 平台优惠券（storeId IS NULL）
+     */
+    private void applyStoreFilter(LoginUserInfo admin, LambdaQueryWrapper<Coupons> wrapper) {
+        if (admin == null || !admin.isStoreAdmin() || !StringUtils.hasText(admin.getStoreId())) {
+            return;
+        }
+        wrapper.and(w -> w.isNull(Coupons::getStoreId).or().eq(Coupons::getStoreId, admin.getStoreId()));
     }
 
     private LoginUserInfo requireAdmin() {

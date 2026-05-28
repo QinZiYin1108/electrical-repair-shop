@@ -1,73 +1,95 @@
 <template>
   <div class="store-page">
-    <div class="page-header">
-      <h2>{{ pageTitle }}</h2>
-      <el-button v-if="isSuperAdmin" type="primary" @click="showCreateDialog = true">
-        <el-icon><Plus /></el-icon> 创建门店
-      </el-button>
-    </div>
-
-    <div class="search-bar">
-      <el-input v-model="searchKeyword" placeholder="搜索门店名称" clearable style="width: 240px" @keyup.enter="fetchList" />
-      <el-select v-model="filterAuditStatus" placeholder="审核状态" clearable style="width: 140px; margin-left: 12px">
-        <el-option label="待审核" :value="1" />
-        <el-option label="审核通过" :value="2" />
-        <el-option label="审核拒绝" :value="3" />
-      </el-select>
-      <el-select v-model="filterBusinessStatus" placeholder="营业状态" clearable style="width: 140px; margin-left: 12px">
-        <el-option label="营业中" :value="1" />
-        <el-option label="休息中" :value="2" />
-        <el-option label="已关闭" :value="3" />
-      </el-select>
-      <el-button type="default" style="margin-left: 12px" @click="fetchList">查询</el-button>
-    </div>
-
-    <el-table :data="storeList" v-loading="loading" border stripe style="margin-top: 16px">
-      <el-table-column prop="name" label="门店名称" min-width="160" />
-      <el-table-column label="Logo" width="80">
-        <template #default="{ row }">
-          <el-avatar v-if="row.logoImageUrl" :src="row.logoImageUrl" size="small" />
-          <el-avatar v-else size="small">{{ row.name?.charAt(0) || '门' }}</el-avatar>
-        </template>
-      </el-table-column>
-      <el-table-column prop="contactPhone" label="联系电话" width="130" />
-      <el-table-column prop="address" label="门店地址" min-width="200" show-overflow-tooltip />
-      <el-table-column label="师傅数" width="80" align="center">
-        <template #default="{ row }">{{ row.technicianCount ?? 0 }}</template>
-      </el-table-column>
-      <el-table-column label="营业状态" width="100" align="center">
-        <template #default="{ row }">
-          <el-tag :type="businessStatusTag(row.businessStatus)" size="small">{{ businessStatusText(row.businessStatus) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="审核状态" width="100" align="center">
-        <template #default="{ row }">
-          <el-tag :type="auditStatusTag(row.auditStatus)" size="small">{{ auditStatusText(row.auditStatus) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="rating" label="评分" width="80" align="center">
-        <template #default="{ row }">{{ row.rating != null ? row.rating.toFixed(1) : '暂无' }}</template>
-      </el-table-column>
-      <el-table-column label="操作" width="280" fixed="right">
-        <template #default="{ row }">
-          <el-button size="small" @click="openDetail(row)">详情</el-button>
-          <el-button v-if="isSuperAdmin && row.auditStatus === 1" size="small" type="success" @click="auditStore(row, 2)">通过</el-button>
-          <el-button v-if="isSuperAdmin && row.auditStatus === 1" size="small" type="danger" @click="auditStore(row, 3)">拒绝</el-button>
-          <el-button v-if="canToggleStatus()" size="small" @click="toggleStatus(row)">
-            {{ row.businessStatus === 1 ? '休息' : row.businessStatus === 2 ? '营业' : '开启' }}
+    <el-card class="store-card" shadow="never">
+      <div class="store-header">
+        <div class="store-title-group">
+          <div class="store-title">门店列表</div>
+          <div class="store-subtitle">创建和管理门店及门店管理员</div>
+        </div>
+        <div class="store-toolbar">
+          <el-input
+            v-model="searchKeyword"
+            placeholder="搜索门店名称"
+            clearable
+            class="store-search-input"
+            @keyup.enter="fetchList"
+            @clear="fetchList"
+          >
+            <template #prefix><el-icon><Search /></el-icon></template>
+          </el-input>
+          <el-select v-model="filterAuditStatus" placeholder="审核状态" clearable style="width: 130px; margin-left: 8px" @change="fetchList">
+            <el-option label="待审核" :value="1" />
+            <el-option label="审核通过" :value="2" />
+            <el-option label="审核拒绝" :value="3" />
+          </el-select>
+          <el-select v-model="filterBusinessStatus" placeholder="营业状态" clearable style="width: 130px; margin-left: 8px" @change="fetchList">
+            <el-option label="营业中" :value="1" />
+            <el-option label="休息中" :value="2" />
+            <el-option label="已关闭" :value="3" />
+          </el-select>
+          <el-button type="primary" style="margin-left: 8px" @click="fetchList">查询</el-button>
+          <el-button v-if="isSuperAdmin" type="primary" style="margin-left: 8px" @click="showCreateDialog = true">
+            <el-icon><Plus /></el-icon> 创建门店
           </el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+        </div>
+      </div>
 
-    <el-pagination
-      v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total"
-      :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next"
-      style="margin-top: 16px; justify-content: flex-end"
-      @current-change="fetchList" @size-change="fetchList"
-    />
+      <el-table :data="storeList" v-loading="loading" border class="store-table" header-cell-class-name="store-table-header">
+        <el-table-column type="index" label="#" width="60" align="center" />
+        <el-table-column label="Logo" width="80" align="center">
+          <template #default="{ row }">
+            <el-avatar v-if="row.logoImageUrl" :src="row.logoImageUrl" size="small" />
+            <el-avatar v-else size="small">{{ row.name?.charAt(0) || '门' }}</el-avatar>
+          </template>
+        </el-table-column>
+        <el-table-column prop="name" label="门店名称" min-width="160" />
+        <el-table-column prop="contactPhone" label="联系电话" width="130" />
+        <el-table-column prop="address" label="门店地址" min-width="180" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.address || '未设置' }}</template>
+        </el-table-column>
+        <el-table-column label="师傅数" width="80" align="center">
+          <template #default="{ row }">{{ row.technicianCount ?? 0 }}</template>
+        </el-table-column>
+        <el-table-column label="营业状态" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag :type="businessStatusTag(row.businessStatus)" size="small">{{ businessStatusText(row.businessStatus) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="审核状态" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag :type="auditStatusTag(row.auditStatus)" size="small">{{ auditStatusText(row.auditStatus) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="rating" label="评分" width="80" align="center">
+          <template #default="{ row }">{{ row.rating != null ? row.rating.toFixed(1) : '-' }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="240" fixed="right" align="center">
+          <template #default="{ row }">
+            <el-button size="small" type="primary" link @click="goDetail(row.id)">详情</el-button>
+            <el-button v-if="isSuperAdmin && row.auditStatus === 1" size="small" type="success" link @click="auditStore(row, 2)">通过</el-button>
+            <el-button v-if="isSuperAdmin && row.auditStatus === 1" size="small" type="danger" link @click="auditStore(row, 3)">拒绝</el-button>
+            <el-button v-if="canToggleStatus()" size="small" link @click="toggleStatus(row)">
+              {{ row.businessStatus === 1 ? '休息' : row.businessStatus === 2 ? '营业' : '开启' }}
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
 
-    <!-- ==================== 创建门店对话框（含百度地图选址） ==================== -->
+      <div class="store-pagination">
+        <el-pagination
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          :page-sizes="[10, 20, 50]"
+          :page-size="pageSize"
+          :current-page="pageNum"
+          @size-change="(s) => { pageSize = s; fetchList(); }"
+          @current-change="(p) => { pageNum = p; fetchList(); }"
+        />
+      </div>
+    </el-card>
+
+    <!-- 创建门店对话框 -->
     <el-dialog v-model="showCreateDialog" title="创建门店" width="500px" destroy-on-close>
       <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="100px">
         <el-divider content-position="left">门店信息</el-divider>
@@ -77,7 +99,6 @@
         <el-form-item label="联系电话" prop="contactPhone">
           <el-input v-model="createForm.contactPhone" placeholder="请输入联系电话" />
         </el-form-item>
-
         <el-form-item label="门店介绍">
           <el-input v-model="createForm.description" type="textarea" :rows="2" placeholder="请输入门店介绍（选填）" />
         </el-form-item>
@@ -101,86 +122,22 @@
         <el-button type="primary" :loading="creating" @click="handleCreate">确认创建</el-button>
       </template>
     </el-dialog>
-
-    <!-- 门店详情/营业时间 -->
-    <el-dialog v-model="showDetailDialog" title="门店详情" width="700px" destroy-on-close>
-      <template v-if="detailStore">
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="门店名称">{{ detailStore.name }}</el-descriptions-item>
-          <el-descriptions-item label="联系电话">{{ detailStore.contactPhone }}</el-descriptions-item>
-          <el-descriptions-item label="门店地址" :span="2">{{ detailStore.address }}</el-descriptions-item>
-          <el-descriptions-item label="经纬度" :span="2">
-            {{ detailStore.latitude != null ? detailStore.latitude.toFixed(6) + ', ' + detailStore.longitude.toFixed(6) : '未设置' }}
-          </el-descriptions-item>
-          <el-descriptions-item label="师傅数量">{{ detailStore.technicianCount ?? 0 }}</el-descriptions-item>
-          <el-descriptions-item label="评分">{{ detailStore.rating != null ? detailStore.rating.toFixed(1) : '暂无评分' }}</el-descriptions-item>
-          <el-descriptions-item label="营业状态">
-            <el-tag :type="businessStatusTag(detailStore.businessStatus)" size="small">{{ businessStatusText(detailStore.businessStatus) }}</el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="审核状态">
-            <el-tag :type="auditStatusTag(detailStore.auditStatus)" size="small">{{ auditStatusText(detailStore.auditStatus) }}</el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item v-if="detailStore.description" label="门店介绍" :span="2">{{ detailStore.description }}</el-descriptions-item>
-        </el-descriptions>
-
-        <el-divider content-position="left">营业时间</el-divider>
-        <el-table :data="businessHours" border size="small">
-          <el-table-column label="星期" width="120">
-            <template #default="{ row }">{{ weekDayText(row.dayOfWeek) }}</template>
-          </el-table-column>
-          <el-table-column label="开始时间" width="140">
-            <template #default="{ row }">
-              <el-time-picker v-if="editingHours" v-model="row._startTime" format="HH:mm" value-format="HH:mm:ss" size="small" style="width:120px" />
-              <span v-else>{{ row.startTime }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="结束时间" width="140">
-            <template #default="{ row }">
-              <el-time-picker v-if="editingHours" v-model="row._endTime" format="HH:mm" value-format="HH:mm:ss" size="small" style="width:120px" />
-              <span v-else>{{ row.endTime }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="营业" width="80" align="center">
-            <template #default="{ row }">
-              <el-switch v-if="editingHours" v-model="row.isAvailable" :active-value="1" :inactive-value="0" size="small" />
-              <el-tag v-else :type="row.isAvailable ? 'success' : 'info'" size="small">{{ row.isAvailable ? '是' : '否' }}</el-tag>
-            </template>
-          </el-table-column>
-        </el-table>
-        <div style="margin-top: 12px">
-          <el-button v-if="!editingHours && canToggleStatus()" size="small" @click="startEditHours">编辑营业时间</el-button>
-          <template v-if="editingHours">
-            <el-button size="small" type="primary" :loading="savingHours" @click="saveBusinessHours">保存</el-button>
-            <el-button size="small" @click="cancelEditHours">取消</el-button>
-          </template>
-        </div>
-      </template>
-    </el-dialog>
-
-    <!-- 审核拒绝理由 -->
-    <el-dialog v-model="showAuditDialog" title="审核拒绝" width="400px">
-      <el-input v-model="auditRemark" type="textarea" :rows="3" placeholder="请输入拒绝理由" />
-      <template #footer>
-        <el-button @click="showAuditDialog = false">取消</el-button>
-        <el-button type="danger" @click="confirmAuditReject">确认拒绝</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Plus } from '@element-plus/icons-vue';
+import { Plus, Search } from '@element-plus/icons-vue';
 import { useAdminStore } from '../../stores/admin';
 import request from '../../api/request';
 
+const router = useRouter();
 const adminStore = useAdminStore();
 const isSuperAdmin = computed(() => adminStore.adminRole === 1);
 const isStoreAdmin = computed(() => adminStore.adminRole === 2);
-const pageTitle = computed(() => isSuperAdmin.value ? '门店管理' : '我的门店');
 
-// 列表
 const loading = ref(false);
 const storeList = ref([]);
 const pageNum = ref(1);
@@ -190,41 +147,24 @@ const searchKeyword = ref('');
 const filterAuditStatus = ref(null);
 const filterBusinessStatus = ref(null);
 
-// 创建
 const showCreateDialog = ref(false);
 const creating = ref(false);
 const createFormRef = ref();
 const createForm = reactive({
-  name: '', contactPhone: '', address: '', description: '',
-  latitude: null, longitude: null,
+  name: '', contactPhone: '', description: '',
+  latitude: null, longitude: null, address: '',
   adminName: '', adminPhone: '', adminEmail: '', adminPassword: ''
 });
 const createRules = {
   name: [{ required: true, message: '请输入门店名称', trigger: 'blur' }],
   contactPhone: [{ required: true, message: '请输入联系电话', trigger: 'blur' }],
-  address: [],
   adminName: [{ required: true, message: '请输入管理员姓名', trigger: 'blur' }],
   adminPhone: [{ required: true, message: '请输入管理员手机号', trigger: 'blur' }],
   adminEmail: [{ required: true, message: '请输入管理员邮箱', trigger: 'blur' }, { type: 'email', message: '邮箱格式不正确', trigger: 'blur' }],
   adminPassword: [{ required: true, message: '请输入管理员登录密码', trigger: 'blur' }]
 };
 
-// 详情
-const showDetailDialog = ref(false);
-const detailStore = ref(null);
-const businessHours = ref([]);
-const editingHours = ref(false);
-const savingHours = ref(false);
-const hoursBackup = ref([]);
-
-// 审核
-const showAuditDialog = ref(false);
-const auditRemark = ref('');
-const pendingAuditRow = ref(null);
-
 onMounted(() => { fetchList(); });
-
-// ==================== 业务逻辑 ====================
 
 async function fetchList() {
   loading.value = true;
@@ -245,6 +185,10 @@ async function fetchList() {
   } finally { loading.value = false; }
 }
 
+function goDetail(id) {
+  router.push(`/admin/stores/list/${id}`);
+}
+
 async function handleCreate() {
   const valid = await createFormRef.value.validate().catch(() => false);
   if (!valid) return;
@@ -259,96 +203,54 @@ async function handleCreate() {
   } finally { creating.value = false; }
 }
 
-async function openDetail(row) {
-  try {
-    const res = await request({ url: '/admin/stores/' + row.id, method: 'get' });
-    if (res.code === 200 && res.data) {
-      detailStore.value = res.data;
-      businessHours.value = (res.data.businessHours || []).map(h => ({
-        ...h,
-        _startTime: h.startTime ? new Date('2000-01-01 ' + h.startTime) : null,
-        _endTime: h.endTime ? new Date('2000-01-01 ' + h.endTime) : null
-      }));
-      editingHours.value = false;
-      showDetailDialog.value = true;
-    }
-  } catch (e) { /* ignore */ }
-}
-
-function startEditHours() {
-  hoursBackup.value = JSON.parse(JSON.stringify(businessHours.value));
-  editingHours.value = true;
-}
-function cancelEditHours() {
-  businessHours.value = hoursBackup.value;
-  editingHours.value = false;
-}
-async function saveBusinessHours() {
-  savingHours.value = true;
-  try {
-    const hours = businessHours.value.map(h => ({
-      dayOfWeek: h.dayOfWeek,
-      startTime: formatTime(h._startTime),
-      endTime: formatTime(h._endTime),
-      isAvailable: h.isAvailable
-    }));
-    await request({ url: '/admin/stores/' + detailStore.value.id + '/business-hours', method: 'post', data: { hours } });
-    ElMessage.success('营业时间保存成功');
-    editingHours.value = false;
-  } finally { savingHours.value = false; }
-}
-function formatTime(date) {
-  if (!date) return '00:00:00';
-  if (typeof date === 'string') return date;
-  return [date.getHours(), date.getMinutes(), 0].map(v => String(v).padStart(2, '0')).join(':');
-}
-
-function auditStore(row, status) {
+async function auditStore(row, status) {
   if (status === 3) {
-    pendingAuditRow.value = row;
-    auditRemark.value = '';
-    showAuditDialog.value = true;
+    try {
+      const { value: remark } = await ElMessageBox.prompt('请输入拒绝理由', '审核拒绝', {
+        confirmButtonText: '确认拒绝',
+        cancelButtonText: '取消',
+        inputType: 'textarea'
+      });
+      await request({ url: `/admin/stores/${row.id}/audit`, method: 'post', data: { auditStatus: status, remark } });
+      ElMessage.success('已拒绝');
+      fetchList();
+    } catch (e) { /* 取消 */ }
     return;
   }
-  doAudit(row.id, status, '');
-}
-async function confirmAuditReject() {
-  await doAudit(pendingAuditRow.value.id, 3, auditRemark.value);
-  showAuditDialog.value = false;
-}
-async function doAudit(storeId, status, remark) {
-  try {
-    await request({ url: '/admin/stores/' + storeId + '/audit', method: 'post', data: { auditStatus: status, remark } });
-    ElMessage.success(status === 2 ? '审核通过' : '已拒绝');
-    fetchList();
-  } catch (e) { /* ignore */ }
+  await request({ url: `/admin/stores/${row.id}/audit`, method: 'post', data: { auditStatus: status, remark: '' } });
+  ElMessage.success('审核通过');
+  fetchList();
 }
 
 async function toggleStatus(row) {
   const newStatus = row.businessStatus === 1 ? 2 : 1;
   const text = newStatus === 1 ? '营业中' : '休息中';
   try {
-    await ElMessageBox.confirm('确认切换为"' + text + '"吗？', '提示', { type: 'warning' });
-    await request({ url: '/admin/stores/' + row.id + '/status', method: 'post', data: { businessStatus: newStatus } });
+    await ElMessageBox.confirm(`确认切换为"${text}"吗？`, '提示', { type: 'warning' });
+    await request({ url: `/admin/stores/${row.id}/status`, method: 'post', data: { businessStatus: newStatus } });
     ElMessage.success('已切换为' + text);
     fetchList();
   } catch (e) { /* ignore */ }
 }
 
-function canToggleStatus() {
-  return isSuperAdmin.value || isStoreAdmin.value;
-}
+function canToggleStatus() { return isSuperAdmin.value || isStoreAdmin.value; }
 
 function businessStatusTag(s) { return s === 1 ? 'success' : s === 2 ? 'warning' : 'info'; }
 function businessStatusText(s) { return s === 1 ? '营业中' : s === 2 ? '休息中' : '已关闭'; }
 function auditStatusTag(s) { return s === 1 ? 'warning' : s === 2 ? 'success' : 'danger'; }
 function auditStatusText(s) { return s === 1 ? '待审核' : s === 2 ? '通过' : '拒绝'; }
-function weekDayText(d) { return ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'][d] || ''; }
 </script>
 
 <style scoped>
-.store-page { padding: 0; }
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.page-header h2 { margin: 0; font-size: 18px; }
-.search-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
+.store-page { padding: 16px; box-sizing: border-box; }
+.store-card { width: 100%; }
+.store-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 12px; }
+.store-title-group { display: flex; flex-direction: column; }
+.store-title { font-size: 18px; font-weight: 600; color: #303133; }
+.store-subtitle { margin-top: 4px; font-size: 13px; color: #909399; }
+.store-toolbar { display: flex; align-items: center; flex-wrap: wrap; }
+.store-search-input { width: 220px; }
+.store-table { width: 100%; }
+.store-table-header { background-color: #f5f7fa; }
+.store-pagination { display: flex; justify-content: flex-end; margin-top: 16px; }
 </style>

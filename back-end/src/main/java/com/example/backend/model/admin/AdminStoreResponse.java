@@ -20,6 +20,10 @@ public class AdminStoreResponse {
 
     private String storeAdminName;
 
+    private String storeAdminPhone;
+
+    private String storeAdminEmail;
+
     private String contactPhone;
 
     private String address;

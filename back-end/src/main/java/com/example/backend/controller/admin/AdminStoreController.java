@@ -299,6 +299,8 @@ public class AdminStoreController {
             AdminAccounts admin = adminAccountsService.getById(store.getStoreAdminId());
             if (admin != null) {
                 resp.setStoreAdminName(admin.getUsername());
+                resp.setStoreAdminPhone(admin.getPhone());
+                resp.setStoreAdminEmail(admin.getEmail());
             }
         }
         resp.setContactPhone(store.getContactPhone());

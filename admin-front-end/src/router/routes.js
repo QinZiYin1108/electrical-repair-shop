@@ -28,6 +28,7 @@ import AdminProductOrdersView from '../views/admin/AdminProductOrdersView.vue';
 import AdminProductOrderDetailView from '../views/admin/AdminProductOrderDetailView.vue';
 import AdminSystemSettingsView from '../views/admin/AdminSystemSettingsView.vue';
 import AdminStoreListView from '../views/admin/AdminStoreListView.vue';
+import AdminStoreDetailView from '../views/admin/AdminStoreDetailView.vue';
 import ProtocolViewerView from '../views/common/ProtocolViewerView.vue';
 
 const routes = [
@@ -94,6 +95,12 @@ const routes = [
         name: 'AdminStoresList',
         component: AdminStoreListView,
         meta: { title: '门店列表', description: '用于创建和管理门店及门店管理员。' }
+      },
+      {
+        path: 'stores/list/:id',
+        name: 'AdminStoreDetail',
+        component: AdminStoreDetailView,
+        meta: { title: '门店详情', description: '查看门店详情、管理员信息和营业时间。' }
       },
       {
         path: 'products/categories',

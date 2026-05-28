@@ -342,7 +342,6 @@ public class AdminStoreController {
             logoImage.setFileUrl(url);
             logoImage.setFileSize(file.getSize());
             logoImage.setMimeType(file.getContentType());
-            logoImage.setFileExtension(ext);
             logoImage.setUploaderId(user.getAccountId());
             logoImage.setUploaderType(ADMIN_OPERATOR_TYPE);
             logoImage.setBusinessType("STORE_LOGO");

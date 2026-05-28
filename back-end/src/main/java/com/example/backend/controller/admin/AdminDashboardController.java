@@ -129,14 +129,10 @@ public class AdminDashboardController {
             )
         );
 
-        LambdaQueryWrapper<RepairOrders> baseOrderWrapper = new LambdaQueryWrapper<RepairOrders>().eq(RepairOrders::getIsDelete, 0);
-        if (isStoreMode && storeTechIds != null) {
-            baseOrderWrapper.in(RepairOrders::getTechnicianAccountId, storeTechIds.isEmpty() ? Collections.singleton("-1") : storeTechIds);
-        }
-        response.setTotalOrders(repairOrdersService.count(baseOrderWrapper.clone()));
-        response.setTodayOrders(repairOrdersService.count(baseOrderWrapper.clone().ge(RepairOrders::getCreatedTime, todayStart)));
-        response.setPendingOrders(repairOrdersService.count(baseOrderWrapper.clone().in(RepairOrders::getStatus, 1, 2, 3, 4, 5)));
-        response.setTodayCompletedOrders(repairOrdersService.count(baseOrderWrapper.clone().eq(RepairOrders::getStatus, 6).ge(RepairOrders::getCompletionTime, todayStart)));
+        response.setTotalOrders(repairOrdersService.count(buildOrderWrapper(storeTechIds)));
+        response.setTodayOrders(repairOrdersService.count(buildOrderWrapper(storeTechIds).ge(RepairOrders::getCreatedTime, todayStart)));
+        response.setPendingOrders(repairOrdersService.count(buildOrderWrapper(storeTechIds).in(RepairOrders::getStatus, 1, 2, 3, 4, 5)));
+        response.setTodayCompletedOrders(repairOrdersService.count(buildOrderWrapper(storeTechIds).eq(RepairOrders::getStatus, 6).ge(RepairOrders::getCompletionTime, todayStart)));
 
         LambdaQueryWrapper<AfterSalesApplications> asWrapper = new LambdaQueryWrapper<AfterSalesApplications>()
             .eq(AfterSalesApplications::getIsDelete, 0)
@@ -146,24 +142,14 @@ public class AdminDashboardController {
         }
         response.setPendingAfterSales(afterSalesApplicationsService.count(asWrapper));
 
-        LambdaQueryWrapper<RepairOrderPayments> paymentWrapper = new LambdaQueryWrapper<RepairOrderPayments>()
-            .eq(RepairOrderPayments::getIsDelete, 0)
-            .gt(RepairOrderPayments::getActualAmount, BigDecimal.ZERO);
-        if (isStoreMode && storeOrderIds != null) {
-            paymentWrapper.in(RepairOrderPayments::getRepairOrderId, storeOrderIds.isEmpty() ? Collections.singleton("-1") : storeOrderIds);
-        }
-        List<RepairOrderPayments> allPayments = repairOrderPaymentsService.list(paymentWrapper);
+        List<RepairOrderPayments> allPayments = repairOrderPaymentsService.list(buildPaymentWrapper(storeOrderIds));
         List<RepairOrderPayments> todayPayments = repairOrderPaymentsService.list(
-            paymentWrapper.clone().ge(RepairOrderPayments::getPaymentTime, todayStart)
+            buildPaymentWrapper(storeOrderIds).ge(RepairOrderPayments::getPaymentTime, todayStart)
         );
 
-        LambdaQueryWrapper<RepairOrders> refundWrapper = new LambdaQueryWrapper<RepairOrders>()
-            .eq(RepairOrders::getIsDelete, 0)
-            .gt(RepairOrders::getRefundAmount, BigDecimal.ZERO);
-        if (isStoreMode && storeTechIds != null) {
-            refundWrapper.in(RepairOrders::getTechnicianAccountId, storeTechIds.isEmpty() ? Collections.singleton("-1") : storeTechIds);
-        }
-        List<RepairOrders> refundedOrders = repairOrdersService.list(refundWrapper);
+        List<RepairOrders> refundedOrders = repairOrdersService.list(
+            buildOrderWrapper(storeTechIds).gt(RepairOrders::getRefundAmount, BigDecimal.ZERO)
+        );
 
         BigDecimal totalGrossIncome = sumActualAmount(allPayments);
         BigDecimal todayIncome = sumActualAmount(todayPayments);
@@ -643,6 +629,25 @@ public class AdminDashboardController {
             case PRODUCT_PAYMENT_METHOD_WALLET -> "钱包支付";
             default -> "其他方式";
         };
+    }
+
+    private LambdaQueryWrapper<RepairOrders> buildOrderWrapper(Set<String> storeTechIds) {
+        LambdaQueryWrapper<RepairOrders> wrapper = new LambdaQueryWrapper<RepairOrders>()
+            .eq(RepairOrders::getIsDelete, 0);
+        if (storeTechIds != null) {
+            wrapper.in(RepairOrders::getTechnicianAccountId, storeTechIds.isEmpty() ? Collections.singleton("-1") : storeTechIds);
+        }
+        return wrapper;
+    }
+
+    private LambdaQueryWrapper<RepairOrderPayments> buildPaymentWrapper(Set<String> storeOrderIds) {
+        LambdaQueryWrapper<RepairOrderPayments> wrapper = new LambdaQueryWrapper<RepairOrderPayments>()
+            .eq(RepairOrderPayments::getIsDelete, 0)
+            .gt(RepairOrderPayments::getActualAmount, BigDecimal.ZERO);
+        if (storeOrderIds != null) {
+            wrapper.in(RepairOrderPayments::getRepairOrderId, storeOrderIds.isEmpty() ? Collections.singleton("-1") : storeOrderIds);
+        }
+        return wrapper;
     }
 
     private Set<String> resolveStoreTechIds(String storeId) {

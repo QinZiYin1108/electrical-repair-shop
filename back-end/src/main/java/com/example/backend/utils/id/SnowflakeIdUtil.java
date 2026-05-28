@@ -235,7 +235,7 @@ public class SnowflakeIdUtil {
     }
 
     public static String nextStoreId() {
-        return "STR" + DEFAULT.nextId();
+        return "ST" + DEFAULT.nextId();
     }
 
     public static String nextOperationLogId() {

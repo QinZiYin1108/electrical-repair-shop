@@ -12,55 +12,22 @@
 
     <view class="card">
       <text class="card-title">设置门店地址</text>
-      <text class="card-desc">请在地图上选择门店所在位置</text>
+      <text class="card-desc">请前往门店所在地，获取当前位置作为门店地址</text>
 
-      <!-- 搜索栏 -->
-      <view class="search-box">
-        <input
-          class="search-input"
-          v-model="searchKeyword"
-          placeholder="搜索地址关键词"
-          @input="onSearchInput"
-        />
-        <view v-if="suggestions.length" class="suggestions-dropdown">
-          <view
-            v-for="(item, index) in suggestions"
-            :key="index"
-            class="suggestion-item"
-            @click="selectSuggestion(item)"
-          >
-            <text class="sug-name">{{ item.name }}</text>
-            <text class="sug-addr">{{ item.address }}</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- 定位按钮 -->
       <view class="locate-btn" @click="locateCurrentPosition">
-        <u-icon name="map" size="18" color="#1677ff" />
-        <text class="locate-text">使用当前位置</text>
+        <u-icon name="map" size="20" color="#ffffff" />
+        <text class="locate-text">获取当前位置</text>
       </view>
 
-      <!-- 地图 -->
-      <map
-        id="storeMap"
-        class="store-map"
-        :latitude="currentLat"
-        :longitude="currentLng"
-        :scale="16"
-        :markers="markers"
-        show-location
-        @tap="onMapTap"
-      />
+      <view v-if="loading" class="loading-text">正在获取位置...</view>
 
-      <!-- 已选地址信息 -->
       <view v-if="selectedAddress" class="selected-info">
-        <text class="addr-label">已选位置</text>
+        <text class="addr-label">当前位置</text>
         <text class="addr-value">{{ selectedAddress }}</text>
-        <text class="addr-coord">{{ currentLat.toFixed(6) }}, {{ currentLng.toFixed(6) }}</text>
+        <text class="addr-coord">{{ latitude.toFixed(6) }}, {{ longitude.toFixed(6) }}</text>
       </view>
-      <view v-else class="empty-info">
-        <text class="empty-text">请点击地图选择门店位置</text>
+      <view v-else-if="!loading" class="empty-info">
+        <text class="empty-text">点击上方按钮获取当前门店位置</text>
       </view>
     </view>
 
@@ -72,7 +39,7 @@
         shape="circle"
         @click="handleSave"
       >
-        保存门店地址
+        保存为门店地址
       </u-button>
     </view>
   </view>
@@ -85,137 +52,52 @@ export default {
   name: 'StoreAddressPage',
   data() {
     return {
-      searchKeyword: '',
-      suggestions: [],
-      currentLat: 39.915,
-      currentLng: 116.404,
+      latitude: 0,
+      longitude: 0,
       selectedAddress: '',
+      loading: false,
       saving: false
     };
-  },
-  computed: {
-    markers() {
-      return [
-        {
-          id: 1,
-          latitude: this.currentLat,
-          longitude: this.currentLng,
-          width: 30,
-          height: 30,
-          iconPath: '/static/logo.png'
-        }
-      ];
-    }
   },
   methods: {
     goBack() {
       uni.navigateBack();
     },
 
-    onSearchInput() {
-      const keyword = this.searchKeyword?.trim();
-      if (!keyword || keyword.length < 2) {
-        this.suggestions = [];
-        return;
-      }
-      // 使用 getLocation 搜索地址
-      uni.request({
-        url: 'https://apis.map.qq.com/ws/place/v1/suggestion',
-        data: {
-          keyword: keyword,
-          region: '全国',
-          key: 'WZLBZ-SBHKW-KY7R7-YRA4W-F6XUH-DZBBg'
-        },
-        success: (res) => {
-          if (res.data && res.data.data) {
-            this.suggestions = res.data.data.map(item => ({
-              name: item.title,
-              address: item.address,
-              lat: item.location.lat,
-              lng: item.location.lng
-            }));
-          }
-        }
-      });
-    },
-
-    selectSuggestion(item) {
-      this.suggestions = [];
-      this.searchKeyword = item.name;
-      this.currentLat = item.lat;
-      this.currentLng = item.lng;
-      this.selectedAddress = item.name + ' ' + item.address;
-    },
-
     locateCurrentPosition() {
+      this.loading = true;
+      this.selectedAddress = '';
       uni.getLocation({
         type: 'gcj02',
         success: (res) => {
-          this.currentLat = res.latitude;
-          this.currentLng = res.longitude;
-          this.selectedAddress = '';
-          // 逆地理编码
-          uni.request({
-            url: 'https://apis.map.qq.com/ws/geocoder/v1/',
-            data: {
-              location: res.latitude + ',' + res.longitude,
-              key: 'WZLBZ-SBHKW-KY7R7-YRA4W-F6XUH-DZBBg'
-            },
-            success: (geoRes) => {
-              if (geoRes.data && geoRes.data.result) {
-                this.selectedAddress = geoRes.data.result.address;
-              } else {
-                this.selectedAddress = res.latitude.toFixed(6) + ', ' + res.longitude.toFixed(6);
-              }
-            },
-            fail: () => {
-              this.selectedAddress = res.latitude.toFixed(6) + ', ' + res.longitude.toFixed(6);
-            }
-          });
+          this.latitude = res.latitude;
+          this.longitude = res.longitude;
+          // 不调第三方地图API，直接显示坐标，等后端保存后才解析地址
+          this.selectedAddress = res.latitude.toFixed(6) + ', ' + res.longitude.toFixed(6);
+          this.loading = false;
         },
         fail: () => {
+          this.loading = false;
           uni.showToast({ title: '定位失败，请检查定位权限', icon: 'none' });
         }
       });
     },
 
-    onMapTap(e) {
-      this.currentLat = e.detail.latitude;
-      this.currentLng = e.detail.longitude;
-      this.selectedAddress = '';
-      // 逆地理编码
-      uni.request({
-        url: 'https://apis.map.qq.com/ws/geocoder/v1/',
-        data: {
-          location: e.detail.latitude + ',' + e.detail.longitude,
-          key: 'WZLBZ-SBHKW-KY7R7-YRA4W-F6XUH-DZBBg'
-        },
-        success: (geoRes) => {
-          if (geoRes.data && geoRes.data.result) {
-            this.selectedAddress = geoRes.data.result.address;
-          } else {
-            this.selectedAddress = e.detail.latitude.toFixed(6) + ', ' + e.detail.longitude.toFixed(6);
-          }
-        },
-        fail: () => {
-          this.selectedAddress = e.detail.latitude.toFixed(6) + ', ' + e.detail.longitude.toFixed(6);
-        }
-      });
-    },
-
     async handleSave() {
-      if (!this.selectedAddress) {
-        uni.showToast({ title: '请选择门店位置', icon: 'none' });
+      if (!this.latitude || !this.longitude) {
+        uni.showToast({ title: '请先获取当前位置', icon: 'none' });
         return;
       }
       this.saving = true;
       try {
         const res = await setStoreAddress({
-          latitude: this.currentLat,
-          longitude: this.currentLng,
+          latitude: this.latitude,
+          longitude: this.longitude,
           coordType: 'gcj02ll'
         });
         if (res && res.code === 200) {
+          // 后端返回了逆地理编码后的地址
+          const addr = res.data && res.data.address;
           uni.showToast({ title: '门店地址已保存', icon: 'success' });
           setTimeout(() => {
             uni.navigateBack();
@@ -290,77 +172,29 @@ export default {
   color: #909399;
 }
 
-.search-box {
-  position: relative;
-  margin-top: 24rpx;
-}
-
-.search-input {
-  height: 72rpx;
-  padding: 0 24rpx;
-  border: 1rpx solid #e4e7ed;
-  border-radius: 12rpx;
-  font-size: 28rpx;
-  background-color: #f8fafc;
-}
-
-.suggestions-dropdown {
-  position: absolute;
-  top: 80rpx;
-  left: 0;
-  right: 0;
-  max-height: 300rpx;
-  overflow-y: auto;
-  background: #fff;
-  border: 1rpx solid #e4e7ed;
-  border-radius: 12rpx;
-  z-index: 100;
-  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.08);
-}
-
-.suggestion-item {
-  padding: 16rpx 24rpx;
-  border-bottom: 1rpx solid #f0f0f0;
-}
-
-.suggestion-item:last-child {
-  border-bottom: none;
-}
-
-.sug-name {
-  display: block;
-  font-size: 28rpx;
-  color: #303133;
-}
-
-.sug-addr {
-  display: block;
-  margin-top: 4rpx;
-  font-size: 22rpx;
-  color: #909399;
-}
-
 .locate-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 20rpx 0;
-  padding: 16rpx;
-  border-radius: 12rpx;
-  background-color: #eaf3ff;
+  margin: 32rpx 0;
+  padding: 24rpx;
+  border-radius: 16rpx;
+  background: linear-gradient(135deg, #1677ff, #409eff);
+  box-shadow: 0 8rpx 24rpx rgba(22, 119, 255, 0.3);
 }
 
 .locate-text {
-  margin-left: 8rpx;
-  font-size: 26rpx;
-  color: #1677ff;
+  margin-left: 12rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #ffffff;
 }
 
-.store-map {
-  width: 100%;
-  height: 400rpx;
-  border-radius: 12rpx;
-  margin-top: 8rpx;
+.loading-text {
+  text-align: center;
+  font-size: 26rpx;
+  color: #909399;
+  margin-top: 16rpx;
 }
 
 .selected-info {

@@ -78,20 +78,6 @@
           <el-input v-model="createForm.contactPhone" placeholder="请输入联系电话" />
         </el-form-item>
 
-        <!-- 门店地址（选填：创建后可让门店管理员在师傅端设置） -->
-        <el-form-item label="门店地址" prop="address">
-          <div style="display:flex; gap:8px; width:100%">
-            <el-button @click="locateCurrentPosition" :loading="locating">
-              <el-icon><Aim /></el-icon> 获取当前位置
-            </el-button>
-            <span v-if="createForm.address" style="font-size:13px; color:#67c23a; line-height:32px">
-              {{ createForm.address }}
-            </span>
-            <span v-else style="font-size:12px; color:#909399; line-height:32px">
-              点击按钮获取当前浏览器位置
-            </span>
-          </div>
-        </el-form-item>
         <el-form-item label="门店介绍">
           <el-input v-model="createForm.description" type="textarea" :rows="2" placeholder="请输入门店介绍（选填）" />
         </el-form-item>
@@ -185,7 +171,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Plus, Aim } from '@element-plus/icons-vue';
+import { Plus } from '@element-plus/icons-vue';
 import { useAdminStore } from '../../stores/admin';
 import request from '../../api/request';
 
@@ -223,9 +209,6 @@ const createRules = {
   adminPassword: [{ required: true, message: '请输入管理员登录密码', trigger: 'blur' }]
 };
 
-// 定位
-const locating = ref(false);
-
 // 详情
 const showDetailDialog = ref(false);
 const detailStore = ref(null);
@@ -240,46 +223,6 @@ const auditRemark = ref('');
 const pendingAuditRow = ref(null);
 
 onMounted(() => { fetchList(); });
-
-// ===== 当前位置定位 =====
-
-function locateCurrentPosition() {
-  if (!navigator.geolocation) {
-    ElMessage.warning('浏览器不支持定位功能');
-    return;
-  }
-  locating.value = true;
-  ElMessage.info('正在获取当前位置...');
-  navigator.geolocation.getCurrentPosition(
-    async function (pos) {
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
-      createForm.latitude = lat;
-      createForm.longitude = lng;
-      try {
-        const geoRes = await request({
-          url: '/admin/stores/reverse-geocode',
-          method: 'get',
-          params: { latitude: lat, longitude: lng }
-        });
-        if (geoRes.code === 200 && geoRes.data && geoRes.data.address) {
-          createForm.address = geoRes.data.address;
-        } else {
-          createForm.address = lat.toFixed(6) + ', ' + lng.toFixed(6);
-        }
-      } catch (e) {
-        createForm.address = lat.toFixed(6) + ', ' + lng.toFixed(6);
-      }
-      locating.value = false;
-      ElMessage.success('已定位：' + createForm.address);
-    },
-    function () {
-      locating.value = false;
-      ElMessage.warning('定位失败，请检查浏览器定位权限');
-    },
-    { enableHighAccuracy: true, timeout: 10000 }
-  );
-}
 
 // ==================== 业务逻辑 ====================
 

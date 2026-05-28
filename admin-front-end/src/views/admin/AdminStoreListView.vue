@@ -251,14 +251,27 @@ function locateCurrentPosition() {
   locating.value = true;
   ElMessage.info('正在获取当前位置...');
   navigator.geolocation.getCurrentPosition(
-    function (pos) {
+    async function (pos) {
       const lat = pos.coords.latitude;
       const lng = pos.coords.longitude;
       createForm.latitude = lat;
       createForm.longitude = lng;
-      createForm.address = lat.toFixed(6) + ', ' + lng.toFixed(6);
+      try {
+        const geoRes = await request({
+          url: '/admin/stores/reverse-geocode',
+          method: 'get',
+          params: { latitude: lat, longitude: lng }
+        });
+        if (geoRes.code === 200 && geoRes.data && geoRes.data.address) {
+          createForm.address = geoRes.data.address;
+        } else {
+          createForm.address = lat.toFixed(6) + ', ' + lng.toFixed(6);
+        }
+      } catch (e) {
+        createForm.address = lat.toFixed(6) + ', ' + lng.toFixed(6);
+      }
       locating.value = false;
-      ElMessage.success('已定位到当前位置');
+      ElMessage.success('已定位：' + createForm.address);
     },
     function () {
       locating.value = false;

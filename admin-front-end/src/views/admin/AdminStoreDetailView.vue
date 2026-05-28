@@ -4,33 +4,29 @@
       <template v-if="store">
         <div class="back-row">
           <el-button text @click="goBack"><el-icon><ArrowLeft /></el-icon> 返回门店列表</el-button>
-          <el-button v-if="canEdit() && !editingInfo" type="primary" size="small" style="float:right" @click="startEditInfo">编辑门店信息</el-button>
+          <el-button v-if="canEdit()" type="primary" size="small" style="float:right" @click="editingInfo ? saveInfo() : startEditInfo()">
+            {{ editingInfo ? '保存' : '编辑门店信息' }}
+          </el-button>
         </div>
 
         <el-divider content-position="left">门店信息</el-divider>
-        <template v-if="editingInfo">
-          <el-form :model="editForm" label-width="100px" style="max-width:500px">
-            <el-form-item label="门店名称">
-              <el-input v-model="editForm.name" />
-            </el-form-item>
-            <el-form-item label="联系电话">
-              <el-input v-model="editForm.contactPhone" />
-            </el-form-item>
-            <el-form-item label="门店介绍">
-              <el-input v-model="editForm.description" type="textarea" :rows="3" />
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" :loading="savingInfo" @click="saveInfo">保存</el-button>
-              <el-button @click="cancelEditInfo">取消</el-button>
-            </el-form-item>
-          </el-form>
-        </template>
-        <el-descriptions v-else :column="2" border>
-          <el-descriptions-item label="门店名称">{{ store.name }}</el-descriptions-item>
-          <el-descriptions-item label="联系电话">{{ store.contactPhone }}</el-descriptions-item>
-          <el-descriptions-item label="门店地址" :span="2">{{ store.address || '未设置' }}</el-descriptions-item>
-          <el-descriptions-item label="经纬度" :span="2">
-            {{ store.latitude != null ? store.latitude.toFixed(6) + ', ' + store.longitude.toFixed(6) : '未设置' }}
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="门店名称">
+            <el-input v-if="editingInfo" v-model="editForm.name" size="small" />
+            <template v-else>{{ store.name }}</template>
+          </el-descriptions-item>
+          <el-descriptions-item label="联系电话">
+            <el-input v-if="editingInfo" v-model="editForm.contactPhone" size="small" />
+            <template v-else>{{ store.contactPhone }}</template>
+          </el-descriptions-item>
+          <el-descriptions-item label="门店地址" :span="2">
+            <template v-if="editingInfo">
+              <div style="display:flex;gap:8px;align-items:center">
+                <el-input v-model="editForm.address" size="small" style="flex:1" readonly placeholder="点击右侧按钮获取位置" />
+                <el-button size="small" :loading="locating" @click="locateAndGeocode">获取当前位置</el-button>
+              </div>
+            </template>
+            <template v-else>{{ store.address || '未设置' }}</template>
           </el-descriptions-item>
           <el-descriptions-item label="营业状态">
             <el-tag :type="businessStatusTag(store.businessStatus)" size="small">{{ businessStatusText(store.businessStatus) }}</el-tag>
@@ -40,7 +36,10 @@
           </el-descriptions-item>
           <el-descriptions-item label="评分">{{ store.rating != null ? store.rating.toFixed(1) : '暂无评分' }}</el-descriptions-item>
           <el-descriptions-item label="师傅数量">{{ store.technicianCount ?? 0 }}</el-descriptions-item>
-          <el-descriptions-item v-if="store.description" label="门店介绍" :span="2">{{ store.description }}</el-descriptions-item>
+          <el-descriptions-item v-if="store.description" label="门店介绍" :span="2">
+            <el-input v-if="editingInfo" v-model="editForm.description" type="textarea" :rows="2" size="small" />
+            <template v-else>{{ store.description }}</template>
+          </el-descriptions-item>
           <el-descriptions-item label="创建时间" :span="2">{{ formatTimestamp(store.createdTime) }}</el-descriptions-item>
         </el-descriptions>
 
@@ -108,8 +107,8 @@ const editingHours = ref(false);
 const savingHours = ref(false);
 const hoursBackup = ref([]);
 const editingInfo = ref(false);
-const savingInfo = ref(false);
-const editForm = reactive({ name: '', contactPhone: '', description: '' });
+const locating = ref(false);
+const editForm = reactive({ name: '', contactPhone: '', address: '', description: '', latitude: null, longitude: null });
 
 const isSuperAdmin = computed(() => adminStore.adminRole === 1);
 const isStoreAdmin = computed(() => adminStore.adminRole === 2);
@@ -118,9 +117,7 @@ onMounted(() => { fetchDetail(); });
 
 function goBack() { router.push('/admin/stores/list'); }
 
-function canEdit() {
-  return isSuperAdmin.value || (isStoreAdmin.value && store.value && store.value.id === adminStore.storeId);
-}
+function canEdit() { return isSuperAdmin.value || (isStoreAdmin.value && store.value && store.value.id === adminStore.storeId); }
 
 async function fetchDetail() {
   const id = route.params.id;
@@ -142,16 +139,50 @@ async function fetchDetail() {
 function startEditInfo() {
   editForm.name = store.value.name || '';
   editForm.contactPhone = store.value.contactPhone || '';
+  editForm.address = store.value.address || '';
   editForm.description = store.value.description || '';
+  editForm.latitude = store.value.latitude;
+  editForm.longitude = store.value.longitude;
   editingInfo.value = true;
 }
 
-function cancelEditInfo() {
-  editingInfo.value = false;
+async function locateAndGeocode() {
+  if (!navigator.geolocation) {
+    ElMessage.warning('浏览器不支持定位');
+    return;
+  }
+  locating.value = true;
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      editForm.latitude = lat;
+      editForm.longitude = lng;
+      try {
+        const geoRes = await request({
+          url: '/admin/stores/reverse-geocode',
+          method: 'get',
+          params: { latitude: lat, longitude: lng }
+        });
+        if (geoRes.code === 200 && geoRes.data && geoRes.data.address) {
+          editForm.address = geoRes.data.address;
+        } else {
+          editForm.address = lat.toFixed(6) + ', ' + lng.toFixed(6);
+        }
+      } catch (e) {
+        editForm.address = lat.toFixed(6) + ', ' + lng.toFixed(6);
+      }
+      locating.value = false;
+    },
+    () => {
+      locating.value = false;
+      ElMessage.warning('定位失败');
+    },
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
 }
 
 async function saveInfo() {
-  savingInfo.value = true;
   try {
     const res = await request({
       url: `/admin/stores/${store.value.id}/update`,
@@ -159,17 +190,23 @@ async function saveInfo() {
       data: {
         name: editForm.name,
         contactPhone: editForm.contactPhone,
+        address: editForm.address,
+        latitude: editForm.latitude,
+        longitude: editForm.longitude,
         description: editForm.description
       }
     });
     if (res.code === 200) {
       store.value.name = editForm.name;
       store.value.contactPhone = editForm.contactPhone;
+      store.value.address = editForm.address;
+      store.value.latitude = editForm.latitude;
+      store.value.longitude = editForm.longitude;
       store.value.description = editForm.description;
       editingInfo.value = false;
       ElMessage.success('门店信息已保存');
     }
-  } finally { savingInfo.value = false; }
+  } catch (e) { /* ignore */ }
 }
 
 function startEditHours() {

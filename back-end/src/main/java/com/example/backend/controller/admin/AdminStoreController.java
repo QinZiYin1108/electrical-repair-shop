@@ -12,9 +12,15 @@ import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.*;
 import com.example.backend.utils.PasswordUtil;
 import com.example.backend.utils.id.SnowflakeIdUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import java.math.BigDecimal;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -28,6 +34,12 @@ public class AdminStoreController {
 
     private static final int ADMIN_OPERATOR_TYPE = 3;
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm:ss");
+
+    @Value("${baidu.map.ak:}")
+    private String baiduAk;
+
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private final StoresService storesService;
     private final StoreBusinessHoursService storeBusinessHoursService;
@@ -287,6 +299,51 @@ public class AdminStoreController {
         saveLog(user, "UPDATE", "更新门店营业时间：" + store.getName(),
                 "/admin/stores/" + id + "/business-hours", "");
         return Result.success();
+    }
+
+    // ==================== 逆地理编码 ====================
+
+    @GetMapping("/reverse-geocode")
+    public Result<java.util.Map<String, String>> reverseGeocode(
+            @RequestParam BigDecimal latitude,
+            @RequestParam BigDecimal longitude) {
+        if (!StringUtils.hasText(baiduAk)) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "百度地图AK未配置");
+        }
+        String url = UriComponentsBuilder
+                .fromHttpUrl("https://api.map.baidu.com/reverse_geocoding/v3/")
+                .queryParam("ak", baiduAk)
+                .queryParam("output", "json")
+                .queryParam("coordtype", "gcj02ll")
+                .queryParam("location", latitude + "," + longitude)
+                .toUriString();
+        String body;
+        try {
+            body = restTemplate.getForObject(url, String.class);
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "逆地理编码请求失败");
+        }
+        try {
+            java.util.Map<?, ?> root = objectMapper.readValue(body, java.util.Map.class);
+            Object status = root.get("status");
+            if (!(status instanceof Number) || ((Number) status).intValue() != 0) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "逆地理编码失败");
+            }
+            Object resultObj = root.get("result");
+            String formattedAddress = null;
+            if (resultObj instanceof java.util.Map) {
+                java.util.Map<?, ?> result = (java.util.Map<?, ?>) resultObj;
+                Object addr = result.get("formatted_address");
+                if (addr != null) formattedAddress = addr.toString();
+            }
+            java.util.Map<String, String> ret = new java.util.HashMap<>();
+            ret.put("address", formattedAddress != null ? formattedAddress : latitude + "," + longitude);
+            return Result.success(ret);
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "逆地理编码失败");
+        }
     }
 
     // ==================== Helper ====================

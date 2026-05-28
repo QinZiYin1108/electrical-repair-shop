@@ -12,6 +12,9 @@
         <el-button class="header-refresh-btn" circle @click="handlePageRefresh">
           <el-icon><RefreshRight /></el-icon>
         </el-button>
+        <el-button v-if="isStoreAdmin" :type="businessStatus === 1 ? 'success' : 'warning'" plain size="small" :loading="togglingStatus" @click="toggleStoreStatus">
+          {{ businessStatus === 1 ? '营业中' : businessStatus === 2 ? '休息中' : '已关闭' }}
+        </el-button>
         <el-dropdown @command="handleUserCommand">
           <span class="header-user">
             <el-avatar v-if="avatarUrl" :src="avatarUrl" size="small" class="header-avatar" />
@@ -113,11 +116,15 @@ import { clearAuth } from '../utils/auth';
 import { useAdminStore } from '../stores/admin';
 import { fetchAdminProfile } from '../api/adminAccount';
 import brandLogoIcon from '../assets/logo-icon.png';
+import request from '../api/request';
 
 const route = useRoute();
 const router = useRouter();
 const adminStore = useAdminStore();
 const isSuperAdmin = computed(() => adminStore.adminRole === 1);
+const isStoreAdmin = computed(() => adminStore.adminRole === 2);
+const businessStatus = ref(null);
+const togglingStatus = ref(false);
 
 const activeMenu = computed(() => {
   if (route.path.startsWith('/admin/workers/info/')) {
@@ -164,7 +171,32 @@ onMounted(async () => {
       // ignore
     }
   }
+  if (isStoreAdmin.value && adminStore.storeId) {
+    try {
+      const res = await request({ url: `/admin/stores/${adminStore.storeId}`, method: 'get' });
+      if (res.code === 200 && res.data) {
+        businessStatus.value = res.data.businessStatus;
+      }
+    } catch (e) { /* ignore */ }
+  }
 });
+
+async function toggleStoreStatus() {
+  const newStatus = businessStatus.value === 1 ? 2 : 1;
+  const text = newStatus === 1 ? '营业中' : '休息中';
+  try {
+    await ElMessageBox.confirm(`确认切换为"${text}"吗？`, '提示', { type: 'warning' });
+    togglingStatus.value = true;
+    await request({
+      url: `/admin/stores/${adminStore.storeId}/status`,
+      method: 'post',
+      data: { businessStatus: newStatus }
+    });
+    businessStatus.value = newStatus;
+    ElMessage.success('已切换为' + text);
+  } catch (e) { /* cancel or error */ }
+  finally { togglingStatus.value = false; }
+}
 
 function handleUserCommand(command) {
   if (command === 'profile') {

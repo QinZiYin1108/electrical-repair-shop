@@ -332,10 +332,29 @@ public class AdminStoreController {
             }
             String objectName = "stores/" + id + "/logo" + ext;
             String url = ossUtil.upload(objectName, file.getInputStream());
-            // 重新获取最新版本，避免乐观锁版本冲突
+            // 创建 Images 记录
+            long now = System.currentTimeMillis();
+            Images logoImage = new Images();
+            logoImage.setId(SnowflakeIdUtil.nextImageId());
+            logoImage.setOriginalName(file.getOriginalFilename());
+            logoImage.setFileName(objectName);
+            logoImage.setFilePath(objectName);
+            logoImage.setFileUrl(url);
+            logoImage.setFileSize(file.getSize());
+            logoImage.setMimeType(file.getContentType());
+            logoImage.setFileExtension(ext);
+            logoImage.setUploaderId(user.getAccountId());
+            logoImage.setUploaderType(ADMIN_OPERATOR_TYPE);
+            logoImage.setBusinessType("STORE_LOGO");
+            logoImage.setBusinessId(id);
+            logoImage.setCreatedTime(now);
+            logoImage.setVersion(1);
+            logoImage.setIsDelete(0);
+            imagesService.save(logoImage);
+            // 更新门店的 logo_image_id 为 Images 记录 ID
             Stores latest = storesService.getById(id);
-            latest.setLogoImageId(url);
-            latest.setUpdatedTime(System.currentTimeMillis());
+            latest.setLogoImageId(logoImage.getId());
+            latest.setUpdatedTime(now);
             storesService.updateById(latest);
             return Result.success(url);
         } catch (Exception e) {

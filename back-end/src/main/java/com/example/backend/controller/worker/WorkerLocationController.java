@@ -3,7 +3,6 @@ package com.example.backend.controller.worker;
 import com.example.backend.common.Result;
 import com.example.backend.model.worker.WorkerLocationUpdateRequest;
 import com.example.backend.model.worker.WorkerLocationUpdateResponse;
-import com.example.backend.model.worker.WorkerStoreAddressRequest;
 import com.example.backend.service.WorkerLocationService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,9 +24,5 @@ public class WorkerLocationController {
         return Result.success(workerLocationService.updateCurrentWorkerLocation(request));
     }
 
-    @PostMapping("/store/address")
-    public Result<WorkerLocationUpdateResponse> setStoreAddress(@RequestBody WorkerStoreAddressRequest request) {
-        return Result.success(workerLocationService.updateStoreAddress(request));
-    }
 }
 

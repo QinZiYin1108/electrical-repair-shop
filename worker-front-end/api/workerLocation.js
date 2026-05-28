@@ -8,11 +8,3 @@ export function updateWorkerLocation(data) {
   });
 }
 
-export function setStoreAddress(data) {
-  return request({
-    url: '/worker/location/store/address',
-    method: 'POST',
-    data: data || {}
-  });
-}
-

@@ -75,27 +75,30 @@
 
         <el-divider content-position="left">
           <span>营业时间</span>
-          <el-button v-if="!editingHours && canEdit()" size="small" style="margin-left:12px" @click="startEditHours">编辑</el-button>
+          <el-button v-if="!editingHours && canEdit()" style="margin-left:12px" @click="startEditHours">编辑</el-button>
           <template v-if="editingHours">
-            <el-button size="small" type="primary" :loading="savingHours" style="margin-left:12px" @click="saveBusinessHours">保存</el-button>
-            <el-button size="small" style="margin-left:4px" @click="cancelEditHours">取消</el-button>
+            <el-button type="primary" :loading="savingHours" style="margin-left:12px" @click="saveBusinessHours">保存</el-button>
+            <el-button style="margin-left:4px" @click="cancelEditHours">取消</el-button>
           </template>
         </el-divider>
-        <div class="hours-grid">
-          <div v-for="(h, idx) in businessHours" :key="idx" class="hours-row" :class="{ 'hours-row-off': !h.isAvailable && !editingHours }">
-            <span class="hours-day">{{ weekDayText(h.dayOfWeek) }}</span>
+        <el-descriptions :column="2" border>
+          <el-descriptions-item v-for="(h, idx) in businessHours" :key="idx" :label="weekDayText(h.dayOfWeek)" label-class-name="hours-label">
             <template v-if="editingHours">
-              <el-time-picker v-model="h._startTime" format="HH:mm" value-format="HH:mm:ss" size="small" style="width:120px" />
-              <span class="hours-sep">—</span>
-              <el-time-picker v-model="h._endTime" format="HH:mm" value-format="HH:mm:ss" size="small" style="width:120px" />
-              <el-switch v-model="h.isAvailable" :active-value="1" :inactive-value="0" size="small" style="margin-left:12px" />
+              <div class="hours-edit-row">
+                <el-time-picker v-model="h._startTime" format="HH:mm" value-format="HH:mm:ss" class="hours-time-picker" />
+                <span class="hours-sep">—</span>
+                <el-time-picker v-model="h._endTime" format="HH:mm" value-format="HH:mm:ss" class="hours-time-picker" />
+                <el-switch v-model="h.isAvailable" :active-value="1" :inactive-value="0" size="small" style="margin-left:8px" />
+              </div>
             </template>
             <template v-else>
-              <span class="hours-time">{{ h.startTime ? h.startTime.substring(0,5) : '--:--' }} — {{ h.endTime ? h.endTime.substring(0,5) : '--:--' }}</span>
-              <el-tag :type="h.isAvailable ? 'success' : 'info'" size="small" class="hours-tag">{{ h.isAvailable ? '营业' : '休息' }}</el-tag>
+              <span :class="{ 'hours-off': !h.isAvailable }">
+                {{ h.startTime ? h.startTime.substring(0,5) : '--:--' }} — {{ h.endTime ? h.endTime.substring(0,5) : '--:--' }}
+              </span>
+              <el-tag :type="h.isAvailable ? 'success' : 'info'" size="small" style="margin-left:12px">{{ h.isAvailable ? '营业' : '休息' }}</el-tag>
             </template>
-          </div>
-        </div>
+          </el-descriptions-item>
+        </el-descriptions>
       </template>
       <el-empty v-else description="门店不存在" />
     </el-card>
@@ -312,12 +315,9 @@ function formatTimestamp(ts) {
 .store-avatar-name { font-size: 16px; font-weight: 600; color: #303133; }
 .store-avatar-id { font-size: 12px; color: #909399; margin-top: 2px; }
 
-.hours-grid { max-width: 520px; }
-.hours-row { display: flex; align-items: center; padding: 10px 12px; border-bottom: 1px solid #f0f0f0; gap: 10px; }
-.hours-row:last-child { border-bottom: none; }
-.hours-row-off { opacity: 0.5; }
-.hours-day { width: 48px; font-size: 14px; font-weight: 500; color: #303133; flex-shrink: 0; }
-.hours-time { font-size: 14px; color: #606266; }
-.hours-sep { color: #c0c4cc; }
-.hours-tag { margin-left: auto; }
+.hours-edit-row { display: flex; align-items: center; gap: 8px; }
+.hours-time-picker { width: 130px; }
+.hours-sep { color: #c0c4cc; margin: 0 4px; }
+.hours-off { color: #c0c4cc; }
+:deep(.hours-label) { width: 80px; text-align: center; font-weight: 500; }
 </style>

@@ -676,7 +676,7 @@ public class AdminDashboardController {
     }
 
     private Set<String> resolveStoreOrderIds(Set<String> techIds) {
-        if (techIds == null || techIds.isEmpty()) return null;
+        if (techIds == null || techIds.isEmpty()) return Collections.emptySet();
         return repairOrdersService.list(
             new LambdaQueryWrapper<RepairOrders>()
                 .in(RepairOrders::getTechnicianAccountId, techIds)

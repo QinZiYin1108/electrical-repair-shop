@@ -27,6 +27,7 @@ import com.example.backend.service.RepairOrderPaymentsService;
 import com.example.backend.service.RepairOrdersService;
 import com.example.backend.service.TechnicianAccountsService;
 import com.example.backend.service.UserAccountsService;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -149,7 +150,7 @@ public class AdminDashboardController {
             .eq(RepairOrderPayments::getIsDelete, 0)
             .gt(RepairOrderPayments::getActualAmount, BigDecimal.ZERO);
         if (isStoreMode && storeOrderIds != null) {
-            paymentWrapper.in(RepairOrderPayments::getOrderId, storeOrderIds.isEmpty() ? Collections.singleton("-1") : storeOrderIds);
+            paymentWrapper.in(RepairOrderPayments::getRepairOrderId, storeOrderIds.isEmpty() ? Collections.singleton("-1") : storeOrderIds);
         }
         List<RepairOrderPayments> allPayments = repairOrderPaymentsService.list(paymentWrapper);
         List<RepairOrderPayments> todayPayments = repairOrderPaymentsService.list(

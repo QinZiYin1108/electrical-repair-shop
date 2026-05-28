@@ -295,6 +295,12 @@ public class AdminStoreController {
         resp.setName(store.getName());
         resp.setLogoImageId(store.getLogoImageId());
         resp.setStoreAdminId(store.getStoreAdminId());
+        if (StringUtils.hasText(store.getStoreAdminId())) {
+            AdminAccounts admin = adminAccountsService.getById(store.getStoreAdminId());
+            if (admin != null) {
+                resp.setStoreAdminName(admin.getUsername());
+            }
+        }
         resp.setContactPhone(store.getContactPhone());
         resp.setAddress(store.getAddress());
         resp.setLatitude(store.getLatitude());

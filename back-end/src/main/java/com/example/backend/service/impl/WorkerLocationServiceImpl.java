@@ -15,6 +15,8 @@ import com.example.backend.service.TechnicianServiceAreasService;
 import com.example.backend.service.WorkerLocationService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -30,6 +32,8 @@ import java.util.Set;
 
 @Service
 public class WorkerLocationServiceImpl implements WorkerLocationService {
+
+    private static final Logger log = LoggerFactory.getLogger(WorkerLocationServiceImpl.class);
 
     private static final String DEFAULT_AREA_NAME = "默认服务区域";
 
@@ -350,10 +354,13 @@ public class WorkerLocationServiceImpl implements WorkerLocationService {
         }
 
         try {
+            log.info("腾讯逆地理编码响应: {}", body);
             Map<?, ?> root = objectMapper.readValue(body, Map.class);
             Object status = root.get("status");
             if (!(status instanceof Number) || ((Number) status).intValue() != 0) {
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "逆地理编码失败");
+                Object msg = root.get("message");
+                log.error("腾讯逆地理编码失败: status={}, message={}", status, msg);
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "逆地理编码失败: " + (msg != null ? msg : "status=" + status));
             }
             Object resultObj = root.get("result");
             if (!(resultObj instanceof Map)) {

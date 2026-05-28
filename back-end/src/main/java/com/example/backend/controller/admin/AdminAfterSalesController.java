@@ -1013,7 +1013,7 @@ public class AdminAfterSalesController {
         Set<String> techIds = storeTechs.stream().map(TechnicianAccounts::getId).collect(Collectors.toSet());
         List<RepairOrders> orders = repairOrdersService.list(
             new LambdaQueryWrapper<RepairOrders>()
-                .in(RepairOrders::getTechnicianId, techIds)
+                .in(RepairOrders::getTechnicianAccountId, techIds)
                 .eq(RepairOrders::getIsDelete, 0)
         );
         if (orders.isEmpty()) {

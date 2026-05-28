@@ -95,13 +95,13 @@ public class AdminProductOrderController {
     ) {
         LoginUserInfo admin = requireAdmin();
         long currentPage = pageNum <= 0 ? 1 : pageNum;
-
-        // 门店管理员：仅查看本门店商品产生的订单
-        applyStoreFilter(admin, wrapper);
         long currentSize = pageSize <= 0 ? 10 : pageSize;
 
         LambdaQueryWrapper<ProductOrders> wrapper = new LambdaQueryWrapper<ProductOrders>()
             .eq(ProductOrders::getIsDelete, 0);
+
+        // 门店管理员：仅查看本门店商品产生的订单
+        applyStoreFilter(admin, wrapper);
         if (orderStatus != null) {
             wrapper.eq(ProductOrders::getOrderStatus, orderStatus);
         }

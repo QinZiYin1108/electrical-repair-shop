@@ -158,8 +158,10 @@ public class AdminStoreController {
     @PostMapping("/{id}/update")
     public Result<AdminStoreResponse> update(@PathVariable String id, @Valid @RequestBody AdminStoreUpdateRequest request) {
         LoginUserInfo user = AuthUserContext.get();
-        if (!user.isSuperAdmin()) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "仅超级管理员可编辑门店");
+        // 超管或门店管理员（仅能编辑自己的门店）
+        boolean isStoreOwner = user.isStoreAdmin() && id.equals(user.getStoreId());
+        if (!user.isSuperAdmin() && !isStoreOwner) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权编辑此门店");
         }
         Stores store = storesService.getById(id);
         if (store == null) {

@@ -2,13 +2,30 @@
   <div class="store-detail-page">
     <el-card class="store-detail-card" shadow="never" v-loading="loading">
       <template v-if="store">
-        <!-- 返回 -->
         <div class="back-row">
           <el-button text @click="goBack"><el-icon><ArrowLeft /></el-icon> 返回门店列表</el-button>
+          <el-button v-if="canEdit() && !editingInfo" type="primary" size="small" style="float:right" @click="startEditInfo">编辑门店信息</el-button>
         </div>
 
         <el-divider content-position="left">门店信息</el-divider>
-        <el-descriptions :column="2" border>
+        <template v-if="editingInfo">
+          <el-form :model="editForm" label-width="100px" style="max-width:500px">
+            <el-form-item label="门店名称">
+              <el-input v-model="editForm.name" />
+            </el-form-item>
+            <el-form-item label="联系电话">
+              <el-input v-model="editForm.contactPhone" />
+            </el-form-item>
+            <el-form-item label="门店介绍">
+              <el-input v-model="editForm.description" type="textarea" :rows="3" />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" :loading="savingInfo" @click="saveInfo">保存</el-button>
+              <el-button @click="cancelEditInfo">取消</el-button>
+            </el-form-item>
+          </el-form>
+        </template>
+        <el-descriptions v-else :column="2" border>
           <el-descriptions-item label="门店名称">{{ store.name }}</el-descriptions-item>
           <el-descriptions-item label="联系电话">{{ store.contactPhone }}</el-descriptions-item>
           <el-descriptions-item label="门店地址" :span="2">{{ store.address || '未设置' }}</el-descriptions-item>
@@ -73,7 +90,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft } from '@element-plus/icons-vue';
@@ -90,6 +107,9 @@ const businessHours = ref([]);
 const editingHours = ref(false);
 const savingHours = ref(false);
 const hoursBackup = ref([]);
+const editingInfo = ref(false);
+const savingInfo = ref(false);
+const editForm = reactive({ name: '', contactPhone: '', description: '' });
 
 const isSuperAdmin = computed(() => adminStore.adminRole === 1);
 const isStoreAdmin = computed(() => adminStore.adminRole === 2);
@@ -117,6 +137,39 @@ async function fetchDetail() {
       }));
     }
   } finally { loading.value = false; }
+}
+
+function startEditInfo() {
+  editForm.name = store.value.name || '';
+  editForm.contactPhone = store.value.contactPhone || '';
+  editForm.description = store.value.description || '';
+  editingInfo.value = true;
+}
+
+function cancelEditInfo() {
+  editingInfo.value = false;
+}
+
+async function saveInfo() {
+  savingInfo.value = true;
+  try {
+    const res = await request({
+      url: `/admin/stores/${store.value.id}/update`,
+      method: 'post',
+      data: {
+        name: editForm.name,
+        contactPhone: editForm.contactPhone,
+        description: editForm.description
+      }
+    });
+    if (res.code === 200) {
+      store.value.name = editForm.name;
+      store.value.contactPhone = editForm.contactPhone;
+      store.value.description = editForm.description;
+      editingInfo.value = false;
+      ElMessage.success('门店信息已保存');
+    }
+  } finally { savingInfo.value = false; }
 }
 
 function startEditHours() {
@@ -164,6 +217,6 @@ function formatTimestamp(ts) {
 <style scoped>
 .store-detail-page { padding: 16px; box-sizing: border-box; }
 .store-detail-card { width: 100%; }
-.back-row { margin-bottom: 8px; }
+.back-row { margin-bottom: 8px; overflow: hidden; }
 .hours-table { max-width: 600px; }
 </style>

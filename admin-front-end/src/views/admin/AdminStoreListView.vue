@@ -68,7 +68,7 @@
     />
 
     <!-- ==================== 创建门店对话框（含百度地图选址） ==================== -->
-    <el-dialog v-model="showCreateDialog" title="创建门店" width="800px" destroy-on-close @opened="onCreateDialogOpened" @closed="onCreateDialogClosed">
+    <el-dialog v-model="showCreateDialog" title="创建门店" width="500px" destroy-on-close>
       <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="100px">
         <el-divider content-position="left">门店信息</el-divider>
         <el-form-item label="门店名称" prop="name">
@@ -78,51 +78,19 @@
           <el-input v-model="createForm.contactPhone" placeholder="请输入联系电话" />
         </el-form-item>
 
-        <!-- 地图选址（选填：创建后可由门店管理员在师傅端设置） -->
-        <el-form-item label="搜索地址" class="map-form-item">
-          <div style="position:relative; width:100%">
-            <el-input
-              v-model="mapSearchKeyword"
-              placeholder="输入地址关键词，从下拉建议中选择"
-              clearable
-              @input="onAddressInput"
-              @focus="onAddressInput"
-              @blur="onAddressBlur"
-            />
-            <div v-if="addressSuggestions.length > 0" class="address-suggestions-dropdown">
-              <div
-                v-for="(item, idx) in addressSuggestions"
-                :key="idx"
-                class="address-suggestion-item"
-                @click="selectSuggestion(item)"
-              >
-                <div class="suggestion-title">{{ item.title }}</div>
-                <div class="suggestion-addr">{{ item.address }}</div>
-              </div>
-            </div>
-          </div>
-          <div style="display:flex; gap:8px; margin-top:8px; width:100%">
-            <el-button size="small" @click="locateCurrentPosition">
-              <el-icon><Aim /></el-icon> 当前位置
+        <!-- 门店地址（选填：创建后可让门店管理员在师傅端设置） -->
+        <el-form-item label="门店地址" prop="address">
+          <div style="display:flex; gap:8px; width:100%">
+            <el-button @click="locateCurrentPosition" :loading="locating">
+              <el-icon><Aim /></el-icon> 获取当前位置
             </el-button>
-            <span style="font-size:12px; color:#909399; line-height:28px">
-              或在地图上直接点击选址
+            <span v-if="createForm.address" style="font-size:13px; color:#67c23a; line-height:32px">
+              {{ createForm.address }}
+            </span>
+            <span v-else style="font-size:12px; color:#909399; line-height:32px">
+              点击按钮获取当前浏览器位置
             </span>
           </div>
-        </el-form-item>
-
-        <el-form-item label="地图选点" class="map-form-item">
-          <div id="store-map-container" style="width:100%; height:320px; border-radius:6px; border:1px solid #dcdfe6"></div>
-        </el-form-item>
-
-        <el-form-item label="门店位置" prop="address">
-          <el-input v-model="createForm.address" placeholder="请通过上方搜索、地图点击或「当前位置」选择地址" readonly>
-            <template v-if="createForm.latitude" #suffix>
-              <span style="font-size:12px; color:#909399; white-space:nowrap; line-height:32px; padding-right:4px">
-                {{ createForm.latitude.toFixed(6) }}, {{ createForm.longitude.toFixed(6) }}
-              </span>
-            </template>
-          </el-input>
         </el-form-item>
         <el-form-item label="门店介绍">
           <el-input v-model="createForm.description" type="textarea" :rows="2" placeholder="请输入门店介绍（选填）" />
@@ -215,13 +183,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus, Aim } from '@element-plus/icons-vue';
 import { useAdminStore } from '../../stores/admin';
 import request from '../../api/request';
-
-import { BAIDU_MAP_AK } from '../../constants/map';
 
 const adminStore = useAdminStore();
 const isSuperAdmin = computed(() => adminStore.adminRole === 1);
@@ -257,14 +223,8 @@ const createRules = {
   adminPassword: [{ required: true, message: '请输入管理员登录密码', trigger: 'blur' }]
 };
 
-// 百度地图
-const mapSearchKeyword = ref('');
-const addressSuggestions = ref([]);
-let bmapInstance = null;
-let bmapMarker = null;
-let bmapGeocoder = null;
-let bmapLocalSearch = null;
-let addressInputTimer = null;
+// 定位
+const locating = ref(false);
 
 // 详情
 const showDetailDialog = ref(false);
@@ -279,124 +239,7 @@ const showAuditDialog = ref(false);
 const auditRemark = ref('');
 const pendingAuditRow = ref(null);
 
-onMounted(() => { fetchList(); loadBaiduMapScript(); });
-onBeforeUnmount(() => { destroyMap(); });
-
-// ==================== 百度地图 ====================
-
-function loadBaiduMapScript() {
-  if (window.BMapGL) return; // 已加载则跳过
-  const ak = BAIDU_MAP_AK;
-  if (!ak || ak === '你的百度地图AK' || ak === 'YOUR_BAIDU_MAP_AK') {
-    console.warn('未配置百度地图 AK，地图功能不可用');
-    return;
-  }
-  // 移除旧脚本标签（避免 HMR 热更新残留）
-  const oldScript = document.querySelector('script[src*="api.map.baidu.com"]');
-  if (oldScript) oldScript.remove();
-
-  const script = document.createElement('script');
-  script.src = 'https://api.map.baidu.com/api?v=1.0&type=webgl&ak=' + ak;
-  script.onload = () => {
-    console.log('百度地图 SDK 加载成功', 'window.BMapGL =', !!window.BMapGL);
-    if (!window.BMapGL) {
-      console.error('SDK onload 触发但 window.BMapGL 未定义，可能是 AK 无效或被百度封禁');
-    }
-  };
-  script.onerror = () => {
-    console.error('百度地图 SDK 加载失败，请检查 AK 是否正确、是否已配置 referer 白名单');
-  };
-  document.head.appendChild(script);
-}
-
-function initMap() {
-  if (!window.BMapGL) return;
-  const container = document.getElementById('store-map-container');
-  if (!container) return;
-
-  destroyMap();
-
-  const defaultLng = createForm.longitude || 116.404;
-  const defaultLat = createForm.latitude || 39.915;
-  const point = new window.BMapGL.Point(defaultLng, defaultLat);
-
-  bmapInstance = new window.BMapGL.Map(container, { enableMapClick: false });
-  bmapInstance.centerAndZoom(point, 15);
-  bmapInstance.enableScrollWheelZoom();
-  bmapInstance.addControl(new window.BMapGL.ScaleControl());
-  bmapInstance.addControl(new window.BMapGL.ZoomControl());
-
-  bmapGeocoder = new window.BMapGL.Geocoder();
-  bmapLocalSearch = new window.BMapGL.LocalSearch(bmapInstance, {
-    onSearchComplete: function (results) {
-      if (!results) return;
-      const list = [];
-      for (let i = 0; i < results.getNumPois(); i++) {
-        const poi = results.getPoi(i);
-        list.push({
-          title: poi.title || '',
-          address: (poi.province || '') + (poi.city || '') + (poi.district || '') + (poi.street || '') + (poi.streetNumber || ''),
-          point: poi.point
-        });
-      }
-      addressSuggestions.value = list;
-    }
-  });
-
-  if (createForm.latitude && createForm.longitude) {
-    placeMarker(point);
-  }
-
-  bmapInstance.addEventListener('click', function (e) {
-    const clickedPoint = new window.BMapGL.Point(e.latlng.lng, e.latlng.lat);
-    placeMarker(clickedPoint);
-    reverseGeocode(clickedPoint);
-  });
-}
-
-// ===== 地址输入自动补全 =====
-
-function onAddressInput() {
-  addressSuggestions.value = [];
-  if (addressInputTimer) clearTimeout(addressInputTimer);
-  const keyword = mapSearchKeyword.value?.trim();
-  if (!keyword || keyword.length < 2) return;
-
-  addressInputTimer = setTimeout(() => {
-    if (!bmapLocalSearch) return;
-    bmapLocalSearch.search(keyword);
-  }, 300);
-}
-
-function onAddressBlur() {
-  // 延迟关闭，让点击事件先触发
-  setTimeout(() => { addressSuggestions.value = []; }, 200);
-}
-
-function selectSuggestion(item) {
-  if (!window.BMapGL) return;
-  addressSuggestions.value = [];
-  mapSearchKeyword.value = item.title + ' ' + item.address;
-  if (item.point) {
-    const bp = new window.BMapGL.Point(item.point.lng, item.point.lat);
-    placeMarker(bp);
-    fillAddress(item.title, item.address, item.point);
-  } else if (bmapGeocoder) {
-    bmapGeocoder.getPoint(item.title, function (point) {
-      if (point) {
-        const bp = new window.BMapGL.Point(point.lng, point.lat);
-        placeMarker(bp);
-        fillAddress(item.title, item.address, point);
-      }
-    }, '全国');
-  }
-}
-
-function fillAddress(title, addr, point) {
-  createForm.address = title || addr;
-  createForm.latitude = point.lat;
-  createForm.longitude = point.lng;
-}
+onMounted(() => { fetchList(); });
 
 // ===== 当前位置定位 =====
 
@@ -405,10 +248,7 @@ function locateCurrentPosition() {
     ElMessage.warning('浏览器不支持定位功能');
     return;
   }
-  if (!window.BMapGL) {
-    ElMessage.warning('地图 SDK 尚未加载，请稍等片刻后重试。如持续出现请检查：1) AK 是否正确 2) 百度地图控制台是否添加了当前域名到 referer 白名单');
-    return;
-  }
+  locating.value = true;
   ElMessage.info('正在获取当前位置...');
   navigator.geolocation.getCurrentPosition(
     function (pos) {
@@ -416,92 +256,16 @@ function locateCurrentPosition() {
       const lng = pos.coords.longitude;
       createForm.latitude = lat;
       createForm.longitude = lng;
-      const point = new window.BMapGL.Point(lng, lat);
-      placeMarker(point);
-      if (bmapGeocoder) {
-        bmapGeocoder.getLocation(point, function (result) {
-          if (result && result.address) {
-            createForm.address = result.address;
-          } else {
-            createForm.address = lat.toFixed(6) + ', ' + lng.toFixed(6);
-          }
-          mapSearchKeyword.value = createForm.address;
-          ElMessage.success('已定位到当前位置');
-        });
-      } else {
-        createForm.address = lat.toFixed(6) + ', ' + lng.toFixed(6);
-        ElMessage.success('已定位到当前位置');
-      }
+      createForm.address = lat.toFixed(6) + ', ' + lng.toFixed(6);
+      locating.value = false;
+      ElMessage.success('已定位到当前位置');
     },
     function () {
+      locating.value = false;
       ElMessage.warning('定位失败，请检查浏览器定位权限');
     },
     { enableHighAccuracy: true, timeout: 10000 }
   );
-}
-
-// ===== 地图工具 =====
-
-function placeMarker(point) {
-  if (bmapMarker) {
-    bmapInstance.removeOverlay(bmapMarker);
-  }
-  bmapMarker = new window.BMapGL.Marker(point);
-  bmapInstance.addOverlay(bmapMarker);
-  bmapInstance.centerAndZoom(point, 16);
-  createForm.longitude = point.lng;
-  createForm.latitude = point.lat;
-}
-
-function reverseGeocode(point) {
-  if (!bmapGeocoder) return;
-  bmapGeocoder.getLocation(point, function (result) {
-    if (result && result.address) {
-      createForm.address = result.address;
-      mapSearchKeyword.value = result.address;
-    }
-  });
-}
-
-function destroyMap() {
-  if (addressInputTimer) clearTimeout(addressInputTimer);
-  if (bmapInstance) {
-    bmapInstance.destroy();
-    bmapInstance = null;
-    bmapMarker = null;
-    bmapGeocoder = null;
-    bmapLocalSearch = null;
-  }
-}
-
-function onCreateDialogOpened() {
-  nextTick(() => {
-    console.log('弹窗打开 - window.BMapGL:', !!window.BMapGL);
-    if (window.BMapGL) {
-      initMap();
-    } else {
-      // 脚本还在加载中，轮询等待
-      let attempts = 0;
-      const retry = setInterval(() => {
-        attempts++;
-        if (window.BMapGL) {
-          clearInterval(retry);
-          initMap();
-        } else if (attempts >= 20) {
-          clearInterval(retry);
-          console.error('百度地图 SDK 加载超时（10秒），请检查 AK 或网络');
-        }
-      }, 500);
-    }
-  });
-}
-
-function onCreateDialogClosed() {
-  destroyMap();
-  mapSearchKeyword.value = '';
-  createForm.latitude = null;
-  createForm.longitude = null;
-  createFormRef.value?.resetFields();
 }
 
 // ==================== 业务逻辑 ====================
@@ -631,19 +395,4 @@ function weekDayText(d) { return ['', '周一', '周二', '周三', '周四', '�
 .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .page-header h2 { margin: 0; font-size: 18px; }
 .search-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
-.map-form-item :deep(.el-form-item__content) { flex-direction: column; align-items: stretch; }
-
-.address-suggestions-dropdown {
-  position: absolute; top: 100%; left: 0; right: 0; z-index: 3000;
-  max-height: 240px; overflow-y: auto;
-  background: #fff; border: 1px solid #dcdfe6; border-top: none;
-  border-radius: 0 0 4px 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-.address-suggestion-item {
-  padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0;
-}
-.address-suggestion-item:last-child { border-bottom: none; }
-.address-suggestion-item:hover { background: #f5f7fa; }
-.suggestion-title { font-size: 14px; color: #303133; font-weight: 500; }
-.suggestion-addr { font-size: 12px; color: #909399; margin-top: 2px; }
 </style>

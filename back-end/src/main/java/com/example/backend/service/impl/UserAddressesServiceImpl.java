@@ -418,14 +418,18 @@ public class UserAddressesServiceImpl extends ServiceImpl<UserAddressesMapper, U
             .queryParam("location", latitude + "," + longitude)
             .toUriString();
 
+        System.out.println("[UserAddr-Geocode] 请求URL: " + url);
         String body;
         try {
             body = restTemplate.getForObject(url, String.class);
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "逆地理编码失败");
+            System.err.println("[UserAddr-Geocode] HTTP请求失败: " + e.getMessage());
+            e.printStackTrace();
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "逆地理编码请求失败: " + e.getMessage());
         }
+        System.out.println("[UserAddr-Geocode] 响应: " + body);
         if (!StringUtils.hasText(body)) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "逆地理编码失败");
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "逆地理编码返回空响应");
         }
 
         try {

@@ -376,12 +376,16 @@ public class AdminStoreController {
                 .queryParam("key", tencentMapKey)
                 .queryParam("location", latitude + "," + longitude)
                 .toUriString();
+        System.out.println("[Store-Geocode] 请求URL: " + url);
         String body;
         try {
             body = restTemplate.getForObject(url, String.class);
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "逆地理编码请求失败");
+            System.err.println("[Store-Geocode] HTTP请求失败: " + e.getMessage());
+            e.printStackTrace();
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "逆地理编码请求失败: " + e.getMessage());
         }
+        System.out.println("[Store-Geocode] 响应: " + body);
         try {
             java.util.Map<?, ?> root = objectMapper.readValue(body, java.util.Map.class);
             Object status = root.get("status");

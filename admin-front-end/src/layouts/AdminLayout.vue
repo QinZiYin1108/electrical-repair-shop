@@ -21,6 +21,7 @@
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="profile">个人中心</el-dropdown-item>
+              <el-dropdown-item v-if="adminStore.adminRole === 2" command="store">门店管理</el-dropdown-item>
               <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -168,6 +169,10 @@ onMounted(async () => {
 function handleUserCommand(command) {
   if (command === 'profile') {
     router.push('/admin/profile');
+    return;
+  }
+  if (command === 'store') {
+    router.push('/admin/stores/list');
     return;
   }
   if (command === 'logout') {

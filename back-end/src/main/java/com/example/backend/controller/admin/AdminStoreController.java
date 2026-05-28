@@ -332,12 +332,15 @@ public class AdminStoreController {
             }
             String objectName = "stores/" + id + "/logo" + ext;
             String url = ossUtil.upload(objectName, file.getInputStream());
-            store.setLogoImageId(url);
-            store.setUpdatedTime(System.currentTimeMillis());
-            storesService.updateById(store);
+            // 重新获取最新版本，避免乐观锁版本冲突
+            Stores latest = storesService.getById(id);
+            latest.setLogoImageId(url);
+            latest.setUpdatedTime(System.currentTimeMillis());
+            storesService.updateById(latest);
             return Result.success(url);
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传Logo失败");
+            e.printStackTrace();
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传Logo失败: " + e.getMessage());
         }
     }
 

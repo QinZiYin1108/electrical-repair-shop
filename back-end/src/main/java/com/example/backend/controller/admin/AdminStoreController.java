@@ -51,6 +51,7 @@ public class AdminStoreController {
     private final ImagesService imagesService;
     private final OperationLogsService operationLogsService;
     private final OssUtil ossUtil;
+    private final TechnicianBindingsService technicianBindingsService;
 
     public AdminStoreController(
             StoresService storesService,
@@ -59,7 +60,8 @@ public class AdminStoreController {
             AdminAccountsService adminAccountsService,
             ImagesService imagesService,
             OperationLogsService operationLogsService,
-            OssUtil ossUtil
+            OssUtil ossUtil,
+            TechnicianBindingsService technicianBindingsService
     ) {
         this.storesService = storesService;
         this.storeBusinessHoursService = storeBusinessHoursService;
@@ -68,6 +70,7 @@ public class AdminStoreController {
         this.imagesService = imagesService;
         this.operationLogsService = operationLogsService;
         this.ossUtil = ossUtil;
+        this.technicianBindingsService = technicianBindingsService;
     }
 
     // ==================== 门店 CRUD ====================
@@ -305,6 +308,58 @@ public class AdminStoreController {
         saveLog(user, "UPDATE", "更新门店营业时间：" + store.getName(),
                 "/admin/stores/" + id + "/business-hours", "");
         return Result.success();
+    }
+
+    // ==================== 师傅绑定 ====================
+
+    @GetMapping("/{id}/bindings")
+    public Result<java.util.List<TechnicianBindings>> listBindings(
+            @PathVariable String id,
+            @RequestParam(required = false) Integer status) {
+        requireStoreAccess(id);
+        return Result.success(technicianBindingsService.listByStore(id, status));
+    }
+
+    @PostMapping("/{id}/invite/{technicianId}")
+    public Result<TechnicianBindings> inviteTechnician(
+            @PathVariable String id, @PathVariable String technicianId) {
+        LoginUserInfo user = requireStoreAccess(id);
+        TechnicianBindings binding = technicianBindingsService.invite(id, technicianId);
+        saveLog(user, "INVITE", "邀请师傅：" + technicianId + " 加入门店：" + id,
+                "/admin/stores/" + id + "/invite/" + technicianId, "");
+        return Result.success(binding);
+    }
+
+    @PostMapping("/{id}/unbind/{technicianId}")
+    public Result<Void> directUnbind(
+            @PathVariable String id, @PathVariable String technicianId) {
+        LoginUserInfo user = requireStoreAccess(id);
+        technicianBindingsService.directUnbind(id, technicianId);
+        saveLog(user, "UNBIND", "直接解绑师傅：" + technicianId + " 从门店：" + id,
+                "/admin/stores/" + id + "/unbind/" + technicianId, "");
+        return Result.success();
+    }
+
+    @PostMapping("/{id}/approve-unbind/{technicianId}")
+    public Result<Void> approveUnbind(
+            @PathVariable String id, @PathVariable String technicianId) {
+        LoginUserInfo user = requireStoreAccess(id);
+        technicianBindingsService.approveUnbind(id, technicianId);
+        saveLog(user, "UNBIND", "同意解绑师傅：" + technicianId + " 从门店：" + id,
+                "/admin/stores/" + id + "/approve-unbind/" + technicianId, "");
+        return Result.success();
+    }
+
+    private LoginUserInfo requireStoreAccess(String storeId) {
+        LoginUserInfo user = AuthUserContext.get();
+        if (user == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED, "未登录");
+        }
+        boolean isStoreOwner = user.isStoreAdmin() && storeId.equals(user.getStoreId());
+        if (!user.isSuperAdmin() && !isStoreOwner) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此门店");
+        }
+        return user;
     }
 
     // ==================== Logo 上传 ====================

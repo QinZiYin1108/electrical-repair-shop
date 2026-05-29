@@ -285,9 +285,9 @@ const initial = computed(() => {
 });
 
 const adminTypeText = computed(() => {
-  if (form.adminType === 1) return '超级管理员';
-  if (form.adminType === 2) return '普通管理员';
-  if (form.adminType === 3) return '客服';
+  if (form.adminRole === 1) return '超级管理员';
+  if (form.adminRole === 2) return '门店管理员';
+  if (form.adminRole === 3) return '客服';
   return '未知';
 });
 

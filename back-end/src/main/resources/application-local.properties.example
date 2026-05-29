@@ -33,8 +33,8 @@ aliyun.oss.access-key-secret=<your-access-key-secret>
 wx.mini.appid=<your-miniapp-appid>
 wx.mini.secret=<your-miniapp-secret>
 
-# ---- 百度地图 ----
-baidu.map.ak=<your-baidu-map-ak>
+# ---- 腾讯地图 ----
+tencent.map.key=<your-baidu-map-ak>
 
 # ---- 应用 ----
 app.base-url=http://localhost:8080

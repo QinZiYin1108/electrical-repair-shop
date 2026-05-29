@@ -3,7 +3,7 @@
     <el-card class="store-detail-card" shadow="never" v-loading="loading">
       <template v-if="store">
         <div class="back-row">
-          <el-button text @click="goBack"><el-icon><ArrowLeft /></el-icon> 返回门店列表</el-button>
+          <el-button text @click="goBack"><el-icon><ArrowLeft /></el-icon> {{ isSuperAdmin ? '返回门店列表' : '返回首页' }}</el-button>
           <el-button v-if="canEdit()" type="primary" size="small" style="float:right" @click="editingInfo ? saveInfo() : startEditInfo()">
             {{ editingInfo ? '保存' : '编辑门店信息' }}
           </el-button>
@@ -132,7 +132,7 @@ const isStoreAdmin = computed(() => adminStore.adminRole === 2);
 
 onMounted(() => { fetchDetail(); });
 
-function goBack() { router.push('/admin/stores/list'); }
+function goBack() { router.push(isSuperAdmin.value ? '/admin/stores/list' : '/admin/dashboard'); }
 
 function canEdit() { return isSuperAdmin.value || (isStoreAdmin.value && store.value && store.value.id === adminStore.storeId); }
 

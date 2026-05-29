@@ -230,6 +230,7 @@ const form = reactive({
   phone: '',
   email: '',
   adminType: null,
+  adminRole: null,
   accountStatus: null,
   realName: '',
   department: '',
@@ -243,6 +244,7 @@ const originalForm = reactive({
   phone: '',
   email: '',
   adminType: null,
+  adminRole: null,
   accountStatus: null,
   realName: '',
   department: '',
@@ -311,6 +313,7 @@ function assignForm(target, source) {
   target.phone = source.phone || '';
   target.email = source.email || '';
   target.adminType = source.adminType ?? null;
+  target.adminRole = source.adminRole ?? null;
   target.accountStatus = source.accountStatus ?? null;
   target.realName = source.realName || '';
   target.department = source.department || '';

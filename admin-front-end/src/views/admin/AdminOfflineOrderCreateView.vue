@@ -93,7 +93,7 @@
           </button>
         </div>
 
-        <el-empty v-if="!userLoading && !userList.length" description="暂无可选用户" />
+        <el-empty v-if="!userLoading && !userList.length" :description="userSearched ? '没有找到匹配的用户' : '请搜索用户后选择'" />
 
         <div class="pagination-wrap">
           <el-pagination
@@ -543,6 +543,7 @@ const form = reactive({
 });
 
 const userKeyword = ref('');
+const userSearched = ref(false);
 const userList = ref([]);
 const userPage = ref(1);
 const userPageSize = ref(8);
@@ -629,7 +630,6 @@ async function loadPageData() {
     serviceTypeList.value = typeRes?.code === 200 && Array.isArray(typeRes.data) ? typeRes.data : [];
     faultList.value = faultRes?.code === 200 && Array.isArray(faultRes.data) ? faultRes.data : [];
 
-    await loadUsers();
   } catch (error) {
     ElMessage.error(getErrorMessage(error) || '初始化线下订单页面失败');
   } finally {
@@ -704,6 +704,7 @@ async function loadTechnicians() {
 
 function handleUserSearch() {
   userPage.value = 1;
+  userSearched.value = true;
   loadUsers();
 }
 

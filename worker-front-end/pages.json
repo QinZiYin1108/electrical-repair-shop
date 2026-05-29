@@ -120,6 +120,12 @@
         "navigationBarTitleText": "修改邮箱"
       }
     },
+    {
+      "path": "pages/store-binding/index",
+      "style": {
+        "navigationBarTitleText": "门店绑定"
+      }
+    },
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",

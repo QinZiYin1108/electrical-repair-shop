@@ -11,6 +11,13 @@
     </view>
 
     <view class="card">
+      <view class="row clickable" @click="goStoreBinding">
+        <text class="label">门店绑定</text>
+        <view class="right">
+          <text class="status">{{ bindingStatusText }}</text>
+          <u-icon name="arrow-right" size="16" color="#c0c4cc" />
+        </view>
+      </view>
       <view class="row clickable" @click="goCertification">
         <text class="label">实名认证</text>
         <view class="right">
@@ -213,6 +220,9 @@ export default {
             });
         }
       });
+    },
+    goStoreBinding() {
+      uni.navigateTo({ url: '/pages/store-binding/index' });
     },
     goCertification() {
       uni.navigateTo({

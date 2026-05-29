@@ -74,6 +74,45 @@
         </el-descriptions>
 
         <el-divider content-position="left">
+          <span>师傅绑定</span>
+          <el-button v-if="canEdit()" style="margin-left:12px" @click="showInviteDialog = true">邀请师傅</el-button>
+        </el-divider>
+        <el-table v-if="bindings.length" :data="bindings" border size="small" style="max-width:600px">
+          <el-table-column label="师傅" min-width="120">
+            <template #default="{ row }">{{ row.technicianName || row.technicianId }}</template>
+          </el-table-column>
+          <el-table-column label="状态" width="120" align="center">
+            <template #default="{ row }">
+              <el-tag :type="bindStatusTag(row.status)" size="small">{{ bindStatusText(row.status) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="时间" width="180">
+            <template #default="{ row }">{{ formatTimestamp(row.confirmedTime || row.invitedTime) }}</template>
+          </el-table-column>
+          <el-table-column v-if="canEdit()" label="操作" width="180" align="center">
+            <template #default="{ row }">
+              <el-button v-if="row.status === 2" size="small" type="danger" link @click="handleDirectUnbind(row)">解绑</el-button>
+              <el-button v-if="row.status === 3" size="small" type="success" link @click="handleApproveUnbind(row)">同意解绑</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+        <el-empty v-else description="暂无绑定师傅" :image-size="40" />
+
+        <el-dialog v-model="showInviteDialog" title="邀请师傅" width="450px">
+          <el-input v-model="inviteKeyword" placeholder="搜索师傅姓名/手机号" clearable @keyup.enter="searchTechnicians" />
+          <div style="margin-top:12px;max-height:300px;overflow-y:auto">
+            <div v-for="tech in inviteCandidates" :key="tech.id" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0">
+              <div>
+                <div>{{ tech.username || tech.realName || tech.phone }}</div>
+                <div style="font-size:12px;color:#909399">{{ tech.phone }}</div>
+              </div>
+              <el-button size="small" type="primary" @click="handleInvite(tech)">邀请</el-button>
+            </div>
+            <el-empty v-if="inviteSearched && !inviteCandidates.length" description="未找到可邀请的师傅" :image-size="30" />
+          </div>
+        </el-dialog>
+
+        <el-divider content-position="left">
           <span>营业时间</span>
           <el-button v-if="!editingHours && canEdit()" style="margin-left:12px" @click="startEditHours">编辑</el-button>
           <template v-if="editingHours">
@@ -108,7 +147,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowLeft } from '@element-plus/icons-vue';
 import { useAdminStore } from '../../stores/admin';
 import request from '../../api/request';
@@ -126,6 +165,13 @@ const hoursBackup = ref([]);
 const editingInfo = ref(false);
 const locating = ref(false);
 const editForm = reactive({ name: '', contactPhone: '', address: '', description: '', latitude: null, longitude: null });
+
+// 绑定
+const bindings = ref([]);
+const showInviteDialog = ref(false);
+const inviteKeyword = ref('');
+const inviteCandidates = ref([]);
+const inviteSearched = ref(false);
 
 const isSuperAdmin = computed(() => adminStore.adminRole === 1);
 const isStoreAdmin = computed(() => adminStore.adminRole === 2);
@@ -182,8 +228,60 @@ async function fetchDetail() {
         _endTime: h.endTime || '18:00:00'
       }));
     }
+    await loadBindings();
   } finally { loading.value = false; }
 }
+
+async function loadBindings() {
+  try {
+    const res = await request({ url: `/admin/stores/${store.value.id}/bindings`, method: 'get' });
+    if (res.code === 200) bindings.value = res.data || [];
+  } catch (e) { /* ignore */ }
+}
+
+async function searchTechnicians() {
+  inviteSearched.value = true;
+  try {
+    const res = await request({
+      url: '/admin/workers/stats/performance',
+      method: 'get',
+      params: { keyword: inviteKeyword.value, pageSize: 20 }
+    });
+    if (res.code === 200 && res.data) {
+      inviteCandidates.value = (res.data.list || []).filter(t => !bindings.value.some(b => b.technicianId === t.id));
+    }
+  } catch (e) { inviteCandidates.value = []; }
+}
+
+async function handleInvite(tech) {
+  try {
+    await request({ url: `/admin/stores/${store.value.id}/invite/${tech.id}`, method: 'post' });
+    ElMessage.success('已发送邀请');
+    showInviteDialog.value = false;
+    await loadBindings();
+  } catch (e) { /* ignore */ }
+}
+
+async function handleDirectUnbind(row) {
+  try {
+    await ElMessageBox.confirm('确认直接解绑该师傅？', '提示', { type: 'warning' });
+    await request({ url: `/admin/stores/${store.value.id}/unbind/${row.technicianId}`, method: 'post' });
+    ElMessage.success('已解绑');
+    await loadBindings();
+  } catch (e) { /* ignore */ }
+}
+
+async function handleApproveUnbind(row) {
+  try {
+    await ElMessageBox.confirm('确认同意该师傅的解绑申请？', '提示', { type: 'warning' });
+    await request({ url: `/admin/stores/${store.value.id}/approve-unbind/${row.technicianId}`, method: 'post' });
+    ElMessage.success('已同意解绑');
+    await loadBindings();
+  } catch (e) { /* ignore */ }
+}
+
+function bindStatusTag(s) { return s === 1 ? 'warning' : s === 2 ? 'success' : s === 3 ? 'danger' : 'info'; }
+function bindStatusText(s) { return s === 1 ? '待确认' : s === 2 ? '已绑定' : s === 3 ? '申请解绑' : '已解绑'; }
 
 function startEditInfo() {
   editForm.name = store.value.name || '';

@@ -5,7 +5,10 @@
         <img class="header-logo" :src="brandLogoIcon" alt="安修到家" />
         <div class="header-text">
           <div class="header-title">安修到家管理后台</div>
-          <div class="header-subtitle">欢迎回来，{{ displayName }}</div>
+          <div class="header-subtitle">
+            <template v-if="isStoreAdmin && storeName">{{ storeName }}</template>
+            <template v-else>欢迎回来，{{ displayName }}</template>
+          </div>
         </div>
       </div>
       <div class="header-right">
@@ -125,6 +128,7 @@ const isSuperAdmin = computed(() => adminStore.adminRole === 1);
 const isStoreAdmin = computed(() => adminStore.adminRole === 2);
 const businessStatus = ref(null);
 const togglingStatus = ref(false);
+const storeName = ref('');
 
 const activeMenu = computed(() => {
   if (route.path.startsWith('/admin/workers/info/')) {
@@ -176,6 +180,7 @@ onMounted(async () => {
       const res = await request({ url: `/admin/stores/${adminStore.storeId}`, method: 'get' });
       if (res.code === 200 && res.data) {
         businessStatus.value = res.data.businessStatus;
+        storeName.value = res.data.name || '';
       }
     } catch (e) { /* ignore */ }
   }

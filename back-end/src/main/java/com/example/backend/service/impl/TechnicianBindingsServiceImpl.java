@@ -31,7 +31,7 @@ public class TechnicianBindingsServiceImpl extends ServiceImpl<TechnicianBinding
         }
         long now = System.currentTimeMillis();
         TechnicianBindings binding = new TechnicianBindings();
-        binding.setId("TB" + SnowflakeIdUtil.DEFAULT.nextId());
+        binding.setId(SnowflakeIdUtil.nextTechnicianBindingId());
         binding.setStoreId(storeId);
         binding.setTechnicianId(technicianId);
         binding.setStatus(1);

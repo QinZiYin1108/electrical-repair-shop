@@ -246,6 +246,10 @@ public class SnowflakeIdUtil {
         return "SBH" + DEFAULT.nextId();
     }
 
+    public static String nextTechnicianBindingId() {
+        return "TB" + DEFAULT.nextId();
+    }
+
     public static String nextCancelReasonId() {
         return "CLR" + DEFAULT.nextId();
     }

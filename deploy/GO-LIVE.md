@@ -25,6 +25,8 @@ dig +short thdqwx.work www.thdqwx.work admin.thdqwx.work api.thdqwx.work
 
 3) 云安全组放行入站：`22`（SSH）、`80`、`443`。
 
+4) 服务器已装 `git`（若要用 git 方式拉代码）。检查 `git --version`；没有则先 `apt-get update && apt-get install -y git`（或直接跑步骤 2 的 `server-bootstrap.sh`，它已包含 git）。
+
 **排错**：
 - `dig` 没返回 IP → DNS 未生效或未加记录，等到生效（可 `dig +trace`）。
 - SSH 连不上 → 检查安全组 22、`ping` 公网 IP。

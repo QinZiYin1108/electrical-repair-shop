@@ -327,6 +327,7 @@ EOF
 | `mvnw`/CRLF | `chmod +x`；`sed -i 's/\r$//' ...` |
 | 构建 OOM | `dmesg -T \| grep -i oom`；用 `-Skip*`、错峰、或升 4C8G |
 | 证书到期 | 自动续期；`sudo certbot renew --dry-run` 测试 |
+| MySQL 源 key 过期（`not live ... Expired`/`EXPKEYSIG B7B3B788A8D3785C`） | 2025-10 旧签名 key 过期；用官方 `mysql-apt-config`（含刷新 key）或从 keyserver 重取 `B7B3B788A8D3785C`；脚本已自动处理 |
 
 ---
 

@@ -39,15 +39,45 @@ if ! command -v node >/dev/null 2>&1; then
   fi
 fi
 
-echo "==> 数据库：Oracle MySQL 8.4 LTS（官方 APT 源，trixie）"
+echo "==> 数据库：Oracle MySQL 8.4 LTS（官方源；注意 2025-10 旧签名 key 已过期）"
 if ! command -v mysqld >/dev/null 2>&1; then
-  mkdir -p /etc/apt/keyrings
-  wget -qO- https://repo.mysql.com/RPM-GPG-KEY-mysql-2023 | gpg --dearmor -o /etc/apt/keyrings/mysql.gpg
+  apt-get install -y wget curl gnupg ca-certificates
+  # 清理上次可能写入的过期 key / 源
+  rm -f /etc/apt/keyrings/mysql.gpg /etc/apt/trusted.gpg.d/mysql.gpg /etc/apt/sources.list.d/mysql.list
+
+  # 方案：官方 mysql-apt-config（内含刷新后的签名 key）；非交互选择 mysql-8.4-lts
+  MYSQL_CFG=/tmp/mysql-apt-config.deb
+  got=0
+  for v in 0.8.36-1 0.8.35-1 0.8.34-1; do
+    if curl -fsSL -o "$MYSQL_CFG" "https://dev.mysql.com/get/mysql-apt-config_${v}_all.deb"; then
+      got=1
+      break
+    fi
+  done
+  if [ "$got" -eq 1 ]; then
+    export DEBIAN_FRONTEND=noninteractive
+    echo "mysql-apt-config mysql-apt-config/select-server select mysql-8.4-lts" | debconf-set-selections
+    dpkg -i "$MYSQL_CFG" || true
+    for p in /etc/apt/trusted.gpg.d/mysql.gpg /usr/share/keyrings/mysql.gpg /etc/apt/keyrings/mysql.gpg; do
+      if [ -f "$p" ]; then mkdir -p /etc/apt/keyrings; cp -f "$p" /etc/apt/keyrings/mysql.gpg; break; fi
+    done
+  else
+    echo "    未能下载 mysql-apt-config，稍后从 keyserver 获取刷新 key"
+  fi
+
   . /etc/os-release
-  MYSQL_CODENAME="${VERSION_CODENAME:-bookworm}"
-  echo "deb [signed-by=/etc/apt/keyrings/mysql.gpg] http://repo.mysql.com/apt/debian/ ${MYSQL_CODENAME} mysql-8.4-lts mysql-tools" \
+  echo "deb [signed-by=/etc/apt/keyrings/mysql.gpg] http://repo.mysql.com/apt/debian/ ${VERSION_CODENAME:-bookworm} mysql-8.4-lts mysql-tools" \
     > /etc/apt/sources.list.d/mysql.list
-  apt-get update
+
+  # 刷新；若 key 仍不被接受，回退从 keyserver 拉取刷新后的 key
+  if ! apt-get -o Acquire::http::Timeout=30 -o Acquire::Retries=3 update; then
+    echo "    仍校验失败，回退从 keyserver 获取刷新 key"
+    gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys B7B3B788A8D3785C || true
+    gpg --export B7B3B788A8D3785C > /etc/apt/keyrings/mysql.gpg || true
+    chmod 644 /etc/apt/keyrings/mysql.gpg
+    apt-get update
+  fi
+
   # 非交互安装；root@localhost 默认 auth_socket（留空密码，用 sudo mysql 连接）
   debconf-set-selections <<< "mysql-community-server mysql-community-server/root-pass password "
   debconf-set-selections <<< "mysql-community-server mysql-community-server/re-root-pass password "

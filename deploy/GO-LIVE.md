@@ -319,7 +319,7 @@ EOF
 
 | 现象 | 排查 |
 | --- | --- |
-| 后端启动失败 | `journalctl -u electrical-backend -n 100 --no-pager`；多为 `.env` 缺项/DB/Redis 连接 |
+| 后端启动失败 | `journalctl -u electrical-backend -n 150 --no-pager`。prod 启动强校验：`StartupConfigurationValidator` 会拒绝占位值（`change-me`/`<your…`/`your_…`/`your-password`/`your-secret`），报「启动配置不完整」→ 必须把 `DB_PASSWORD`、`JWT_SECRET` 等改成真实/非占位值；`SystemConfigBootstrap` 启动即查数据库，DB 连不上会崩（多为 `app` 用户密码与 `.env` 不一致 / MySQL 未起） |
 | DB 拒绝连接 | `systemctl status mysql`；`app` 用户与密码、GRANT；端口 3306 |
 | 503/502（api 域） | 后端是否在 8081：`ss -lntp \| grep 8081` |
 | 站点 404/空白 | 是否已首次部署；`ls <ROOT>/official-website` 是否为空 |

@@ -323,6 +323,7 @@ EOF
 | 现象 | 排查 |
 | --- | --- |
 | 后端启动失败 | `journalctl -u electrical-backend -n 150 --no-pager`。prod 启动强校验：`StartupConfigurationValidator` 会拒绝占位值（`change-me`/`<your…`/`your_…`/`your-password`/`your-secret`），报「启动配置不完整」→ 必须把 `DB_PASSWORD`、`JWT_SECRET` 等改成真实/非占位值；`SystemConfigBootstrap` 启动即查数据库，DB 连不上会崩（多为 `app` 用户密码与 `.env` 不一致 / MySQL 未起） |
+| `/actuator/health` 返回 DOWN（服务其实在跑） | 开 `MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS=always` 看 components：`db`/`redis` 正常而 **`mail` DOWN** 多为邮件账号是占位值（QQ 邮箱需授权码，`535 Login fail`）。暂不接邮件：`.env` 加 `MANAGEMENT_HEALTH_MAIL_ENABLED=false` 后重启；要用邮件则填真实 `MAIL_USERNAME/MAIL_PASSWORD`（QQ 用「授权码」而非登录密码） |
 | DB 拒绝连接 | `systemctl status mysql`；`app` 用户与密码、GRANT；端口 3306 |
 | 503/502（api 域） | 后端是否在 8081：`ss -lntp \| grep 8081` |
 | 站点 404/空白 | 是否已首次部署；`ls <ROOT>/official-website` 是否为空 |

@@ -15,12 +15,29 @@
             @keyup.enter="handleSearch"
             @clear="handleSearch"
           />
-          <el-select v-model="applicationType" clearable class="filter-select" placeholder="售后类型" @change="handleSearch">
+          <el-select
+            v-model="applicationType"
+            clearable
+            class="filter-select"
+            placeholder="售后类型"
+            @change="handleSearch"
+          >
             <el-option label="仅退款" :value="1" />
             <el-option label="退货退款" :value="2" />
           </el-select>
-          <el-select v-model="status" clearable class="filter-select" placeholder="处理状态" @change="handleSearch">
-            <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
+          <el-select
+            v-model="status"
+            clearable
+            class="filter-select"
+            placeholder="处理状态"
+            @change="handleSearch"
+          >
+            <el-option
+              v-for="item in statusOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
           </el-select>
           <el-button type="primary" @click="handleSearch">查询</el-button>
         </div>
@@ -37,7 +54,12 @@
         <el-table-column prop="orderNo" label="订单号" min-width="180" show-overflow-tooltip />
         <el-table-column prop="userName" label="用户" min-width="140" show-overflow-tooltip />
         <el-table-column prop="userPhone" label="联系电话" min-width="140" show-overflow-tooltip />
-        <el-table-column prop="productSummary" label="商品信息" min-width="220" show-overflow-tooltip />
+        <el-table-column
+          prop="productSummary"
+          label="商品信息"
+          min-width="220"
+          show-overflow-tooltip
+        />
         <el-table-column label="件数" width="80" align="center">
           <template #default="{ row }">{{ row.itemCount || 0 }}</template>
         </el-table-column>
@@ -51,7 +73,9 @@
         </el-table-column>
         <el-table-column label="状态" width="110" align="center">
           <template #default="{ row }">
-            <el-tag size="small" :type="getStatusTagType(row.status)">{{ row.statusText || '-' }}</el-tag>
+            <el-tag size="small" :type="getStatusTagType(row.status)">{{
+              row.statusText || '-'
+            }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="申请时间" min-width="170">
@@ -59,7 +83,7 @@
         </el-table-column>
         <el-table-column label="操作" width="120" fixed="right" align="center">
           <template #default="{ row }">
-            <el-dropdown trigger="click" @command="command => handleRowCommand(command, row)">
+            <el-dropdown trigger="click" @command="(command) => handleRowCommand(command, row)">
               <el-button size="small" class="action-trigger">操作</el-button>
               <template #dropdown>
                 <el-dropdown-menu>

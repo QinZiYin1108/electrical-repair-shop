@@ -15,18 +15,20 @@ import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.AccountBalancesService;
 import com.example.backend.service.FundFlowsService;
 import com.example.backend.service.RepairOrderFundService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.List;
-import java.util.stream.Collectors;
-
 @RestController
+@Tag(name = "师傅端/资金")
 @RequestMapping("/worker/funds")
 public class WorkerFundsController {
 
@@ -37,19 +39,20 @@ public class WorkerFundsController {
     private final RepairOrderFundService repairOrderFundService;
 
     public WorkerFundsController(
-        AccountBalancesService accountBalancesService,
-        FundFlowsService fundFlowsService,
-        RepairOrderFundService repairOrderFundService
-    ) {
+            AccountBalancesService accountBalancesService,
+            FundFlowsService fundFlowsService,
+            RepairOrderFundService repairOrderFundService) {
         this.accountBalancesService = accountBalancesService;
         this.fundFlowsService = fundFlowsService;
         this.repairOrderFundService = repairOrderFundService;
     }
 
+    @Operation(summary = "查询Summary")
     @GetMapping("/summary")
     public Result<FundSummaryResponse> getSummary() {
         LoginUserInfo user = requireWorker();
-        repairOrderFundService.releaseEligibleTechnicianFunds(user.getAccountId(), System.currentTimeMillis());
+        repairOrderFundService.releaseEligibleTechnicianFunds(
+                user.getAccountId(), System.currentTimeMillis());
         AccountBalances balance = getBalance(user.getAccountId());
 
         FundSummaryResponse response = new FundSummaryResponse();
@@ -60,30 +63,32 @@ public class WorkerFundsController {
         return Result.success(response);
     }
 
+    @Operation(summary = "查询Flows")
     @GetMapping("/flows")
     public Result<Page<FundFlowItemResponse>> listFlows(
-        @RequestParam(value = "pageNo", required = false, defaultValue = "1") Integer pageNo,
-        @RequestParam(value = "pageSize", required = false, defaultValue = "20") Integer pageSize
-    ) {
+            @RequestParam(value = "pageNo", required = false, defaultValue = "1") Integer pageNo,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "20")
+                    Integer pageSize) {
         LoginUserInfo user = requireWorker();
-        repairOrderFundService.releaseEligibleTechnicianFunds(user.getAccountId(), System.currentTimeMillis());
+        repairOrderFundService.releaseEligibleTechnicianFunds(
+                user.getAccountId(), System.currentTimeMillis());
         int current = normalizePage(pageNo);
         int size = normalizePageSize(pageSize);
 
-        Page<FundFlows> page = fundFlowsService.page(
-            new Page<>(current, size),
-            new LambdaQueryWrapper<FundFlows>()
-                .eq(FundFlows::getAccountId, user.getAccountId())
-                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_TECHNICIAN)
-                .eq(FundFlows::getIsDelete, 0)
-                .orderByDesc(FundFlows::getCreatedTime)
-        );
+        Page<FundFlows> page =
+                fundFlowsService.page(
+                        new Page<>(current, size),
+                        new LambdaQueryWrapper<FundFlows>()
+                                .eq(FundFlows::getAccountId, user.getAccountId())
+                                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_TECHNICIAN)
+                                .eq(FundFlows::getIsDelete, 0)
+                                .orderByDesc(FundFlows::getCreatedTime));
 
-        List<FundFlowItemResponse> items = page.getRecords().stream()
-            .map(this::toFlowItem)
-            .collect(Collectors.toList());
+        List<FundFlowItemResponse> items =
+                page.getRecords().stream().map(this::toFlowItem).collect(Collectors.toList());
 
-        Page<FundFlowItemResponse> result = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
+        Page<FundFlowItemResponse> result =
+                new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
         result.setRecords(items);
         return Result.success(result);
     }
@@ -108,13 +113,12 @@ public class WorkerFundsController {
             return null;
         }
         return accountBalancesService.getOne(
-            new LambdaQueryWrapper<AccountBalances>()
-                .eq(AccountBalances::getAccountId, accountId)
-                .eq(AccountBalances::getAccountType, ACCOUNT_TYPE_TECHNICIAN)
-                .eq(AccountBalances::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+                new LambdaQueryWrapper<AccountBalances>()
+                        .eq(AccountBalances::getAccountId, accountId)
+                        .eq(AccountBalances::getAccountType, ACCOUNT_TYPE_TECHNICIAN)
+                        .eq(AccountBalances::getIsDelete, 0)
+                        .last("limit 1"),
+                false);
     }
 
     private LoginUserInfo requireWorker() {

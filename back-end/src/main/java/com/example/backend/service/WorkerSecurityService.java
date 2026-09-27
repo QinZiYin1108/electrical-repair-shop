@@ -16,4 +16,3 @@ public interface WorkerSecurityService {
 
     void changeEmail(WorkerChangeEmailRequest request);
 }
-

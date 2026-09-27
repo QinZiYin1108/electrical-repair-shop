@@ -13,7 +13,9 @@
     <el-card class="panel-card" shadow="never">
       <div class="toolbar">
         <el-button type="primary" @click="openCreateDialog">新增{{ panelLabel }}</el-button>
-        <span v-if="isBannerPanel" class="toolbar-tip">轮播图图片会先按 702:250 比例裁剪，再上传。</span>
+        <span v-if="isBannerPanel" class="toolbar-tip"
+          >轮播图图片会先按 702:250 比例裁剪，再上传。</span
+        >
       </div>
 
       <el-table :data="currentRows" border class="main-table">
@@ -55,12 +57,14 @@
         </el-table-column>
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
-            <el-dropdown @command="command => handleRowCommand(command, row)">
+            <el-dropdown @command="(command) => handleRowCommand(command, row)">
               <el-button size="small">操作</el-button>
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="edit">编辑</el-dropdown-item>
-                  <el-dropdown-item v-if="isBannerPanel" command="upload">上传图片</el-dropdown-item>
+                  <el-dropdown-item v-if="isBannerPanel" command="upload"
+                    >上传图片</el-dropdown-item
+                  >
                   <el-dropdown-item command="delete">删除</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
@@ -142,7 +146,10 @@
     >
       <div class="crop-dialog">
         <div class="crop-tip">
-          用户端首页轮播区使用固定比例。这里会按 {{ BANNER_RECOMMEND_WIDTH }}:{{ BANNER_RECOMMEND_HEIGHT }} 裁剪后再上传。
+          用户端首页轮播区使用固定比例。这里会按 {{ BANNER_RECOMMEND_WIDTH }}:{{
+            BANNER_RECOMMEND_HEIGHT
+          }}
+          裁剪后再上传。
         </div>
         <div class="crop-preview-shell">
           <div class="crop-preview-box" :style="cropPreviewBoxStyle">
@@ -153,11 +160,13 @@
               class="crop-preview-image"
               alt="轮播图裁剪预览"
               draggable="false"
-            >
+            />
           </div>
         </div>
         <div class="crop-meta">
-          <span>原图尺寸：{{ cropSourceImage.width || 0 }} × {{ cropSourceImage.height || 0 }}</span>
+          <span
+            >原图尺寸：{{ cropSourceImage.width || 0 }} × {{ cropSourceImage.height || 0 }}</span
+          >
           <span>导出尺寸：{{ BANNER_OUTPUT_WIDTH }} × {{ BANNER_OUTPUT_HEIGHT }}</span>
           <span>可用缩放和位移调整显示范围</span>
         </div>
@@ -186,7 +195,9 @@
       </div>
       <template #footer>
         <el-button @click="cropDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="cropUploading" @click="confirmCropUpload">裁剪并上传</el-button>
+        <el-button type="primary" :loading="cropUploading" @click="confirmCropUpload"
+          >裁剪并上传</el-button
+        >
       </template>
     </el-dialog>
 
@@ -196,7 +207,7 @@
       accept="image/*"
       style="display: none"
       @change="onImageFileChange"
-    >
+    />
   </div>
 </template>
 
@@ -281,10 +292,9 @@ const cropPreviewMetrics = computed(() => {
       maxOffsetY: 0
     };
   }
-  const scale = Math.max(
-    BANNER_PREVIEW_WIDTH / naturalWidth,
-    BANNER_PREVIEW_HEIGHT / naturalHeight
-  ) * (cropState.zoom / 100);
+  const scale =
+    Math.max(BANNER_PREVIEW_WIDTH / naturalWidth, BANNER_PREVIEW_HEIGHT / naturalHeight) *
+    (cropState.zoom / 100);
   const renderWidth = naturalWidth * scale;
   const renderHeight = naturalHeight * scale;
   return {
@@ -395,9 +405,10 @@ async function submitForm() {
 
   saving.value = true;
   try {
-    const res = dialogMode.value === 'create'
-      ? await createAnnouncement(payload)
-      : await updateAnnouncement(form.id, payload);
+    const res =
+      dialogMode.value === 'create'
+        ? await createAnnouncement(payload)
+        : await updateAnnouncement(form.id, payload);
     if (res.code !== 200) {
       ElMessage.error(res.message || '保存失败');
       return;
@@ -414,7 +425,9 @@ async function submitForm() {
 
 async function confirmDelete(row) {
   try {
-    await ElMessageBox.confirm(`确定删除“${row.title || row.id}”吗？`, '删除确认', { type: 'warning' });
+    await ElMessageBox.confirm(`确定删除“${row.title || row.id}”吗？`, '删除确认', {
+      type: 'warning'
+    });
   } catch (e) {
     return;
   }
@@ -467,7 +480,10 @@ async function openCropDialog(row, file) {
   const objectUrl = URL.createObjectURL(file);
   try {
     const image = await loadImageElement(objectUrl);
-    if (image.naturalWidth < BANNER_RECOMMEND_WIDTH || image.naturalHeight < BANNER_RECOMMEND_HEIGHT) {
+    if (
+      image.naturalWidth < BANNER_RECOMMEND_WIDTH ||
+      image.naturalHeight < BANNER_RECOMMEND_HEIGHT
+    ) {
       throw new Error(`图片尺寸不能小于 ${BANNER_RECOMMEND_WIDTH}×${BANNER_RECOMMEND_HEIGHT}`);
     }
     revokeCropSourceUrl();
@@ -523,7 +539,10 @@ async function createCroppedBannerFile(file) {
   const sourceX = clamp((0 - renderLeft) / metrics.scale, 0, image.naturalWidth);
   const sourceY = clamp((0 - renderTop) / metrics.scale, 0, image.naturalHeight);
   const sourceWidth = Math.min(BANNER_PREVIEW_WIDTH / metrics.scale, image.naturalWidth - sourceX);
-  const sourceHeight = Math.min(BANNER_PREVIEW_HEIGHT / metrics.scale, image.naturalHeight - sourceY);
+  const sourceHeight = Math.min(
+    BANNER_PREVIEW_HEIGHT / metrics.scale,
+    image.naturalHeight - sourceY
+  );
   const canvas = document.createElement('canvas');
   canvas.width = BANNER_OUTPUT_WIDTH;
   canvas.height = BANNER_OUTPUT_HEIGHT;
@@ -531,7 +550,17 @@ async function createCroppedBannerFile(file) {
   if (!context) {
     throw new Error('浏览器不支持图片裁剪');
   }
-  context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
+  context.drawImage(
+    image,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
   const mimeType = resolveCropMimeType(file.type);
   const blob = await canvasToBlob(canvas, mimeType);
   return new File([blob], buildCroppedFileName(file.name, mimeType), { type: mimeType });

@@ -51,6 +51,8 @@
             <text wx:if="{{detail.isRecommended}}" class="media-badge badge-recommend">推荐</text>
             <text wx:if="{{detail.isHot}}" class="media-badge badge-hot">热销</text>
             <text wx:if="{{detail.isNew}}" class="media-badge badge-new">新品</text>
+            <text wx:if="{{detail.fulfillmentType === 1}}" class="media-badge badge-pickup">自取</text>
+            <text wx:if="{{detail.fulfillmentType === 2}}" class="media-badge badge-delivery">送货上门</text>
           </view>
 
           <view wx:if="{{detail.mediaCount}}" class="media-index">
@@ -113,6 +115,14 @@
             <view class="entry-main">
               <text class="entry-label">商品参数</text>
               <text class="entry-preview">{{detail.specPreview}}</text>
+            </view>
+            <text class="entry-arrow">></text>
+          </view>
+
+          <view wx:if="{{detail.storeId}}" class="entry-row" bind:tap="onStoreTap">
+            <view class="entry-main">
+              <text class="entry-label">门店</text>
+              <text class="entry-preview">{{detail.storeName}}</text>
             </view>
             <text class="entry-arrow">></text>
           </view>
@@ -259,6 +269,10 @@
             <view class="sheet-item">
               <text class="sheet-item-label">保修期</text>
               <text class="sheet-item-value">{{detail.warrantyText}}</text>
+            </view>
+            <view wx:if="{{detail.fulfillmentText}}" class="sheet-item">
+              <text class="sheet-item-label">履约方式</text>
+              <text class="sheet-item-value">{{detail.fulfillmentText}}</text>
             </view>
             <view class="sheet-item">
               <text class="sheet-item-label">配送说明</text>

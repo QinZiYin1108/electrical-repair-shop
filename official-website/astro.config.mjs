@@ -1,9 +1,9 @@
 import { defineConfig } from 'astro/config';
 
 export default defineConfig({
-  site: 'https://www.leonyin.cn',
-  output: 'static',
-  build: {
-    assets: 'assets',
-  },
+    site: 'https://www.thdqwx.work',
+    output: 'static',
+    build: {
+        assets: 'assets'
+    }
 });

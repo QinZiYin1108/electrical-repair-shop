@@ -1,20 +1,22 @@
 package com.example.backend.model.auth;
 
-import jakarta.validation.constraints.Email;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 
+@Schema(description = "师傅发送Code请求")
 public class WorkerSendCodeRequest {
 
     @NotBlank
-    @Email
-    private String email;
+    @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
+    @Schema(description = "手机号")
+    private String phone;
 
-    public String getEmail() {
-        return email;
+    public String getPhone() {
+        return phone;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 }
-

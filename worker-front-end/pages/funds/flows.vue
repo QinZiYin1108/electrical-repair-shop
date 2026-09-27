@@ -41,7 +41,10 @@
 
         <view v-if="filteredFlows.length" class="flow-list">
           <view v-for="item in filteredFlows" :key="item.id" class="flow-item">
-            <view class="flow-icon" :class="safeToNumber(item.flowType) === 2 ? 'flow-icon-expense' : 'flow-icon-income'">
+            <view
+              class="flow-icon"
+              :class="safeToNumber(item.flowType) === 2 ? 'flow-icon-expense' : 'flow-icon-income'"
+            >
               <u-icon
                 :name="safeToNumber(item.flowType) === 2 ? 'arrow-upward' : 'arrow-downward'"
                 size="16"
@@ -51,7 +54,9 @@
             <view class="flow-main">
               <view class="flow-top">
                 <text class="flow-title">{{ item.description || '资金变动' }}</text>
-                <text class="flow-amount" :class="amountClass(item.flowType)">{{ formatAmount(item.flowType, item.amount) }}</text>
+                <text class="flow-amount" :class="amountClass(item.flowType)">{{
+                  formatAmount(item.flowType, item.amount)
+                }}</text>
               </view>
               <view class="flow-bottom">
                 <text class="flow-meta">{{ flowDirection(item.flowType) }}</text>

@@ -17,16 +17,9 @@ import com.example.backend.service.UserAccountsService;
 import com.example.backend.service.UserCouponsService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -38,8 +31,17 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "管理员端/优惠券管理")
 @RequestMapping("/admin/products/coupons")
 public class AdminCouponController {
 
@@ -52,10 +54,9 @@ public class AdminCouponController {
     private final UserAccountsService userAccountsService;
 
     public AdminCouponController(
-        CouponsService couponsService,
-        UserCouponsService userCouponsService,
-        UserAccountsService userAccountsService
-    ) {
+            CouponsService couponsService,
+            UserCouponsService userCouponsService,
+            UserAccountsService userAccountsService) {
         this.couponsService = couponsService;
         this.userCouponsService = userCouponsService;
         this.userAccountsService = userAccountsService;
@@ -63,23 +64,29 @@ public class AdminCouponController {
 
     @GetMapping
     public Result<Page<AdminCouponModel.ListItemResponse>> listCoupons(
-        @RequestParam(value = "pageNum", defaultValue = "1") long pageNum,
-        @RequestParam(value = "pageSize", defaultValue = "10") long pageSize,
-        @RequestParam(value = "keyword", required = false) String keyword,
-        @RequestParam(value = "status", required = false) Integer status,
-        @RequestParam(value = "applicableType", required = false) Integer applicableType
-    ) {
+            @RequestParam(value = "pageNum", defaultValue = "1") long pageNum,
+            @RequestParam(value = "pageSize", defaultValue = "10") long pageSize,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "applicableType", required = false) Integer applicableType) {
         LoginUserInfo admin = requireAdmin();
-        LambdaQueryWrapper<Coupons> wrapper = new LambdaQueryWrapper<Coupons>()
-            .like(StringUtils.hasText(keyword), Coupons::getName, keyword == null ? null : keyword.trim())
-            .eq(status != null, Coupons::getStatus, status)
-            .eq(applicableType != null, Coupons::getApplicableType, applicableType)
-            .orderByDesc(Coupons::getUpdatedTime)
-            .orderByDesc(Coupons::getCreatedTime);
+        LambdaQueryWrapper<Coupons> wrapper =
+                new LambdaQueryWrapper<Coupons>()
+                        .like(
+                                StringUtils.hasText(keyword),
+                                Coupons::getName,
+                                keyword == null ? null : keyword.trim())
+                        .eq(status != null, Coupons::getStatus, status)
+                        .eq(applicableType != null, Coupons::getApplicableType, applicableType)
+                        .orderByDesc(Coupons::getUpdatedTime)
+                        .orderByDesc(Coupons::getCreatedTime);
         // 门店管理员：仅查看本门店优惠券 + 平台优惠券
         applyStoreFilter(admin, wrapper);
-        Page<Coupons> page = couponsService.page(new Page<>(Math.max(pageNum, 1L), Math.max(pageSize, 1L)), wrapper);
-        Page<AdminCouponModel.ListItemResponse> response = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
+        Page<Coupons> page =
+                couponsService.page(
+                        new Page<>(Math.max(pageNum, 1L), Math.max(pageSize, 1L)), wrapper);
+        Page<AdminCouponModel.ListItemResponse> response =
+                new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
         response.setRecords(buildCouponItems(page.getRecords()));
         return Result.success(response);
     }
@@ -104,11 +111,16 @@ public class AdminCouponController {
         return Result.success();
     }
 
+    @Operation(summary = "修改编辑Coupon")
     @PostMapping("/{id}/update")
-    public Result<Void> updateCoupon(@PathVariable("id") String id, @Valid @RequestBody AdminCouponModel.SaveRequest request) {
+    public Result<Void> updateCoupon(
+            @PathVariable("id") String id,
+            @Valid @RequestBody AdminCouponModel.SaveRequest request) {
         requireAdmin();
         Coupons coupon = requireCoupon(id);
-        int receiveCount = getReceiveCount(Collections.singletonList(coupon.getId())).getOrDefault(coupon.getId(), 0);
+        int receiveCount =
+                getReceiveCount(Collections.singletonList(coupon.getId()))
+                        .getOrDefault(coupon.getId(), 0);
         if (request.getTotalCount() != null && request.getTotalCount() < receiveCount) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "发放总量不能小于已领取数量");
         }
@@ -119,8 +131,11 @@ public class AdminCouponController {
         return Result.success();
     }
 
+    @Operation(summary = "修改编辑Status")
     @PostMapping("/{id}/status")
-    public Result<Void> updateStatus(@PathVariable("id") String id, @Valid @RequestBody AdminCouponModel.StatusUpdateRequest request) {
+    public Result<Void> updateStatus(
+            @PathVariable("id") String id,
+            @Valid @RequestBody AdminCouponModel.StatusUpdateRequest request) {
         requireAdmin();
         Coupons coupon = requireCoupon(id);
         coupon.setStatus(request.getStatus());
@@ -131,11 +146,11 @@ public class AdminCouponController {
         return Result.success();
     }
 
+    @Operation(summary = "提交grantCoupon")
     @PostMapping("/{id}/grant")
     public Result<AdminCouponModel.GrantResponse> grantCoupon(
-        @PathVariable("id") String id,
-        @RequestBody(required = false) AdminCouponModel.GrantRequest request
-    ) {
+            @PathVariable("id") String id,
+            @RequestBody(required = false) AdminCouponModel.GrantRequest request) {
         requireAdmin();
         Coupons coupon = requireCoupon(id);
         validateGrantableCoupon(coupon);
@@ -143,54 +158,64 @@ public class AdminCouponController {
         if (userIds.isEmpty()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请选择要发放的用户");
         }
-        List<UserAccounts> users = userAccountsService.list(
-            new LambdaQueryWrapper<UserAccounts>()
-                .in(UserAccounts::getId, userIds)
-                .eq(UserAccounts::getIsDelete, 0)
-        );
-        Set<String> matchedUserIds = users.stream()
-            .map(UserAccounts::getId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toCollection(LinkedHashSet::new));
-        Set<String> validUserIds = users.stream()
-            .filter(item -> Objects.equals(item.getStatus(), USER_STATUS_NORMAL))
-            .map(UserAccounts::getId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toCollection(LinkedHashSet::new));
-        Set<String> frozenUserIds = users.stream()
-            .filter(item -> Objects.equals(item.getStatus(), USER_STATUS_FROZEN))
-            .map(UserAccounts::getId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toCollection(LinkedHashSet::new));
-        List<String> missingUserIds = userIds.stream()
-            .filter(item -> !matchedUserIds.contains(item))
-            .collect(Collectors.toCollection(ArrayList::new));
+        List<UserAccounts> users =
+                userAccountsService.list(
+                        new LambdaQueryWrapper<UserAccounts>()
+                                .in(UserAccounts::getId, userIds)
+                                .eq(UserAccounts::getIsDelete, 0));
+        Set<String> matchedUserIds =
+                users.stream()
+                        .map(UserAccounts::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
+        Set<String> validUserIds =
+                users.stream()
+                        .filter(item -> Objects.equals(item.getStatus(), USER_STATUS_NORMAL))
+                        .map(UserAccounts::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
+        Set<String> frozenUserIds =
+                users.stream()
+                        .filter(item -> Objects.equals(item.getStatus(), USER_STATUS_FROZEN))
+                        .map(UserAccounts::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
+        List<String> missingUserIds =
+                userIds.stream()
+                        .filter(item -> !matchedUserIds.contains(item))
+                        .collect(Collectors.toCollection(ArrayList::new));
         if (matchedUserIds.isEmpty()) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "未找到用户");
         }
         if (validUserIds.isEmpty()) {
             if (!frozenUserIds.isEmpty()) {
                 throw new BusinessException(
-                    ErrorCode.BUSINESS_ERROR,
-                    frozenUserIds.size() == 1 ? "该用户已冻结，无法发放优惠券" : "所选用户已冻结，无法发放优惠券"
-                );
+                        ErrorCode.BUSINESS_ERROR,
+                        frozenUserIds.size() == 1 ? "该用户已冻结，无法发放优惠券" : "所选用户已冻结，无法发放优惠券");
             }
             if (!missingUserIds.isEmpty()) {
                 throw new BusinessException(ErrorCode.BUSINESS_ERROR, "未找到用户");
             }
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "未找到可发放的有效用户");
         }
-        List<UserCoupons> existingCoupons = userCouponsService.list(
-            new LambdaQueryWrapper<UserCoupons>()
-                .eq(UserCoupons::getCouponId, coupon.getId())
-                .in(UserCoupons::getUserId, validUserIds)
-        );
-        Set<String> existingUserIds = existingCoupons.stream()
-            .map(UserCoupons::getUserId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toCollection(LinkedHashSet::new));
-        int receiveCount = getReceiveCount(Collections.singletonList(coupon.getId())).getOrDefault(coupon.getId(), 0);
-        int remaining = Math.max((coupon.getTotalCount() == null ? 0 : coupon.getTotalCount()) - receiveCount, 0);
+        List<UserCoupons> existingCoupons =
+                userCouponsService.list(
+                        new LambdaQueryWrapper<UserCoupons>()
+                                .eq(UserCoupons::getCouponId, coupon.getId())
+                                .in(UserCoupons::getUserId, validUserIds));
+        Set<String> existingUserIds =
+                existingCoupons.stream()
+                        .map(UserCoupons::getUserId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
+        int receiveCount =
+                getReceiveCount(Collections.singletonList(coupon.getId()))
+                        .getOrDefault(coupon.getId(), 0);
+        int remaining =
+                Math.max(
+                        (coupon.getTotalCount() == null ? 0 : coupon.getTotalCount())
+                                - receiveCount,
+                        0);
         if (remaining <= 0) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "优惠券库存不足，无法继续发放");
         }
@@ -231,10 +256,12 @@ public class AdminCouponController {
         response.setGrantCount(grantedUserIds.size());
         response.setSkipCount(Math.max(userIds.size() - grantedUserIds.size(), 0));
         response.setGrantedUserIds(grantedUserIds);
-        response.setSkippedUserIds(skippedUserIds.stream().distinct().collect(Collectors.toCollection(ArrayList::new)));
+        response.setSkippedUserIds(
+                skippedUserIds.stream()
+                        .distinct()
+                        .collect(Collectors.toCollection(ArrayList::new)));
         return Result.success(response);
     }
-
 
     private List<AdminCouponModel.ListItemResponse> buildCouponItems(List<Coupons> coupons) {
         if (coupons == null || coupons.isEmpty()) {
@@ -254,11 +281,18 @@ public class AdminCouponController {
             item.setDiscountTypeText(Objects.equals(coupon.getDiscountType(), 2) ? "折扣" : "固定减免");
             item.setDiscountValue(coupon.getDiscountValue());
             item.setMinAmount(normalizeMoney(coupon.getMinAmount()));
-            item.setMaxDiscount(coupon.getMaxDiscount() == null ? null : normalizeMoney(coupon.getMaxDiscount()));
+            item.setMaxDiscount(
+                    coupon.getMaxDiscount() == null
+                            ? null
+                            : normalizeMoney(coupon.getMaxDiscount()));
             item.setTotalCount(coupon.getTotalCount());
             item.setReceiveCount(receiveCount);
             item.setUsedCount(coupon.getUsedCount());
-            item.setRemainingCount(Math.max((coupon.getTotalCount() == null ? 0 : coupon.getTotalCount()) - receiveCount, 0));
+            item.setRemainingCount(
+                    Math.max(
+                            (coupon.getTotalCount() == null ? 0 : coupon.getTotalCount())
+                                    - receiveCount,
+                            0));
             item.setPerUserLimit(coupon.getPerUserLimit());
             item.setApplicableType(coupon.getApplicableType());
             item.setApplicableTypeText(getApplicableTypeText(coupon.getApplicableType()));
@@ -279,24 +313,26 @@ public class AdminCouponController {
             return new LinkedHashMap<>();
         }
         Map<String, Integer> result = new LinkedHashMap<>();
-        List<UserCoupons> userCoupons = userCouponsService.list(
-            new LambdaQueryWrapper<UserCoupons>()
-                .in(UserCoupons::getCouponId, couponIds)
-        );
+        List<UserCoupons> userCoupons =
+                userCouponsService.list(
+                        new LambdaQueryWrapper<UserCoupons>()
+                                .in(UserCoupons::getCouponId, couponIds));
         for (UserCoupons userCoupon : userCoupons) {
             result.merge(userCoupon.getCouponId(), 1, Integer::sum);
         }
         return result;
     }
 
-    private Coupons buildCouponEntity(Coupons coupon, AdminCouponModel.SaveRequest request, long now) {
+    private Coupons buildCouponEntity(
+            Coupons coupon, AdminCouponModel.SaveRequest request, long now) {
         validateCouponRequest(request);
         coupon.setName(request.getName().trim());
         coupon.setType(request.getType());
         coupon.setDiscountType(request.getDiscountType());
         coupon.setDiscountValue(normalizeMoney(request.getDiscountValue()));
         coupon.setMinAmount(normalizeMoney(request.getMinAmount()));
-        coupon.setMaxDiscount(request.getMaxDiscount() == null ? null : normalizeMoney(request.getMaxDiscount()));
+        coupon.setMaxDiscount(
+                request.getMaxDiscount() == null ? null : normalizeMoney(request.getMaxDiscount()));
         coupon.setTotalCount(request.getTotalCount());
         coupon.setPerUserLimit(1);
         coupon.setApplicableType(request.getApplicableType());
@@ -309,10 +345,15 @@ public class AdminCouponController {
     }
 
     private void validateCouponRequest(AdminCouponModel.SaveRequest request) {
-        if (request.getStartTime() != null && request.getEndTime() != null && request.getStartTime() > request.getEndTime()) {
+        if (request.getStartTime() != null
+                && request.getEndTime() != null
+                && request.getStartTime() > request.getEndTime()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "开始时间不能晚于结束时间");
         }
-        if (request.getApplicableType() == null || (request.getApplicableType() != 1 && request.getApplicableType() != 2 && request.getApplicableType() != 3)) {
+        if (request.getApplicableType() == null
+                || (request.getApplicableType() != 1
+                        && request.getApplicableType() != 2
+                        && request.getApplicableType() != 3)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "适用范围参数不合法");
         }
         if (request.getStatus() == null || (request.getStatus() != 1 && request.getStatus() != 2)) {
@@ -346,7 +387,8 @@ public class AdminCouponController {
             return new ArrayList<>();
         }
         try {
-            return ((List<?>) OBJECT_MAPPER.readValue(rawValue, List.class)).stream().map(String::valueOf).collect(Collectors.toList());
+            return ((List<?>) OBJECT_MAPPER.readValue(rawValue, List.class))
+                    .stream().map(String::valueOf).collect(Collectors.toList());
         } catch (Exception ignored) {
             return new ArrayList<>();
         }
@@ -365,7 +407,11 @@ public class AdminCouponController {
         if (values == null || values.isEmpty()) {
             return new ArrayList<>();
         }
-        return values.stream().filter(StringUtils::hasText).map(String::trim).distinct().collect(Collectors.toList());
+        return values.stream()
+                .filter(StringUtils::hasText)
+                .map(String::trim)
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     private String getTypeText(Integer type) {
@@ -398,14 +444,16 @@ public class AdminCouponController {
         return (value == null ? BigDecimal.ZERO : value).setScale(2, RoundingMode.HALF_UP);
     }
 
-    /**
-     * 门店管理员：仅查看本门店优惠券 + 平台优惠券（storeId IS NULL）
-     */
+    /** 门店管理员：仅查看本门店优惠券 + 平台优惠券（storeId IS NULL） */
     private void applyStoreFilter(LoginUserInfo admin, LambdaQueryWrapper<Coupons> wrapper) {
         if (admin == null || !admin.isStoreAdmin() || !StringUtils.hasText(admin.getStoreId())) {
             return;
         }
-        wrapper.and(w -> w.isNull(Coupons::getStoreId).or().eq(Coupons::getStoreId, admin.getStoreId()));
+        wrapper.and(
+                w ->
+                        w.isNull(Coupons::getStoreId)
+                                .or()
+                                .eq(Coupons::getStoreId, admin.getStoreId()));
     }
 
     private LoginUserInfo requireAdmin() {

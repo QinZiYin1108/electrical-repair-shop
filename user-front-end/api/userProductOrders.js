@@ -52,11 +52,20 @@ const cancelUserProductAfterSales = (data) => {
   });
 };
 
+const cancelUserProductOrder = (data) => {
+  return request({
+    url: '/user/product-orders/cancel',
+    method: 'POST',
+    data: data || {}
+  });
+};
+
 module.exports = {
   fetchUserProductOrders,
   fetchUserProductOrderDetail,
   fetchUserProductAfterSalesDetail,
   confirmUserProductOrderReceipt,
   applyUserProductAfterSales,
-  cancelUserProductAfterSales
+  cancelUserProductAfterSales,
+  cancelUserProductOrder
 };

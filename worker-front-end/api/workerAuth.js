@@ -1,41 +1,41 @@
 import request from './request';
 
-export function workerLoginByPassword(email, password, confirmCancel = false) {
+export function workerLoginByPassword(phone, password, confirmCancel = false) {
   return request({
     url: '/pass/auth/worker/login/password',
     method: 'POST',
-    data: { email, password, confirmCancel }
+    data: { phone, password, confirmCancel }
   });
 }
 
-export function workerSendLoginCode(email) {
+export function workerSendLoginCode(phone) {
   return request({
     url: '/pass/auth/worker/code/send',
     method: 'POST',
-    data: { email }
+    data: { phone }
   });
 }
 
-export function workerLoginByCode(email, code, confirmCancel = false) {
+export function workerLoginByCode(phone, code, confirmCancel = false) {
   return request({
     url: '/pass/auth/worker/login/code',
     method: 'POST',
-    data: { email, code, confirmCancel }
+    data: { phone, code, confirmCancel }
   });
 }
 
-export function workerSendResetPasswordCode(email) {
+export function workerSendResetPasswordCode(phone) {
   return request({
     url: '/pass/auth/worker/password/reset/code/send',
     method: 'POST',
-    data: { email }
+    data: { phone }
   });
 }
 
-export function workerResetPasswordByEmail(email, code, newPassword, confirmPassword) {
+export function workerResetPasswordByPhone(phone, code, newPassword, confirmPassword) {
   return request({
     url: '/pass/auth/worker/password/reset',
     method: 'POST',
-    data: { email, code, newPassword, confirmPassword }
+    data: { phone, code, newPassword, confirmPassword }
   });
 }

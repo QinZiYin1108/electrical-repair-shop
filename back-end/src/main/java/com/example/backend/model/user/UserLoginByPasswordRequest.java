@@ -1,25 +1,30 @@
 package com.example.backend.model.user;
 
-import jakarta.validation.constraints.Email;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 
+@Schema(description = "用户登录By密码请求")
 public class UserLoginByPasswordRequest {
 
-    @NotBlank(message = "\u90ae\u7bb1\u4e0d\u80fd\u4e3a\u7a7a")
-    @Email(message = "\u90ae\u7bb1\u683c\u5f0f\u4e0d\u6b63\u786e")
-    private String email;
+    @NotBlank(message = "手机号不能为空")
+    @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
+    @Schema(description = "手机号")
+    private String phone;
 
-    @NotBlank(message = "\u5bc6\u7801\u4e0d\u80fd\u4e3a\u7a7a")
+    @NotBlank(message = "密码不能为空")
+    @Schema(description = "密码")
     private String password;
 
+    @Schema(description = "确认取消")
     private Boolean confirmCancel;
 
-    public String getEmail() {
-        return email;
+    public String getPhone() {
+        return phone;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 
     public String getPassword() {

@@ -1,12 +1,26 @@
 package com.example.backend.model.admin;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "管理员师傅工作时间响应")
 public class AdminWorkerWorkTimeResponse {
 
+    @Schema(description = "ID")
     private String id;
+
+    @Schema(description = "星期")
     private Integer dayOfWeek;
+
+    @Schema(description = "开始时间")
     private String startTime;
+
+    @Schema(description = "结束时间")
     private String endTime;
+
+    @Schema(description = "是否可用")
     private Integer isAvailable;
+
+    @Schema(description = "更新时间")
     private Long updatedTime;
 
     public String getId() {

@@ -1,18 +1,25 @@
 package com.example.backend.model.admin;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 
+@Schema(description = "管理员服务分类Update请求")
 public class AdminServiceCategoryUpdateRequest {
 
     @NotBlank(message = "name is required")
+    @Schema(description = "名称")
     private String name;
 
+    @Schema(description = "父级ID")
     private String parentId;
 
+    @Schema(description = "description")
     private String description;
 
+    @Schema(description = "is是否启用")
     private Integer isActive;
 
+    @Schema(description = "排序")
     private Integer sortOrder;
 
     public String getName() {

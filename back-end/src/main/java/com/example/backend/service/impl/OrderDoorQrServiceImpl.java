@@ -23,14 +23,8 @@ import com.google.zxing.MultiFormatWriter;
 import com.google.zxing.WriterException;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -38,9 +32,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 public class OrderDoorQrServiceImpl implements OrderDoorQrService {
@@ -49,7 +45,8 @@ public class OrderDoorQrServiceImpl implements OrderDoorQrService {
     private static final int QR_STATUS_UNUSED = 1;
     private static final int QR_STATUS_USED = 2;
     private static final int QR_STATUS_INVALID = 3;
-    private static final DateTimeFormatter OBJECT_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+    private static final DateTimeFormatter OBJECT_DATE_FORMAT =
+            DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
     private final OrderDoorQrCodesService orderDoorQrCodesService;
     private final RepairOrdersService repairOrdersService;
@@ -62,13 +59,12 @@ public class OrderDoorQrServiceImpl implements OrderDoorQrService {
     private String doorQrBaseUrl;
 
     public OrderDoorQrServiceImpl(
-        OrderDoorQrCodesService orderDoorQrCodesService,
-        RepairOrdersService repairOrdersService,
-        ServiceTypesService serviceTypesService,
-        ImagesService imagesService,
-        OssUtil ossUtil,
-        SystemConfigsService systemConfigsService
-    ) {
+            OrderDoorQrCodesService orderDoorQrCodesService,
+            RepairOrdersService repairOrdersService,
+            ServiceTypesService serviceTypesService,
+            ImagesService imagesService,
+            OssUtil ossUtil,
+            SystemConfigsService systemConfigsService) {
         this.orderDoorQrCodesService = orderDoorQrCodesService;
         this.repairOrdersService = repairOrdersService;
         this.serviceTypesService = serviceTypesService;
@@ -139,12 +135,12 @@ public class OrderDoorQrServiceImpl implements OrderDoorQrService {
         if (!StringUtils.hasText(orderId)) {
             return;
         }
-        List<OrderDoorQrCodes> codeList = orderDoorQrCodesService.list(
-            new LambdaQueryWrapper<OrderDoorQrCodes>()
-                .eq(OrderDoorQrCodes::getRepairOrderId, orderId)
-                .eq(OrderDoorQrCodes::getIsDelete, 0)
-                .eq(OrderDoorQrCodes::getStatus, QR_STATUS_UNUSED)
-        );
+        List<OrderDoorQrCodes> codeList =
+                orderDoorQrCodesService.list(
+                        new LambdaQueryWrapper<OrderDoorQrCodes>()
+                                .eq(OrderDoorQrCodes::getRepairOrderId, orderId)
+                                .eq(OrderDoorQrCodes::getIsDelete, 0)
+                                .eq(OrderDoorQrCodes::getStatus, QR_STATUS_UNUSED));
         if (codeList.isEmpty()) {
             return;
         }
@@ -162,14 +158,14 @@ public class OrderDoorQrServiceImpl implements OrderDoorQrService {
             return new HashMap<>();
         }
         long now = System.currentTimeMillis();
-        List<OrderDoorQrCodes> codeList = orderDoorQrCodesService.list(
-            new LambdaQueryWrapper<OrderDoorQrCodes>()
-                .in(OrderDoorQrCodes::getRepairOrderId, orderIds)
-                .eq(OrderDoorQrCodes::getIsDelete, 0)
-                .eq(OrderDoorQrCodes::getStatus, QR_STATUS_UNUSED)
-                .gt(OrderDoorQrCodes::getExpireTime, now)
-                .orderByDesc(OrderDoorQrCodes::getCreatedTime)
-        );
+        List<OrderDoorQrCodes> codeList =
+                orderDoorQrCodesService.list(
+                        new LambdaQueryWrapper<OrderDoorQrCodes>()
+                                .in(OrderDoorQrCodes::getRepairOrderId, orderIds)
+                                .eq(OrderDoorQrCodes::getIsDelete, 0)
+                                .eq(OrderDoorQrCodes::getStatus, QR_STATUS_UNUSED)
+                                .gt(OrderDoorQrCodes::getExpireTime, now)
+                                .orderByDesc(OrderDoorQrCodes::getCreatedTime));
         Map<String, OrderDoorQrCodes> map = new HashMap<>();
         for (OrderDoorQrCodes item : codeList) {
             map.putIfAbsent(item.getRepairOrderId(), item);
@@ -182,14 +178,14 @@ public class OrderDoorQrServiceImpl implements OrderDoorQrService {
         if (!StringUtils.hasText(orderId) || !StringUtils.hasText(accountId)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "订单参数错误");
         }
-        RepairOrders order = repairOrdersService.getOne(
-            new LambdaQueryWrapper<RepairOrders>()
-                .eq(RepairOrders::getId, orderId)
-                .eq(RepairOrders::getAccountId, accountId)
-                .eq(RepairOrders::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        RepairOrders order =
+                repairOrdersService.getOne(
+                        new LambdaQueryWrapper<RepairOrders>()
+                                .eq(RepairOrders::getId, orderId)
+                                .eq(RepairOrders::getAccountId, accountId)
+                                .eq(RepairOrders::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (order == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "订单不存在");
         }
@@ -205,14 +201,14 @@ public class OrderDoorQrServiceImpl implements OrderDoorQrService {
         if (!StringUtils.hasText(token)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "二维码令牌不能为空");
         }
-        OrderDoorQrCodes code = orderDoorQrCodesService.getOne(
-            new LambdaQueryWrapper<OrderDoorQrCodes>()
-                .eq(OrderDoorQrCodes::getToken, token.trim())
-                .eq(OrderDoorQrCodes::getIsDelete, 0)
-                .orderByDesc(OrderDoorQrCodes::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+        OrderDoorQrCodes code =
+                orderDoorQrCodesService.getOne(
+                        new LambdaQueryWrapper<OrderDoorQrCodes>()
+                                .eq(OrderDoorQrCodes::getToken, token.trim())
+                                .eq(OrderDoorQrCodes::getIsDelete, 0)
+                                .orderByDesc(OrderDoorQrCodes::getCreatedTime)
+                                .last("limit 1"),
+                        false);
         if (code == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "二维码不存在");
         }
@@ -221,7 +217,8 @@ public class OrderDoorQrServiceImpl implements OrderDoorQrService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public WorkerDoorQrConsumeResult consumeForTechnician(String token, String technicianAccountId) {
+    public WorkerDoorQrConsumeResult consumeForTechnician(
+            String token, String technicianAccountId) {
         if (!StringUtils.hasText(token)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "上门码令牌不能为空");
         }
@@ -229,14 +226,14 @@ public class OrderDoorQrServiceImpl implements OrderDoorQrService {
             throw new BusinessException(ErrorCode.FORBIDDEN, "请先登录");
         }
 
-        OrderDoorQrCodes qrCode = orderDoorQrCodesService.getOne(
-            new LambdaQueryWrapper<OrderDoorQrCodes>()
-                .eq(OrderDoorQrCodes::getToken, token.trim())
-                .eq(OrderDoorQrCodes::getIsDelete, 0)
-                .orderByDesc(OrderDoorQrCodes::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+        OrderDoorQrCodes qrCode =
+                orderDoorQrCodesService.getOne(
+                        new LambdaQueryWrapper<OrderDoorQrCodes>()
+                                .eq(OrderDoorQrCodes::getToken, token.trim())
+                                .eq(OrderDoorQrCodes::getIsDelete, 0)
+                                .orderByDesc(OrderDoorQrCodes::getCreatedTime)
+                                .last("limit 1"),
+                        false);
         if (qrCode == null) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "上门码不存在或已失效");
         }
@@ -320,13 +317,12 @@ public class OrderDoorQrServiceImpl implements OrderDoorQrService {
 
     private OrderDoorQrCodes getLatestCodeByOrderId(String orderId) {
         return orderDoorQrCodesService.getOne(
-            new LambdaQueryWrapper<OrderDoorQrCodes>()
-                .eq(OrderDoorQrCodes::getRepairOrderId, orderId)
-                .eq(OrderDoorQrCodes::getIsDelete, 0)
-                .orderByDesc(OrderDoorQrCodes::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+                new LambdaQueryWrapper<OrderDoorQrCodes>()
+                        .eq(OrderDoorQrCodes::getRepairOrderId, orderId)
+                        .eq(OrderDoorQrCodes::getIsDelete, 0)
+                        .orderByDesc(OrderDoorQrCodes::getCreatedTime)
+                        .last("limit 1"),
+                false);
     }
 
     private UserOrderDoorQrResponse toResponse(OrderDoorQrCodes code) {
@@ -343,13 +339,13 @@ public class OrderDoorQrServiceImpl implements OrderDoorQrService {
         if (!StringUtils.hasText(imageId)) {
             return "";
         }
-        Images image = imagesService.getOne(
-            new LambdaQueryWrapper<Images>()
-                .eq(Images::getId, imageId)
-                .eq(Images::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        Images image =
+                imagesService.getOne(
+                        new LambdaQueryWrapper<Images>()
+                                .eq(Images::getId, imageId)
+                                .eq(Images::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         return image == null ? "" : defaultText(image.getFileUrl());
     }
 
@@ -357,14 +353,17 @@ public class OrderDoorQrServiceImpl implements OrderDoorQrService {
         if (code == null) {
             return QR_STATUS_INVALID;
         }
-        if (code.getStatus() != null && code.getStatus() == QR_STATUS_UNUSED && isExpired(code.getExpireTime())) {
+        if (code.getStatus() != null
+                && code.getStatus() == QR_STATUS_UNUSED
+                && isExpired(code.getExpireTime())) {
             return QR_STATUS_INVALID;
         }
         return code.getStatus();
     }
 
     private String getStatusText(OrderDoorQrCodes code) {
-        int value = resolveVisibleStatus(code) == null ? QR_STATUS_INVALID : resolveVisibleStatus(code);
+        int value =
+                resolveVisibleStatus(code) == null ? QR_STATUS_INVALID : resolveVisibleStatus(code);
         if (value == QR_STATUS_UNUSED) {
             return "待扫码";
         }
@@ -384,8 +383,13 @@ public class OrderDoorQrServiceImpl implements OrderDoorQrService {
     }
 
     private String buildObjectName(String orderId) {
-        return "door-qr/" + orderId + "/" + LocalDateTime.now().format(OBJECT_DATE_FORMAT) + "_"
-            + UUID.randomUUID().toString().replace("-", "") + ".png";
+        return "door-qr/"
+                + orderId
+                + "/"
+                + LocalDateTime.now().format(OBJECT_DATE_FORMAT)
+                + "_"
+                + UUID.randomUUID().toString().replace("-", "")
+                + ".png";
     }
 
     private Long resolveExpireTime(RepairOrders order, long now) {
@@ -394,7 +398,8 @@ public class OrderDoorQrServiceImpl implements OrderDoorQrService {
         if (appointmentTime == null || appointmentTime <= 0) {
             return fallback;
         }
-        long appointmentExpire = appointmentTime + getAfterAppointmentExpireHours() * 60L * 60L * 1000L;
+        long appointmentExpire =
+                appointmentTime + getAfterAppointmentExpireHours() * 60L * 60L * 1000L;
         return Math.max(appointmentExpire, now + getMinValidHours() * 60L * 60L * 1000L);
     }
 
@@ -403,7 +408,8 @@ public class OrderDoorQrServiceImpl implements OrderDoorQrService {
             Map<EncodeHintType, Object> hints = new HashMap<>();
             hints.put(EncodeHintType.MARGIN, 1);
             hints.put(EncodeHintType.CHARACTER_SET, StandardCharsets.UTF_8.name());
-            BitMatrix matrix = new MultiFormatWriter().encode(content, BarcodeFormat.QR_CODE, 360, 360, hints);
+            BitMatrix matrix =
+                    new MultiFormatWriter().encode(content, BarcodeFormat.QR_CODE, 360, 360, hints);
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             MatrixToImageWriter.writeToStream(matrix, "PNG", outputStream);
             return outputStream.toByteArray();
@@ -418,7 +424,8 @@ public class OrderDoorQrServiceImpl implements OrderDoorQrService {
     }
 
     private long getAfterAppointmentExpireHours() {
-        Long value = systemConfigsService.getLongConfig("door_qr.after_appointment_expire_hours", 2L);
+        Long value =
+                systemConfigsService.getLongConfig("door_qr.after_appointment_expire_hours", 2L);
         return value == null || value <= 0L ? 2L : value;
     }
 

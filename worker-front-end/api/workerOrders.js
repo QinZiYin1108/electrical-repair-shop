@@ -74,7 +74,9 @@ export function uploadWorkerInspectionMedia(filePath, mediaType) {
       },
       success(res) {
         try {
-          resolve(resolveUploadResponse(res, mediaType === 'video' ? '视频上传失败' : '图片上传失败'));
+          resolve(
+            resolveUploadResponse(res, mediaType === 'video' ? '视频上传失败' : '图片上传失败')
+          );
         } catch (error) {
           reject(error);
         }

@@ -31,7 +31,13 @@
         <el-button @click="handleReset">重置</el-button>
       </div>
 
-      <el-table v-loading="loading" :data="list" border class="warranty-table" header-cell-class-name="warranty-table-header">
+      <el-table
+        v-loading="loading"
+        :data="list"
+        border
+        class="warranty-table"
+        header-cell-class-name="warranty-table-header"
+      >
         <el-table-column type="index" label="#" width="60" align="center" />
         <el-table-column prop="cardNo" label="保修卡号" min-width="180" show-overflow-tooltip />
         <el-table-column label="商品信息" min-width="220">
@@ -57,7 +63,9 @@
         </el-table-column>
         <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag size="small" :type="getWarrantyStatusTagType(row.warrantyStatus)">{{ row.warrantyStatusText || '-' }}</el-tag>
+            <el-tag size="small" :type="getWarrantyStatusTagType(row.warrantyStatus)">{{
+              row.warrantyStatusText || '-'
+            }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="维修次数" width="100" align="center">
@@ -88,15 +96,31 @@
     <el-dialog v-model="detailDialogVisible" title="保修卡详情" width="620px" destroy-on-close>
       <el-descriptions v-if="detail" :column="1" border>
         <el-descriptions-item label="保修卡号">{{ detail.cardNo || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="用户">{{ detail.userName || '-' }} / {{ detail.userPhone || detail.userId || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="用户"
+          >{{ detail.userName || '-' }} /
+          {{ detail.userPhone || detail.userId || '-' }}</el-descriptions-item
+        >
         <el-descriptions-item label="商品">{{ detail.productName || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="商品型号">{{ detail.productModel || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="购买日期">{{ detail.purchaseDate || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="保修时间">{{ detail.warrantyStartDate || '-' }} 至 {{ detail.warrantyEndDate || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="保修类型">{{ detail.warrantyTypeText || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="保修状态">{{ detail.warrantyStatusText || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="商品型号">{{
+          detail.productModel || '-'
+        }}</el-descriptions-item>
+        <el-descriptions-item label="购买日期">{{
+          detail.purchaseDate || '-'
+        }}</el-descriptions-item>
+        <el-descriptions-item label="保修时间"
+          >{{ detail.warrantyStartDate || '-' }} 至
+          {{ detail.warrantyEndDate || '-' }}</el-descriptions-item
+        >
+        <el-descriptions-item label="保修类型">{{
+          detail.warrantyTypeText || '-'
+        }}</el-descriptions-item>
+        <el-descriptions-item label="保修状态">{{
+          detail.warrantyStatusText || '-'
+        }}</el-descriptions-item>
         <el-descriptions-item label="维修次数">{{ detail.repairCount || 0 }}</el-descriptions-item>
-        <el-descriptions-item label="最近维修">{{ detail.lastRepairDate || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="最近维修">{{
+          detail.lastRepairDate || '-'
+        }}</el-descriptions-item>
       </el-descriptions>
     </el-dialog>
 
@@ -110,7 +134,9 @@
         <el-table-column label="申请信息" min-width="220">
           <template #default="{ row }">
             <div class="stack-text strong">{{ row.issueDescription || '-' }}</div>
-            <div class="stack-text muted">联系人：{{ row.contactName || '-' }} / {{ row.contactPhone || '-' }}</div>
+            <div class="stack-text muted">
+              联系人：{{ row.contactName || '-' }} / {{ row.contactPhone || '-' }}
+            </div>
           </template>
         </el-table-column>
         <el-table-column label="用户" min-width="140">
@@ -124,7 +150,9 @@
         </el-table-column>
         <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag size="small" :type="getUsageStatusTagType(row.status)">{{ row.statusText || '-' }}</el-tag>
+            <el-tag size="small" :type="getUsageStatusTagType(row.status)">{{
+              row.statusText || '-'
+            }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="处理结果" min-width="200">
@@ -135,8 +163,20 @@
         </el-table-column>
         <el-table-column label="操作" width="150" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button v-if="Number(row.status) === 1" type="success" link @click="openProcessDialog(row, 2)">完成处理</el-button>
-            <el-button v-if="Number(row.status) === 1" type="danger" link @click="openProcessDialog(row, 3)">驳回申请</el-button>
+            <el-button
+              v-if="Number(row.status) === 1"
+              type="success"
+              link
+              @click="openProcessDialog(row, 2)"
+              >完成处理</el-button
+            >
+            <el-button
+              v-if="Number(row.status) === 1"
+              type="danger"
+              link
+              @click="openProcessDialog(row, 3)"
+              >驳回申请</el-button
+            >
             <span v-if="Number(row.status) !== 1" class="stack-text muted">已处理</span>
           </template>
         </el-table-column>
@@ -187,13 +227,28 @@
         </el-form-item>
         <div class="form-grid">
           <el-form-item label="购买日期">
-            <el-date-picker v-model="createForm.purchaseDate" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
+            <el-date-picker
+              v-model="createForm.purchaseDate"
+              type="date"
+              value-format="YYYY-MM-DD"
+              style="width: 100%"
+            />
           </el-form-item>
           <el-form-item label="保修开始">
-            <el-date-picker v-model="createForm.warrantyStartDate" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
+            <el-date-picker
+              v-model="createForm.warrantyStartDate"
+              type="date"
+              value-format="YYYY-MM-DD"
+              style="width: 100%"
+            />
           </el-form-item>
           <el-form-item label="保修月数">
-            <el-input-number v-model="createForm.warrantyPeriod" :min="1" :step="1" style="width: 100%" />
+            <el-input-number
+              v-model="createForm.warrantyPeriod"
+              :min="1"
+              :step="1"
+              style="width: 100%"
+            />
           </el-form-item>
           <el-form-item label="保修类型" required>
             <el-select v-model="createForm.warrantyType" style="width: 100%">
@@ -210,20 +265,29 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="processDialogVisible" :title="processForm.status === 2 ? '完成保修处理' : '驳回保修申请'" width="520px" destroy-on-close>
+    <el-dialog
+      v-model="processDialogVisible"
+      :title="processForm.status === 2 ? '完成保修处理' : '驳回保修申请'"
+      width="520px"
+      destroy-on-close
+    >
       <el-form label-width="90px">
         <el-form-item label="处理备注">
           <el-input
             v-model="processForm.processRemark"
             type="textarea"
             :rows="4"
-            :placeholder="processForm.status === 2 ? '可填写维修结果、完成说明等' : '请填写驳回原因'"
+            :placeholder="
+              processForm.status === 2 ? '可填写维修结果、完成说明等' : '请填写驳回原因'
+            "
           />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="processDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="processSubmitting" @click="submitUsageProcess">确认提交</el-button>
+        <el-button type="primary" :loading="processSubmitting" @click="submitUsageProcess"
+          >确认提交</el-button
+        >
       </template>
     </el-dialog>
   </div>
@@ -443,7 +507,7 @@ async function searchUsers(query) {
     });
     if (res && res.code === 200 && res.data) {
       const items = res.data.list || res.data.records || [];
-      userOptions.value = items.map(item => ({
+      userOptions.value = items.map((item) => ({
         id: item.id,
         username: item.username,
         phone: item.phone
@@ -463,7 +527,7 @@ async function searchProducts(query) {
       keyword: query || undefined
     });
     if (res && res.code === 200 && Array.isArray(res.data)) {
-      productOptions.value = res.data.map(item => ({
+      productOptions.value = res.data.map((item) => ({
         id: item.id,
         name: item.name,
         model: item.model

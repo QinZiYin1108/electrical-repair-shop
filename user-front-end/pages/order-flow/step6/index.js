@@ -4,6 +4,10 @@ const { showUploadErrorModal } = require("../../../utils/uploadFeedback");
 const { fetchFeePreview, submitOrder, uploadFaultMedia } = require("../../../api/userOrderFlow");
 const { updateUserOrder } = require("../../../api/userOrders");
 const { getUserFundsSummary } = require("../../../api/userFunds");
+const {
+  createOrderPaymentIntent,
+  getOrderPaymentStatus
+} = require("../../../api/userPayments");
 
 const PAYMENT_METHOD_WECHAT = 1;
 const PAYMENT_METHOD_ALIPAY = 2;
@@ -40,6 +44,25 @@ function resolveLocalPath(media) {
 
 function isEditingDraft(draft) {
   return !!(draft && draft.editingOrderId);
+}
+
+function requestWechatPayment(parameters) {
+  const params = parameters || {};
+  return new Promise((resolve, reject) => {
+    wx.requestPayment({
+      timeStamp: String(params.timeStamp || ""),
+      nonceStr: params.nonceStr || "",
+      package: params.package || "",
+      signType: params.signType || "RSA",
+      paySign: params.paySign || "",
+      success: resolve,
+      fail: reject
+    });
+  });
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 Page({
@@ -356,6 +379,44 @@ Page({
     this.doSubmit();
   },
 
+  async payOrderByWechat(orderId) {
+    try {
+      const resp = await createOrderPaymentIntent({
+        orderId,
+        provider: PAYMENT_METHOD_WECHAT
+      });
+      if (!resp || resp.code !== 200 || !resp.data) {
+        wx.showToast({
+          title: (resp && resp.message) || "发起支付失败",
+          icon: "none"
+        });
+        return false;
+      }
+      const intent = resp.data;
+      if (!intent.paymentNo || !intent.invokeParameters) {
+        wx.showToast({ title: "支付参数不完整", icon: "none" });
+        return false;
+      }
+      await requestWechatPayment(intent.invokeParameters);
+      return await this.waitForPaymentSuccess(intent.paymentNo);
+    } catch (e) {
+      return false;
+    }
+  },
+
+  async waitForPaymentSuccess(paymentNo) {
+    for (let index = 0; index < 5; index += 1) {
+      if (index > 0) {
+        await delay(1000);
+      }
+      const resp = await getOrderPaymentStatus(paymentNo);
+      const status = resp && resp.code === 200 && resp.data ? Number(resp.data.status) : 0;
+      if (status === 3) return true;
+      if (status === 4 || status === 6) return false;
+    }
+    return false;
+  },
+
   doSubmit() {
     if (this.data.submitting) {
       return;
@@ -401,7 +462,7 @@ Page({
         });
         return editing ? updateUserOrder(payload) : submitOrder(payload);
       })
-      .then((res) => {
+      .then(async (res) => {
         if (!res || res.code !== 200 || !res.data) {
           wx.showToast({
             title: (res && res.message) || "提交失败",
@@ -409,15 +470,37 @@ Page({
           });
           return;
         }
+        const editing = isEditingDraft(draft);
+        const needsExternalPay =
+          !editing &&
+          Number(draft.serviceMode) !== 3 &&
+          Number(res.data.paymentStatus) === 1 &&
+          Number(this.data.selectedPaymentMethod) === PAYMENT_METHOD_WECHAT &&
+          Number(res.data.totalAmount || 0) > 0;
+        if (needsExternalPay) {
+          wx.hideLoading();
+          const paid = await this.payOrderByWechat(res.data.orderId);
+          if (!paid) {
+            wx.showToast({
+              title: "支付未完成，可在订单详情继续支付",
+              icon: "none"
+            });
+            draftStore.resetDraft();
+            wx.redirectTo({
+              url: `/pages/order-detail/index?orderId=${res.data.orderId}`
+            });
+            return;
+          }
+        }
         wx.showModal({
-          title: isEditingDraft(draft) ? "修改成功" : "下单成功",
+          title: editing ? "修改成功" : "下单成功",
           content: `订单号：${(res.data && res.data.orderNo) || "-"}`,
           showCancel: false,
           success: () => {
             draftStore.resetDraft();
-            if (isEditingDraft(draft)) {
+            if (editing) {
               wx.redirectTo({
-                url: `/pages/order-detail/index?orderId=${(res.data && res.data.id) || draft.editingOrderId}`
+                url: `/pages/order-detail/index?orderId=${res.data.orderId || draft.editingOrderId}`
               });
               return;
             }

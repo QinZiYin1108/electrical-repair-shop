@@ -4,16 +4,14 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.Version;
-import lombok.Data;
-
 import java.time.LocalTime;
+import lombok.Data;
 
 @Data
 @TableName("store_business_hours")
 public class StoreBusinessHours {
 
-    @TableId
-    private String id;
+    @TableId private String id;
 
     private String storeId;
 
@@ -29,9 +27,7 @@ public class StoreBusinessHours {
 
     private Long updatedTime;
 
-    @Version
-    private Integer version;
+    @Version private Integer version;
 
-    @TableLogic
-    private Integer isDelete;
+    @TableLogic private Integer isDelete;
 }

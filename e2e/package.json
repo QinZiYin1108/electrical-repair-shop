@@ -1,0 +1,18 @@
+{
+  "name": "electrical-repair-shop-e2e",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Electrical-repair-shop 端到端测试脚手架（Playwright）。覆盖官网与后台；维修端 H5 与用户端小程序见 README。",
+  "scripts": {
+    "test": "playwright test",
+    "test:official": "playwright test --project=official-website",
+    "test:admin": "playwright test --project=admin-front-end",
+    "test:headed": "playwright test --headed",
+    "install:browsers": "playwright install chromium",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.0",
+    "@types/node": "^20.14.0"
+  }
+}

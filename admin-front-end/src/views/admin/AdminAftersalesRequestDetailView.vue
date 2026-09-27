@@ -39,18 +39,42 @@
         </el-row>
 
         <el-descriptions :column="2" border class="detail-block">
-          <el-descriptions-item label="申请类型">{{ detail.applicationTypeText || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="订单状态">{{ detail.orderStatusText || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="支付状态">{{ detail.paymentStatusText || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="申请时间">{{ formatTime(detail.createdTime) || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="处理时间">{{ formatTime(detail.processedTime) || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="完成时间">{{ formatTime(detail.completedTime) || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="服务分类">{{ detail.serviceCategoryName || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="服务地址">{{ detail.serviceAddress || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="联系手机">{{ detail.contactPhone || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="联系地址">{{ detail.contactAddress || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="订单总额">￥{{ detail.totalAmount || '0.00' }}</el-descriptions-item>
-          <el-descriptions-item label="已支付">￥{{ detail.paidAmount || '0.00' }}</el-descriptions-item>
+          <el-descriptions-item label="申请类型">{{
+            detail.applicationTypeText || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="订单状态">{{
+            detail.orderStatusText || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="支付状态">{{
+            detail.paymentStatusText || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="申请时间">{{
+            formatTime(detail.createdTime) || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="处理时间">{{
+            formatTime(detail.processedTime) || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="完成时间">{{
+            formatTime(detail.completedTime) || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="服务分类">{{
+            detail.serviceCategoryName || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="服务地址">{{
+            detail.serviceAddress || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="联系手机">{{
+            detail.contactPhone || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="联系地址">{{
+            detail.contactAddress || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="订单总额"
+            >￥{{ detail.totalAmount || '0.00' }}</el-descriptions-item
+          >
+          <el-descriptions-item label="已支付"
+            >￥{{ detail.paidAmount || '0.00' }}</el-descriptions-item
+          >
         </el-descriptions>
 
         <div class="detail-block text-block">
@@ -87,7 +111,11 @@
         <div class="detail-block">
           <div class="block-title">视频证据</div>
           <div v-if="detail.evidenceVideos.length" class="video-grid">
-            <div v-for="item in detail.evidenceVideos" :key="item.id || item.url" class="video-card">
+            <div
+              v-for="item in detail.evidenceVideos"
+              :key="item.id || item.url"
+              class="video-card"
+            >
               <video class="evidence-video" :src="item.url" :poster="item.thumbnailUrl" controls />
               <div class="video-name">{{ item.name || '售后视频' }}</div>
               <div class="video-meta">{{ item.duration ? `${item.duration} 秒` : '时长未知' }}</div>
@@ -116,7 +144,9 @@
               />
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" :loading="processing" @click="submitProcess">提交处理</el-button>
+              <el-button type="primary" :loading="processing" @click="submitProcess"
+                >提交处理</el-button
+              >
             </el-form-item>
           </el-form>
         </div>
@@ -172,7 +202,9 @@ const processForm = reactive({
   adminRemark: ''
 });
 
-const imagePreviewList = computed(() => detail.evidenceImages.map((item) => item.url).filter(Boolean));
+const imagePreviewList = computed(() =>
+  detail.evidenceImages.map((item) => item.url).filter(Boolean)
+);
 
 function getStatusTagType(value) {
   if (value === 1) return 'warning';

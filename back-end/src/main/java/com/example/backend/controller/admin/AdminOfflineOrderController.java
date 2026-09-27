@@ -32,20 +32,8 @@ import com.example.backend.service.VideosService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
 import com.example.backend.utils.oss.OssUtil;
 import com.example.backend.utils.upload.UploadLimitUtil;
-import lombok.Data;
-import org.springframework.http.MediaType;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
-
-import javax.imageio.ImageIO;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
@@ -65,8 +53,22 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import javax.imageio.ImageIO;
+import lombok.Data;
+import org.springframework.http.MediaType;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
+@Tag(name = "管理员端/线下订单")
 @RequestMapping("/admin/orders/offline")
 public class AdminOfflineOrderController {
 
@@ -77,7 +79,8 @@ public class AdminOfflineOrderController {
     private static final int USER_STATUS_NORMAL = 1;
     private static final int ADMIN_UPLOADER_TYPE = 3;
     private static final BigDecimal BIG_DECIMAL_ZERO = BigDecimal.ZERO;
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final DateTimeFormatter DATE_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final String FAULT_MEDIA_BUSINESS_TYPE = "REPAIR_ORDER_FAULT";
 
     private final UserAccountsService userAccountsService;
@@ -94,19 +97,18 @@ public class AdminOfflineOrderController {
     private final OssUtil ossUtil;
 
     public AdminOfflineOrderController(
-        UserAccountsService userAccountsService,
-        ServiceCategoriesService serviceCategoriesService,
-        ServiceTypesService serviceTypesService,
-        FaultPhenomenaService faultPhenomenaService,
-        TechnicianAccountsService technicianAccountsService,
-        TechnicianSkillsService technicianSkillsService,
-        RepairOrdersService repairOrdersService,
-        RepairOrderPaymentsService repairOrderPaymentsService,
-        RepairOrderFaultsService repairOrderFaultsService,
-        ImagesService imagesService,
-        VideosService videosService,
-        OssUtil ossUtil
-    ) {
+            UserAccountsService userAccountsService,
+            ServiceCategoriesService serviceCategoriesService,
+            ServiceTypesService serviceTypesService,
+            FaultPhenomenaService faultPhenomenaService,
+            TechnicianAccountsService technicianAccountsService,
+            TechnicianSkillsService technicianSkillsService,
+            RepairOrdersService repairOrdersService,
+            RepairOrderPaymentsService repairOrderPaymentsService,
+            RepairOrderFaultsService repairOrderFaultsService,
+            ImagesService imagesService,
+            VideosService videosService,
+            OssUtil ossUtil) {
         this.userAccountsService = userAccountsService;
         this.serviceCategoriesService = serviceCategoriesService;
         this.serviceTypesService = serviceTypesService;
@@ -121,56 +123,71 @@ public class AdminOfflineOrderController {
         this.ossUtil = ossUtil;
     }
 
+    @Operation(summary = "查询Technicians")
     @GetMapping("/technicians")
     public Result<List<OfflineTechnicianOption>> listTechnicians(
-        @RequestParam("serviceTypeId") String serviceTypeId,
-        @RequestParam(value = "keyword", required = false) String keyword
-    ) {
+            @RequestParam("serviceTypeId") String serviceTypeId,
+            @RequestParam(value = "keyword", required = false) String keyword) {
         requireAdmin();
         ServiceTypes serviceType = requireOfflineServiceType(serviceTypeId);
 
-        List<TechnicianSkills> skillList = technicianSkillsService.list(
-            new LambdaQueryWrapper<TechnicianSkills>()
-                .eq(TechnicianSkills::getServiceTypeId, serviceType.getId())
-                .eq(TechnicianSkills::getIsActive, 1)
-                .eq(TechnicianSkills::getIsDelete, 0)
-        );
+        List<TechnicianSkills> skillList =
+                technicianSkillsService.list(
+                        new LambdaQueryWrapper<TechnicianSkills>()
+                                .eq(TechnicianSkills::getServiceTypeId, serviceType.getId())
+                                .eq(TechnicianSkills::getIsActive, 1)
+                                .eq(TechnicianSkills::getIsDelete, 0));
         if (skillList.isEmpty()) {
             return Result.success(Collections.emptyList());
         }
 
-        Set<String> technicianIds = skillList.stream()
-            .map(TechnicianSkills::getTechnicianAccountId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toCollection(LinkedHashSet::new));
+        Set<String> technicianIds =
+                skillList.stream()
+                        .map(TechnicianSkills::getTechnicianAccountId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
         if (technicianIds.isEmpty()) {
             return Result.success(Collections.emptyList());
         }
 
         String normalizedKeyword = trimToNull(keyword);
-        List<TechnicianAccounts> technicianList = technicianAccountsService.list(
-            new LambdaQueryWrapper<TechnicianAccounts>()
-                .in(TechnicianAccounts::getId, technicianIds)
-                .eq(TechnicianAccounts::getIsDelete, 0)
-                .eq(TechnicianAccounts::getAccountStatus, TECHNICIAN_ACCOUNT_ACTIVE)
-                .in(TechnicianAccounts::getWorkStatus, TECHNICIAN_WORK_ONLINE, TECHNICIAN_WORK_BUSY)
-                .and(StringUtils.hasText(normalizedKeyword), wrapper -> wrapper
-                    .like(TechnicianAccounts::getUsername, normalizedKeyword)
-                    .or().like(TechnicianAccounts::getPhone, normalizedKeyword)
-                    .or().like(TechnicianAccounts::getEmail, normalizedKeyword)
-                )
-                .orderByAsc(TechnicianAccounts::getWorkStatus)
-                .orderByDesc(TechnicianAccounts::getRating)
-                .orderByDesc(TechnicianAccounts::getOrderCount)
-                .orderByDesc(TechnicianAccounts::getUpdatedTime)
-        );
+        List<TechnicianAccounts> technicianList =
+                technicianAccountsService.list(
+                        new LambdaQueryWrapper<TechnicianAccounts>()
+                                .in(TechnicianAccounts::getId, technicianIds)
+                                .eq(TechnicianAccounts::getIsDelete, 0)
+                                .eq(TechnicianAccounts::getAccountStatus, TECHNICIAN_ACCOUNT_ACTIVE)
+                                .in(
+                                        TechnicianAccounts::getWorkStatus,
+                                        TECHNICIAN_WORK_ONLINE,
+                                        TECHNICIAN_WORK_BUSY)
+                                .and(
+                                        StringUtils.hasText(normalizedKeyword),
+                                        wrapper ->
+                                                wrapper.like(
+                                                                TechnicianAccounts::getUsername,
+                                                                normalizedKeyword)
+                                                        .or()
+                                                        .like(
+                                                                TechnicianAccounts::getPhone,
+                                                                normalizedKeyword)
+                                                        .or()
+                                                        .like(
+                                                                TechnicianAccounts::getEmail,
+                                                                normalizedKeyword))
+                                .orderByAsc(TechnicianAccounts::getWorkStatus)
+                                .orderByDesc(TechnicianAccounts::getRating)
+                                .orderByDesc(TechnicianAccounts::getOrderCount)
+                                .orderByDesc(TechnicianAccounts::getUpdatedTime));
         if (technicianList.isEmpty()) {
             return Result.success(Collections.emptyList());
         }
 
-        Map<String, String> avatarMap = loadAvatarMap(
-            technicianList.stream().map(TechnicianAccounts::getId).collect(Collectors.toList())
-        );
+        Map<String, String> avatarMap =
+                loadAvatarMap(
+                        technicianList.stream()
+                                .map(TechnicianAccounts::getId)
+                                .collect(Collectors.toList()));
 
         List<OfflineTechnicianOption> result = new ArrayList<>();
         for (TechnicianAccounts technician : technicianList) {
@@ -189,19 +206,23 @@ public class AdminOfflineOrderController {
         return Result.success(result);
     }
 
+    @Operation(summary = "上传上传Media")
     @PostMapping(value = "/upload-media", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Result<OfflineUploadMediaResponse> uploadMedia(
-        @RequestParam(value = "mediaType", required = false) String mediaType,
-        @RequestPart("file") MultipartFile file
-    ) {
+            @RequestParam(value = "mediaType", required = false) String mediaType,
+            @RequestPart("file") MultipartFile file) {
         LoginUserInfo admin = requireAdmin();
         if (file == null || file.isEmpty()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "上传文件不能为空");
         }
 
-        String uploadType = resolveUploadMediaType(mediaType, file.getContentType(), file.getOriginalFilename());
+        String uploadType =
+                resolveUploadMediaType(
+                        mediaType, file.getContentType(), file.getOriginalFilename());
         UploadLimitUtil.validateMediaSize(uploadType, file);
-        String extension = resolveUploadExtension(file.getOriginalFilename(), file.getContentType(), uploadType);
+        String extension =
+                resolveUploadExtension(
+                        file.getOriginalFilename(), file.getContentType(), uploadType);
         String objectName = "offline-orders/" + uploadType + "/" + UUID.randomUUID() + extension;
 
         String fileUrl;
@@ -213,7 +234,10 @@ public class AdminOfflineOrderController {
 
         OfflineUploadMediaResponse response = new OfflineUploadMediaResponse();
         response.setUrl(fileUrl);
-        response.setName(resolveMediaName(file.getOriginalFilename(), uploadType.equals("video") ? "fault-video.mp4" : "fault-image.jpg"));
+        response.setName(
+                resolveMediaName(
+                        file.getOriginalFilename(),
+                        uploadType.equals("video") ? "fault-video.mp4" : "fault-image.jpg"));
         response.setFileSize(file.getSize());
         response.setMimeType(resolveUploadMimeType(file.getContentType(), uploadType));
         response.setUploaderId(admin.getAccountId());
@@ -223,9 +247,11 @@ public class AdminOfflineOrderController {
         return Result.success(response);
     }
 
+    @Operation(summary = "提交提交OfflineOrder")
     @PostMapping("/submit")
     @Transactional(rollbackFor = Exception.class)
-    public Result<OfflineSubmitResponse> submitOfflineOrder(@RequestBody(required = false) OfflineSubmitRequest request) {
+    public Result<OfflineSubmitResponse> submitOfflineOrder(
+            @RequestBody(required = false) OfflineSubmitRequest request) {
         LoginUserInfo admin = requireAdmin();
         if (request == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "提交参数不能为空");
@@ -292,7 +318,8 @@ public class AdminOfflineOrderController {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "创建订单支付信息失败");
         }
 
-        saveFaultDetails(orderId, serviceType.getId(), admin.getAccountId(), request.getFaultList(), now);
+        saveFaultDetails(
+                orderId, serviceType.getId(), admin.getAccountId(), request.getFaultList(), now);
 
         OfflineSubmitResponse response = new OfflineSubmitResponse();
         response.setOrderId(orderId);
@@ -310,11 +337,11 @@ public class AdminOfflineOrderController {
         if (!StringUtils.hasText(normalizedCategoryId)) {
             return;
         }
-        List<ServiceCategories> activeCategories = serviceCategoriesService.list(
-            new LambdaQueryWrapper<ServiceCategories>()
-                .eq(ServiceCategories::getIsActive, 1)
-                .eq(ServiceCategories::getIsDelete, 0)
-        );
+        List<ServiceCategories> activeCategories =
+                serviceCategoriesService.list(
+                        new LambdaQueryWrapper<ServiceCategories>()
+                                .eq(ServiceCategories::getIsActive, 1)
+                                .eq(ServiceCategories::getIsDelete, 0));
         Map<String, ServiceCategories> categoryMap = new LinkedHashMap<>();
         for (ServiceCategories category : activeCategories) {
             if (category != null && StringUtils.hasText(category.getId())) {
@@ -340,13 +367,13 @@ public class AdminOfflineOrderController {
         if (!StringUtils.hasText(normalizedUserId)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请选择申请用户");
         }
-        UserAccounts user = userAccountsService.getOne(
-            new LambdaQueryWrapper<UserAccounts>()
-                .eq(UserAccounts::getId, normalizedUserId)
-                .eq(UserAccounts::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        UserAccounts user =
+                userAccountsService.getOne(
+                        new LambdaQueryWrapper<UserAccounts>()
+                                .eq(UserAccounts::getId, normalizedUserId)
+                                .eq(UserAccounts::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (user == null) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "所选用户不存在");
         }
@@ -361,15 +388,15 @@ public class AdminOfflineOrderController {
         if (!StringUtils.hasText(normalizedServiceTypeId)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请选择服务类型");
         }
-        ServiceTypes serviceType = serviceTypesService.getOne(
-            new LambdaQueryWrapper<ServiceTypes>()
-                .eq(ServiceTypes::getId, normalizedServiceTypeId)
-                .eq(ServiceTypes::getType, SERVICE_MODE_OFFLINE_REPAIR)
-                .eq(ServiceTypes::getIsActive, 1)
-                .eq(ServiceTypes::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        ServiceTypes serviceType =
+                serviceTypesService.getOne(
+                        new LambdaQueryWrapper<ServiceTypes>()
+                                .eq(ServiceTypes::getId, normalizedServiceTypeId)
+                                .eq(ServiceTypes::getType, SERVICE_MODE_OFFLINE_REPAIR)
+                                .eq(ServiceTypes::getIsActive, 1)
+                                .eq(ServiceTypes::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (serviceType == null) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "线下服务类型不存在或已禁用");
         }
@@ -381,58 +408,59 @@ public class AdminOfflineOrderController {
         if (!StringUtils.hasText(normalizedTechnicianId)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请选择服务师傅");
         }
-        TechnicianAccounts technician = technicianAccountsService.getOne(
-            new LambdaQueryWrapper<TechnicianAccounts>()
-                .eq(TechnicianAccounts::getId, normalizedTechnicianId)
-                .eq(TechnicianAccounts::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        TechnicianAccounts technician =
+                technicianAccountsService.getOne(
+                        new LambdaQueryWrapper<TechnicianAccounts>()
+                                .eq(TechnicianAccounts::getId, normalizedTechnicianId)
+                                .eq(TechnicianAccounts::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (technician == null) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "所选师傅不存在");
         }
-        if (technician.getAccountStatus() == null || technician.getAccountStatus() != TECHNICIAN_ACCOUNT_ACTIVE) {
+        if (technician.getAccountStatus() == null
+                || technician.getAccountStatus() != TECHNICIAN_ACCOUNT_ACTIVE) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "所选师傅账号不可接单");
         }
         Integer workStatus = technician.getWorkStatus();
-        if (workStatus == null || (workStatus != TECHNICIAN_WORK_ONLINE && workStatus != TECHNICIAN_WORK_BUSY)) {
+        if (workStatus == null
+                || (workStatus != TECHNICIAN_WORK_ONLINE && workStatus != TECHNICIAN_WORK_BUSY)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "所选师傅当前不可接单");
         }
         return technician;
     }
 
     private void ensureTechnicianSkill(String technicianId, String serviceTypeId) {
-        TechnicianSkills skill = technicianSkillsService.getOne(
-            new LambdaQueryWrapper<TechnicianSkills>()
-                .eq(TechnicianSkills::getTechnicianAccountId, technicianId)
-                .eq(TechnicianSkills::getServiceTypeId, serviceTypeId)
-                .eq(TechnicianSkills::getIsActive, 1)
-                .eq(TechnicianSkills::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        TechnicianSkills skill =
+                technicianSkillsService.getOne(
+                        new LambdaQueryWrapper<TechnicianSkills>()
+                                .eq(TechnicianSkills::getTechnicianAccountId, technicianId)
+                                .eq(TechnicianSkills::getServiceTypeId, serviceTypeId)
+                                .eq(TechnicianSkills::getIsActive, 1)
+                                .eq(TechnicianSkills::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (skill == null) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "所选师傅不支持当前服务类型");
         }
     }
 
     private void saveFaultDetails(
-        String orderId,
-        String serviceTypeId,
-        String adminAccountId,
-        List<OfflineSubmitFaultItem> faultList,
-        long now
-    ) {
+            String orderId,
+            String serviceTypeId,
+            String adminAccountId,
+            List<OfflineSubmitFaultItem> faultList,
+            long now) {
         if (faultList == null || faultList.isEmpty()) {
             return;
         }
 
-        List<FaultPhenomena> validFaults = faultPhenomenaService.list(
-            new LambdaQueryWrapper<FaultPhenomena>()
-                .eq(FaultPhenomena::getServiceTypeId, serviceTypeId)
-                .eq(FaultPhenomena::getIsActive, 1)
-                .eq(FaultPhenomena::getIsDelete, 0)
-        );
+        List<FaultPhenomena> validFaults =
+                faultPhenomenaService.list(
+                        new LambdaQueryWrapper<FaultPhenomena>()
+                                .eq(FaultPhenomena::getServiceTypeId, serviceTypeId)
+                                .eq(FaultPhenomena::getIsActive, 1)
+                                .eq(FaultPhenomena::getIsDelete, 0));
         Map<String, FaultPhenomena> faultMap = new HashMap<>();
         for (FaultPhenomena fault : validFaults) {
             if (fault != null && StringUtils.hasText(fault.getId())) {
@@ -453,9 +481,8 @@ public class AdminOfflineOrderController {
                 }
             }
 
-            List<OfflineSubmitImageItem> images = faultItem.getImages() == null
-                ? Collections.emptyList()
-                : faultItem.getImages();
+            List<OfflineSubmitImageItem> images =
+                    faultItem.getImages() == null ? Collections.emptyList() : faultItem.getImages();
             if (images.size() > 5) {
                 throw new BusinessException(ErrorCode.PARAM_ERROR, "每个故障现象最多上传5张图片");
             }
@@ -463,7 +490,9 @@ public class AdminOfflineOrderController {
                 throw new BusinessException(ErrorCode.PARAM_ERROR, "每个故障现象最多上传1段视频");
             }
             OfflineSubmitVideoItem video = faultItem.getVideo();
-            if (video == null && faultItem.getVideoList() != null && !faultItem.getVideoList().isEmpty()) {
+            if (video == null
+                    && faultItem.getVideoList() != null
+                    && !faultItem.getVideoList().isEmpty()) {
                 video = faultItem.getVideoList().get(0);
             }
 
@@ -495,12 +524,11 @@ public class AdminOfflineOrderController {
     }
 
     private void saveFaultImage(
-        OfflineSubmitImageItem image,
-        String faultRecordId,
-        String adminAccountId,
-        long now,
-        int index
-    ) {
+            OfflineSubmitImageItem image,
+            String faultRecordId,
+            String adminAccountId,
+            long now,
+            int index) {
         if (image == null) {
             return;
         }
@@ -529,11 +557,7 @@ public class AdminOfflineOrderController {
     }
 
     private void saveFaultVideo(
-        OfflineSubmitVideoItem video,
-        String faultRecordId,
-        String adminAccountId,
-        long now
-    ) {
+            OfflineSubmitVideoItem video, String faultRecordId, String adminAccountId, long now) {
         String fileName = resolveMediaName(video.getName(), "fault-video.mp4");
         String fileUrl = requireMediaUrl(video.getUrl());
 
@@ -564,16 +588,18 @@ public class AdminOfflineOrderController {
         if (businessIds == null || businessIds.isEmpty()) {
             return Collections.emptyMap();
         }
-        List<Images> imageList = imagesService.list(
-            new LambdaQueryWrapper<Images>()
-                .eq(Images::getBusinessType, "AVATAR")
-                .in(Images::getBusinessId, businessIds)
-                .eq(Images::getIsDelete, 0)
-                .orderByDesc(Images::getCreatedTime)
-        );
+        List<Images> imageList =
+                imagesService.list(
+                        new LambdaQueryWrapper<Images>()
+                                .eq(Images::getBusinessType, "AVATAR")
+                                .in(Images::getBusinessId, businessIds)
+                                .eq(Images::getIsDelete, 0)
+                                .orderByDesc(Images::getCreatedTime));
         Map<String, String> avatarMap = new LinkedHashMap<>();
         for (Images image : imageList) {
-            if (image == null || !StringUtils.hasText(image.getBusinessId()) || !StringUtils.hasText(image.getFileUrl())) {
+            if (image == null
+                    || !StringUtils.hasText(image.getBusinessId())
+                    || !StringUtils.hasText(image.getFileUrl())) {
                 continue;
             }
             avatarMap.putIfAbsent(image.getBusinessId(), image.getFileUrl());
@@ -606,7 +632,8 @@ public class AdminOfflineOrderController {
         }
     }
 
-    private String resolveUploadMediaType(String mediaType, String mimeType, String originalFilename) {
+    private String resolveUploadMediaType(
+            String mediaType, String mimeType, String originalFilename) {
         String normalizedType = trimToNull(mediaType);
         if (StringUtils.hasText(normalizedType)) {
             String lower = normalizedType.toLowerCase();
@@ -629,26 +656,27 @@ public class AdminOfflineOrderController {
         if (StringUtils.hasText(fileName)) {
             String lowerName = fileName.toLowerCase();
             if (lowerName.endsWith(".jpg")
-                || lowerName.endsWith(".jpeg")
-                || lowerName.endsWith(".png")
-                || lowerName.endsWith(".webp")
-                || lowerName.endsWith(".gif")
-                || lowerName.endsWith(".bmp")) {
+                    || lowerName.endsWith(".jpeg")
+                    || lowerName.endsWith(".png")
+                    || lowerName.endsWith(".webp")
+                    || lowerName.endsWith(".gif")
+                    || lowerName.endsWith(".bmp")) {
                 return "image";
             }
             if (lowerName.endsWith(".mp4")
-                || lowerName.endsWith(".mov")
-                || lowerName.endsWith(".m4v")
-                || lowerName.endsWith(".avi")
-                || lowerName.endsWith(".mkv")
-                || lowerName.endsWith(".webm")) {
+                    || lowerName.endsWith(".mov")
+                    || lowerName.endsWith(".m4v")
+                    || lowerName.endsWith(".avi")
+                    || lowerName.endsWith(".mkv")
+                    || lowerName.endsWith(".webm")) {
                 return "video";
             }
         }
         throw new BusinessException(ErrorCode.PARAM_ERROR, "无法识别上传文件类型");
     }
 
-    private String resolveUploadExtension(String originalFilename, String mimeType, String mediaType) {
+    private String resolveUploadExtension(
+            String originalFilename, String mimeType, String mediaType) {
         String filename = trimToNull(originalFilename);
         if (StringUtils.hasText(filename)) {
             int index = filename.lastIndexOf('.');

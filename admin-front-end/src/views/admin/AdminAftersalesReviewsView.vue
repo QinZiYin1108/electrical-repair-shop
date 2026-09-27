@@ -15,18 +15,47 @@
             @keyup.enter="handleSearch"
             @clear="handleSearch"
           />
-          <el-select v-model="reviewType" clearable class="filter-select" placeholder="评价类型" @change="handleSearch">
+          <el-select
+            v-model="reviewType"
+            clearable
+            class="filter-select"
+            placeholder="评价类型"
+            @change="handleSearch"
+          >
             <el-option label="服务评价" :value="1" />
             <el-option label="商品评价" :value="2" />
           </el-select>
-          <el-select v-model="status" clearable class="filter-select" placeholder="评价状态" @change="handleSearch">
+          <el-select
+            v-model="status"
+            clearable
+            class="filter-select"
+            placeholder="评价状态"
+            @change="handleSearch"
+          >
             <el-option label="正常" :value="1" />
             <el-option label="已隐藏" :value="2" />
           </el-select>
-          <el-select v-model="rating" clearable class="filter-select" placeholder="评分" @change="handleSearch">
-            <el-option v-for="item in [5, 4, 3, 2, 1]" :key="item" :label="`${item} 星`" :value="item" />
+          <el-select
+            v-model="rating"
+            clearable
+            class="filter-select"
+            placeholder="评分"
+            @change="handleSearch"
+          >
+            <el-option
+              v-for="item in [5, 4, 3, 2, 1]"
+              :key="item"
+              :label="`${item} 星`"
+              :value="item"
+            />
           </el-select>
-          <el-select v-model="hasReply" clearable class="filter-select" placeholder="回复状态" @change="handleSearch">
+          <el-select
+            v-model="hasReply"
+            clearable
+            class="filter-select"
+            placeholder="回复状态"
+            @change="handleSearch"
+          >
             <el-option label="已回复" :value="1" />
             <el-option label="未回复" :value="0" />
           </el-select>
@@ -65,7 +94,9 @@
               </div>
 
               <div v-if="row.replyContent" class="expand-block">
-                <div class="expand-title">{{ row.orderType === 2 ? '商家回复' : '管理员回复' }}</div>
+                <div class="expand-title">
+                  {{ row.orderType === 2 ? '商家回复' : '管理员回复' }}
+                </div>
                 <div class="expand-content">{{ row.replyContent }}</div>
                 <div class="expand-time">{{ formatTime(row.replyTime) || '-' }}</div>
               </div>
@@ -125,7 +156,7 @@
         </el-table-column>
         <el-table-column label="操作" width="120" fixed="right" align="center">
           <template #default="{ row }">
-            <el-dropdown trigger="click" @command="command => handleRowCommand(command, row)">
+            <el-dropdown trigger="click" @command="(command) => handleRowCommand(command, row)">
               <el-button size="small" class="action-trigger">
                 操作
                 <el-icon class="el-icon--right"><ArrowDown /></el-icon>
@@ -175,7 +206,9 @@
       <template #footer>
         <span>
           <el-button @click="replyDialogVisible = false">取消</el-button>
-          <el-button type="primary" :loading="replySubmitting" @click="submitReply">确认回复</el-button>
+          <el-button type="primary" :loading="replySubmitting" @click="submitReply"
+            >确认回复</el-button
+          >
         </span>
       </template>
     </el-dialog>
@@ -186,7 +219,11 @@
 import { computed, onMounted, ref } from 'vue';
 import { ArrowDown } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
-import { fetchAdminReviews, replyAdminReview, updateAdminReviewStatus } from '../../api/adminAftersales';
+import {
+  fetchAdminReviews,
+  replyAdminReview,
+  updateAdminReviewStatus
+} from '../../api/adminAftersales';
 import { useAdminPageRefresh } from '../../utils/adminPageRefresh';
 
 const loading = ref(false);

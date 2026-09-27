@@ -13,14 +13,6 @@ import com.example.backend.service.FilesService;
 import com.example.backend.service.SystemConfigsService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
 import com.example.backend.utils.oss.OssUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -30,6 +22,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class EmailTemplateServiceImpl implements EmailTemplateService {
@@ -39,8 +38,10 @@ public class EmailTemplateServiceImpl implements EmailTemplateService {
     private static final String TYPE_AUTH_CODE = "auth_code";
     private static final String BUSINESS_TYPE_EMAIL_TEMPLATE = "EMAIL_TEMPLATE";
     private static final int UPLOADER_TYPE_ADMIN = 3;
-    private static final String DEFAULT_AUTH_CODE_TEMPLATE_LOCATION = "classpath:auth-code-template.html";
-    private static final DateTimeFormatter OBJECT_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+    private static final String DEFAULT_AUTH_CODE_TEMPLATE_LOCATION =
+            "classpath:auth-code-template.html";
+    private static final DateTimeFormatter OBJECT_DATE_FORMAT =
+            DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
     private final FilesService filesService;
     private final SystemConfigsService systemConfigsService;
@@ -50,11 +51,10 @@ public class EmailTemplateServiceImpl implements EmailTemplateService {
     private volatile String cachedDefaultAuthCodeTemplate;
 
     public EmailTemplateServiceImpl(
-        FilesService filesService,
-        SystemConfigsService systemConfigsService,
-        OssUtil ossUtil,
-        ResourceLoader resourceLoader
-    ) {
+            FilesService filesService,
+            SystemConfigsService systemConfigsService,
+            OssUtil ossUtil,
+            ResourceLoader resourceLoader) {
         this.filesService = filesService;
         this.systemConfigsService = systemConfigsService;
         this.ossUtil = ossUtil;
@@ -74,7 +74,10 @@ public class EmailTemplateServiceImpl implements EmailTemplateService {
         if (file == null || file.isEmpty()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请上传 HTML 模板文件");
         }
-        String originalName = StringUtils.hasText(file.getOriginalFilename()) ? file.getOriginalFilename() : meta.defaultFileName;
+        String originalName =
+                StringUtils.hasText(file.getOriginalFilename())
+                        ? file.getOriginalFilename()
+                        : meta.defaultFileName;
         String extension = resolveExtension(originalName);
         if (!".html".equals(extension) && !".htm".equals(extension)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "仅支持上传 .html 或 .htm 模板文件");
@@ -90,8 +93,14 @@ public class EmailTemplateServiceImpl implements EmailTemplateService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "上传模板文件不能为空");
         }
 
-        String objectName = "email-templates/" + meta.type + "/" + LocalDateTime.now().format(OBJECT_DATE_FORMAT)
-            + "_" + UUID.randomUUID().toString().replace("-", "") + extension;
+        String objectName =
+                "email-templates/"
+                        + meta.type
+                        + "/"
+                        + LocalDateTime.now().format(OBJECT_DATE_FORMAT)
+                        + "_"
+                        + UUID.randomUUID().toString().replace("-", "")
+                        + extension;
         String fileUrl = ossUtil.upload(objectName, new ByteArrayInputStream(bytes));
 
         LoginUserInfo user = AuthUserContext.get();
@@ -129,7 +138,10 @@ public class EmailTemplateServiceImpl implements EmailTemplateService {
         if (file != null) {
             log.info("使用自定义模板: fileId={}, filePath={}", file.getId(), file.getFilePath());
         }
-        String template = file == null ? loadDefaultAuthCodeTemplate() : ossUtil.downloadAsString(file.getFilePath());
+        String template =
+                file == null
+                        ? loadDefaultAuthCodeTemplate()
+                        : ossUtil.downloadAsString(file.getFilePath());
         return renderAuthCodeTemplate(template, code, expireMinutes);
     }
 
@@ -162,22 +174,20 @@ public class EmailTemplateServiceImpl implements EmailTemplateService {
         String fileId = systemConfigsService.getStringConfig(meta.fileIdConfigKey, null);
         if (!StringUtils.hasText(fileId)) {
             return filesService.getOne(
-                new LambdaQueryWrapper<Files>()
-                    .eq(Files::getBusinessType, BUSINESS_TYPE_EMAIL_TEMPLATE)
-                    .eq(Files::getBusinessId, meta.type)
-                    .eq(Files::getIsDelete, 0)
-                    .orderByDesc(Files::getCreatedTime)
-                    .last("limit 1"),
-                false
-            );
+                    new LambdaQueryWrapper<Files>()
+                            .eq(Files::getBusinessType, BUSINESS_TYPE_EMAIL_TEMPLATE)
+                            .eq(Files::getBusinessId, meta.type)
+                            .eq(Files::getIsDelete, 0)
+                            .orderByDesc(Files::getCreatedTime)
+                            .last("limit 1"),
+                    false);
         }
         return filesService.getOne(
-            new LambdaQueryWrapper<Files>()
-                .eq(Files::getId, fileId)
-                .eq(Files::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+                new LambdaQueryWrapper<Files>()
+                        .eq(Files::getId, fileId)
+                        .eq(Files::getIsDelete, 0)
+                        .last("limit 1"),
+                false);
     }
 
     private String loadDefaultAuthCodeTemplate() {
@@ -190,7 +200,8 @@ public class EmailTemplateServiceImpl implements EmailTemplateService {
                 throw new IllegalStateException("默认验证码邮件模板不存在");
             }
             try (InputStream inputStream = resource.getInputStream()) {
-                cachedDefaultAuthCodeTemplate = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+                cachedDefaultAuthCodeTemplate =
+                        new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
                 return cachedDefaultAuthCodeTemplate;
             }
         } catch (Exception e) {
@@ -210,15 +221,17 @@ public class EmailTemplateServiceImpl implements EmailTemplateService {
     }
 
     private String replacePlaceholder(String template, String key, String value) {
-        return template
-            .replace("{{" + key + "}}", value)
-            .replace("{{ " + key + " }}", value);
+        return template.replace("{{" + key + "}}", value).replace("{{ " + key + " }}", value);
     }
 
     private EmailTemplateMeta requireMeta(String type) {
         String normalized = normalizeType(type);
         if (TYPE_AUTH_CODE.equals(normalized)) {
-            return new EmailTemplateMeta(TYPE_AUTH_CODE, "验证码邮件模板", "email_template.auth_code_file_id", "auth-code-template.html");
+            return new EmailTemplateMeta(
+                    TYPE_AUTH_CODE,
+                    "验证码邮件模板",
+                    "email_template.auth_code_file_id",
+                    "auth-code-template.html");
         }
         throw new BusinessException(ErrorCode.PARAM_ERROR, "不支持的邮件模板类型");
     }
@@ -251,7 +264,8 @@ public class EmailTemplateServiceImpl implements EmailTemplateService {
         private final String fileIdConfigKey;
         private final String defaultFileName;
 
-        private EmailTemplateMeta(String type, String title, String fileIdConfigKey, String defaultFileName) {
+        private EmailTemplateMeta(
+                String type, String title, String fileIdConfigKey, String defaultFileName) {
             this.type = type;
             this.title = title;
             this.fileIdConfigKey = fileIdConfigKey;
@@ -260,18 +274,17 @@ public class EmailTemplateServiceImpl implements EmailTemplateService {
 
         private SystemConfigDefinition fileIdConfigDefinition() {
             return new SystemConfigDefinition(
-                fileIdConfigKey,
-                "email_template",
-                "邮件模板设置",
-                title + "文件ID",
-                title + "当前启用的文件ID",
-                1,
-                "",
-                null,
-                null,
-                null,
-                10
-            );
+                    fileIdConfigKey,
+                    "email_template",
+                    "邮件模板设置",
+                    title + "文件ID",
+                    title + "当前启用的文件ID",
+                    1,
+                    "",
+                    null,
+                    null,
+                    null,
+                    10);
         }
     }
 }

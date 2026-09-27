@@ -24,10 +24,7 @@
         <view class="conversation-main">
           <view class="conversation-title-row">
             <text class="conversation-title">{{ item.title }}</text>
-            <view
-              v-if="item.unreadCount > 0"
-              class="conversation-unread-badge"
-            >
+            <view v-if="item.unreadCount > 0" class="conversation-unread-badge">
               <text class="conversation-unread-text">
                 {{ item.unreadCount > 99 ? '99+' : item.unreadCount }}
               </text>
@@ -38,10 +35,7 @@
           </view>
         </view>
       </view>
-      <view
-        v-if="!loading && conversations.length === 0"
-        class="empty"
-      >
+      <view v-if="!loading && conversations.length === 0" class="empty">
         <text class="empty-text">暂无消息</text>
       </view>
     </view>
@@ -49,10 +43,7 @@
 </template>
 
 <script>
-import {
-  fetchWorkerConversations,
-  fetchWorkerUnreadFlag
-} from '@/api/workerMessages';
+import { fetchWorkerConversations, fetchWorkerUnreadFlag } from '@/api/workerMessages';
 
 export default {
   name: 'WorkerMessagePage',
@@ -110,14 +101,10 @@ export default {
                 ) {
                   hasUnread = true;
                 } else {
-                  hasUnread =
-                    systemItem.unreadCount > 0 ||
-                    list.some((c) => c.unreadCount > 0);
+                  hasUnread = systemItem.unreadCount > 0 || list.some((c) => c.unreadCount > 0);
                 }
               } else {
-                hasUnread =
-                  systemItem.unreadCount > 0 ||
-                  list.some((c) => c.unreadCount > 0);
+                hasUnread = systemItem.unreadCount > 0 || list.some((c) => c.unreadCount > 0);
               }
               const finalList = [systemItem].concat(list);
               this.conversations = finalList;
@@ -128,9 +115,7 @@ export default {
               }
             })
             .catch(() => {
-              const hasUnread =
-                systemItem.unreadCount > 0 ||
-                list.some((c) => c.unreadCount > 0);
+              const hasUnread = systemItem.unreadCount > 0 || list.some((c) => c.unreadCount > 0);
               const finalList = [systemItem].concat(list);
               this.conversations = finalList;
               this.loading = false;
@@ -154,9 +139,7 @@ export default {
         });
       } else {
         uni.navigateTo({
-          url:
-            '/pages/message/detail?type=chat&sessionId=' +
-            encodeURIComponent(item.id)
+          url: '/pages/message/detail?type=chat&sessionId=' + encodeURIComponent(item.id)
         });
       }
     }
@@ -205,7 +188,7 @@ export default {
 }
 
 .conversation-list {
-  padding-top: 0.40rem;
+  padding-top: 0.4rem;
 }
 
 .conversation-item {

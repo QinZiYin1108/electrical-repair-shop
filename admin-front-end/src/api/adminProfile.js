@@ -24,4 +24,3 @@ export function uploadAdminAvatar(file) {
     data: formData
   });
 }
-

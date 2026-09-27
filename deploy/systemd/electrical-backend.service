@@ -1,0 +1,22 @@
+[Unit]
+Description=Electrical Repair Shop Backend (Spring Boot)
+After=network-online.target mysql.service redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+# 按实际部署用户调整（如需非 root，请一并调整目录属主）
+User=root
+WorkingDirectory=/opt/electrical-repair-shop
+EnvironmentFile=/opt/electrical-repair-shop/.env
+# java 路径按实际安装调整（which java）
+ExecStart=/usr/bin/java -jar /opt/electrical-repair-shop/backend/app.jar
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=5
+# 日志走 journald：journalctl -u electrical-backend -f
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

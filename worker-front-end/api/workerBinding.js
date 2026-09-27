@@ -4,6 +4,10 @@ export function getWorkerBindingStatus() {
   return request({ url: '/worker/binding/status', method: 'get' });
 }
 
+export function fetchPublicStoreDetail(storeId) {
+  return request({ url: `/pass/stores/${storeId}`, method: 'get' });
+}
+
 export function acceptBinding() {
   return request({ url: '/worker/binding/accept', method: 'post' });
 }

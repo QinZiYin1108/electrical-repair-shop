@@ -13,7 +13,7 @@ export function adminSendLoginCode(data) {
     url: '/pass/auth/admin/code/send',
     method: 'post',
     data: {
-      email: data.email,
+      phone: data.phone,
       type: 'ADMIN_LOGIN'
     }
   });
@@ -32,7 +32,7 @@ export function adminSendResetCode(data) {
     url: '/pass/auth/admin/code/send',
     method: 'post',
     data: {
-      email: data.email,
+      phone: data.phone,
       type: 'ADMIN_RESET_PASSWORD'
     }
   });

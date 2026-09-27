@@ -1,23 +1,54 @@
 package com.example.backend.model.admin;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 
+@Schema(description = "管理员故障现象响应")
 public class AdminFaultPhenomenonResponse {
 
+    @Schema(description = "ID")
     private String id;
+
+    @Schema(description = "服务类型ID")
     private String serviceTypeId;
+
+    @Schema(description = "服务类型名称")
     private String serviceTypeName;
+
+    @Schema(description = "服务类型类型")
     private Integer serviceTypeType;
+
+    @Schema(description = "服务分类ID")
     private String serviceCategoryId;
+
+    @Schema(description = "服务分类名称")
     private String serviceCategoryName;
+
+    @Schema(description = "服务分类路径")
     private String serviceCategoryPath;
+
+    @Schema(description = "名称")
     private String name;
+
+    @Schema(description = "description")
     private String description;
+
+    @Schema(description = "estimated价格Min")
     private BigDecimal estimatedPriceMin;
+
+    @Schema(description = "estimated价格Max")
     private BigDecimal estimatedPriceMax;
+
+    @Schema(description = "is是否启用")
     private Integer isActive;
+
+    @Schema(description = "排序")
     private Integer sortOrder;
+
+    @Schema(description = "创建时间")
     private Long createdTime;
+
+    @Schema(description = "更新时间")
     private Long updatedTime;
 
     public String getId() {

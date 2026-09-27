@@ -2,9 +2,9 @@ package com.example.backend.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.backend.common.ErrorCode;
+import com.example.backend.entity.Images;
 import com.example.backend.entity.ProductCategories;
 import com.example.backend.entity.Products;
-import com.example.backend.entity.Images;
 import com.example.backend.exception.BusinessException;
 import com.example.backend.model.admin.AdminProductCategoryCreateRequest;
 import com.example.backend.model.admin.AdminProductCategoryResponse;
@@ -18,12 +18,6 @@ import com.example.backend.service.ProductsService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
 import com.example.backend.utils.oss.OssUtil;
 import com.example.backend.utils.upload.UploadLimitUtil;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-import org.springframework.web.multipart.MultipartFile;
-
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.time.LocalDateTime;
@@ -41,6 +35,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import javax.imageio.ImageIO;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class AdminProductCategoryManageServiceImpl implements AdminProductCategoryManageService {
@@ -53,11 +52,10 @@ public class AdminProductCategoryManageServiceImpl implements AdminProductCatego
     private final OssUtil ossUtil;
 
     public AdminProductCategoryManageServiceImpl(
-        ProductCategoriesService productCategoriesService,
-        ProductsService productsService,
-        ImagesService imagesService,
-        OssUtil ossUtil
-    ) {
+            ProductCategoriesService productCategoriesService,
+            ProductsService productsService,
+            ImagesService imagesService,
+            OssUtil ossUtil) {
         this.productCategoriesService = productCategoriesService;
         this.productsService = productsService;
         this.imagesService = imagesService;
@@ -108,11 +106,18 @@ public class AdminProductCategoryManageServiceImpl implements AdminProductCatego
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public AdminProductCategoryResponse updateCategory(String id, AdminProductCategoryUpdateRequest request) {
+    public AdminProductCategoryResponse updateCategory(
+            String id, AdminProductCategoryUpdateRequest request) {
         ProductCategories current = requireCategory(id);
         List<ProductCategories> allCategories = listAllCategories();
-        Map<String, ProductCategories> categoryMap = allCategories.stream()
-            .collect(Collectors.toMap(ProductCategories::getId, item -> item, (a, b) -> a, LinkedHashMap::new));
+        Map<String, ProductCategories> categoryMap =
+                allCategories.stream()
+                        .collect(
+                                Collectors.toMap(
+                                        ProductCategories::getId,
+                                        item -> item,
+                                        (a, b) -> a,
+                                        LinkedHashMap::new));
 
         String newParentId = normalizeBlankToNull(request.getParentId());
         if (Objects.equals(id, newParentId)) {
@@ -176,8 +181,14 @@ public class AdminProductCategoryManageServiceImpl implements AdminProductCatego
             }
         }
 
-        Map<String, ProductCategories> latestCategoryMap = listAllCategories().stream()
-            .collect(Collectors.toMap(ProductCategories::getId, item -> item, (a, b) -> a, LinkedHashMap::new));
+        Map<String, ProductCategories> latestCategoryMap =
+                listAllCategories().stream()
+                        .collect(
+                                Collectors.toMap(
+                                        ProductCategories::getId,
+                                        item -> item,
+                                        (a, b) -> a,
+                                        LinkedHashMap::new));
         return toCategoryResponse(current, latestCategoryMap, null);
     }
 
@@ -189,18 +200,17 @@ public class AdminProductCategoryManageServiceImpl implements AdminProductCatego
             return;
         }
 
-        long childCount = productCategoriesService.count(
-            new LambdaQueryWrapper<ProductCategories>()
-                .eq(ProductCategories::getParentId, id)
-        );
+        long childCount =
+                productCategoriesService.count(
+                        new LambdaQueryWrapper<ProductCategories>()
+                                .eq(ProductCategories::getParentId, id));
         if (childCount > 0) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "该分类下存在子分类，无法删除");
         }
 
-        long productCount = productsService.count(
-            new LambdaQueryWrapper<Products>()
-                .eq(Products::getCategoryId, id)
-        );
+        long productCount =
+                productsService.count(
+                        new LambdaQueryWrapper<Products>().eq(Products::getCategoryId, id));
         if (productCount > 0) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "该分类下存在商品，无法删除");
         }
@@ -239,7 +249,8 @@ public class AdminProductCategoryManageServiceImpl implements AdminProductCatego
         } catch (Exception ignored) {
         }
 
-        String origin = Optional.ofNullable(file.getOriginalFilename()).orElse("product-category-icon");
+        String origin =
+                Optional.ofNullable(file.getOriginalFilename()).orElse("product-category-icon");
         String ext = "";
         int dot = origin.lastIndexOf('.');
         if (dot >= 0 && dot < origin.length() - 1) {
@@ -247,7 +258,14 @@ public class AdminProductCategoryManageServiceImpl implements AdminProductCatego
         }
 
         String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String objectName = "product-category-icons/" + id + "/" + date + "_" + UUID.randomUUID().toString().replace("-", "") + ext;
+        String objectName =
+                "product-category-icons/"
+                        + id
+                        + "/"
+                        + date
+                        + "_"
+                        + UUID.randomUUID().toString().replace("-", "")
+                        + ext;
         String url = ossUtil.upload(objectName, new ByteArrayInputStream(bytes));
 
         LoginUserInfo user = AuthUserContext.get();
@@ -285,32 +303,41 @@ public class AdminProductCategoryManageServiceImpl implements AdminProductCatego
 
     private List<ProductCategories> listAllCategories() {
         return productCategoriesService.list(
-            new LambdaQueryWrapper<ProductCategories>()
-                .orderByAsc(ProductCategories::getSortOrder)
-                .orderByDesc(ProductCategories::getCreatedTime)
-        );
+                new LambdaQueryWrapper<ProductCategories>()
+                        .orderByAsc(ProductCategories::getSortOrder)
+                        .orderByDesc(ProductCategories::getCreatedTime));
     }
 
-    private List<AdminProductCategoryResponse> buildCategoryTree(List<ProductCategories> categories) {
+    private List<AdminProductCategoryResponse> buildCategoryTree(
+            List<ProductCategories> categories) {
         if (categories == null || categories.isEmpty()) {
             return Collections.emptyList();
         }
-        Map<String, String> iconMap = loadLatestCategoryIconUrlMap(
-            categories.stream()
-                .filter(item -> Objects.equals(item.getLevel(), 3))
-                .map(ProductCategories::getId)
-                .collect(Collectors.toList())
-        );
-        Map<String, ProductCategories> sourceMap = categories.stream()
-            .collect(Collectors.toMap(ProductCategories::getId, item -> item, (a, b) -> a, LinkedHashMap::new));
+        Map<String, String> iconMap =
+                loadLatestCategoryIconUrlMap(
+                        categories.stream()
+                                .filter(item -> Objects.equals(item.getLevel(), 3))
+                                .map(ProductCategories::getId)
+                                .collect(Collectors.toList()));
+        Map<String, ProductCategories> sourceMap =
+                categories.stream()
+                        .collect(
+                                Collectors.toMap(
+                                        ProductCategories::getId,
+                                        item -> item,
+                                        (a, b) -> a,
+                                        LinkedHashMap::new));
         Map<String, AdminProductCategoryResponse> nodeMap = new LinkedHashMap<>();
         for (ProductCategories category : categories) {
-            nodeMap.put(category.getId(), toCategoryResponse(category, sourceMap, iconMap.get(category.getId())));
+            nodeMap.put(
+                    category.getId(),
+                    toCategoryResponse(category, sourceMap, iconMap.get(category.getId())));
         }
 
         List<AdminProductCategoryResponse> roots = new ArrayList<>();
         for (AdminProductCategoryResponse node : nodeMap.values()) {
-            if (StringUtils.hasText(node.getParentId()) && nodeMap.containsKey(node.getParentId())) {
+            if (StringUtils.hasText(node.getParentId())
+                    && nodeMap.containsKey(node.getParentId())) {
                 nodeMap.get(node.getParentId()).getChildren().add(node);
             } else {
                 roots.add(node);
@@ -325,19 +352,22 @@ public class AdminProductCategoryManageServiceImpl implements AdminProductCatego
         if (nodes == null || nodes.isEmpty()) {
             return;
         }
-        nodes.sort(Comparator
-            .comparing((AdminProductCategoryResponse item) -> defaultIfNull(item.getSortOrder(), 0))
-            .thenComparing(item -> defaultIfNull(item.getCreatedTime(), 0L), Comparator.reverseOrder()));
+        nodes.sort(
+                Comparator.comparing(
+                                (AdminProductCategoryResponse item) ->
+                                        defaultIfNull(item.getSortOrder(), 0))
+                        .thenComparing(
+                                item -> defaultIfNull(item.getCreatedTime(), 0L),
+                                Comparator.reverseOrder()));
         for (AdminProductCategoryResponse node : nodes) {
             sortTree(node.getChildren());
         }
     }
 
     private AdminProductCategoryResponse toCategoryResponse(
-        ProductCategories category,
-        Map<String, ProductCategories> categoryMap,
-        String iconUrl
-    ) {
+            ProductCategories category,
+            Map<String, ProductCategories> categoryMap,
+            String iconUrl) {
         AdminProductCategoryResponse response = new AdminProductCategoryResponse();
         response.setId(category.getId());
         response.setName(category.getName());
@@ -360,12 +390,12 @@ public class AdminProductCategoryManageServiceImpl implements AdminProductCatego
         if (categoryIds == null || categoryIds.isEmpty()) {
             return Map.of();
         }
-        List<Images> images = imagesService.list(
-            new LambdaQueryWrapper<Images>()
-                .eq(Images::getBusinessType, PRODUCT_CATEGORY_ICON_BUSINESS_TYPE)
-                .in(Images::getBusinessId, categoryIds)
-                .orderByDesc(Images::getCreatedTime)
-        );
+        List<Images> images =
+                imagesService.list(
+                        new LambdaQueryWrapper<Images>()
+                                .eq(Images::getBusinessType, PRODUCT_CATEGORY_ICON_BUSINESS_TYPE)
+                                .in(Images::getBusinessId, categoryIds)
+                                .orderByDesc(Images::getCreatedTime));
         Map<String, String> result = new HashMap<>();
         for (Images image : images) {
             if (!result.containsKey(image.getBusinessId())) {
@@ -375,7 +405,8 @@ public class AdminProductCategoryManageServiceImpl implements AdminProductCatego
         return result;
     }
 
-    private boolean isDescendantCategory(String currentId, String targetId, Map<String, ProductCategories> categoryMap) {
+    private boolean isDescendantCategory(
+            String currentId, String targetId, Map<String, ProductCategories> categoryMap) {
         Set<String> visited = new LinkedHashSet<>();
         String parentId = normalizeBlankToNull(targetId);
         while (StringUtils.hasText(parentId) && visited.add(parentId)) {
@@ -395,23 +426,32 @@ public class AdminProductCategoryManageServiceImpl implements AdminProductCatego
         return calculateSubtreeDepth(rootId, categoryMap, 1);
     }
 
-    private int calculateSubtreeDepth(String rootId, Map<String, ProductCategories> categoryMap, int currentDepth) {
+    private int calculateSubtreeDepth(
+            String rootId, Map<String, ProductCategories> categoryMap, int currentDepth) {
         int maxDepth = currentDepth;
         for (ProductCategories category : categoryMap.values()) {
             if (Objects.equals(normalizeBlankToNull(category.getParentId()), rootId)) {
-                maxDepth = Math.max(maxDepth, calculateSubtreeDepth(category.getId(), categoryMap, currentDepth + 1));
+                maxDepth =
+                        Math.max(
+                                maxDepth,
+                                calculateSubtreeDepth(
+                                        category.getId(), categoryMap, currentDepth + 1));
             }
         }
         return maxDepth;
     }
 
-    private List<ProductCategories> collectDescendants(String rootId, Map<String, ProductCategories> categoryMap) {
+    private List<ProductCategories> collectDescendants(
+            String rootId, Map<String, ProductCategories> categoryMap) {
         List<ProductCategories> descendants = new ArrayList<>();
         collectDescendants(rootId, categoryMap, descendants);
         return descendants;
     }
 
-    private void collectDescendants(String rootId, Map<String, ProductCategories> categoryMap, List<ProductCategories> descendants) {
+    private void collectDescendants(
+            String rootId,
+            Map<String, ProductCategories> categoryMap,
+            List<ProductCategories> descendants) {
         for (ProductCategories category : categoryMap.values()) {
             if (Objects.equals(normalizeBlankToNull(category.getParentId()), rootId)) {
                 descendants.add(category);

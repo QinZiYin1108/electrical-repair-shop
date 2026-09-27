@@ -3,19 +3,16 @@ package com.example.backend.service.impl;
 import com.example.backend.common.ErrorCode;
 import com.example.backend.exception.BusinessException;
 import com.example.backend.service.AuthCodeService;
-import com.example.backend.service.EmailTemplateService;
+import com.example.backend.service.SmsService;
 import com.example.backend.service.SystemConfigsService;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import java.security.SecureRandom;
+import java.time.Duration;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-
-import java.time.Duration;
-import java.util.Random;
 
 @Service
 public class AuthCodeServiceImpl implements AuthCodeService {
@@ -24,62 +21,99 @@ public class AuthCodeServiceImpl implements AuthCodeService {
 
     private static final String ADMIN_LOGIN_CODE_KEY = "admin:login:code:";
     private static final String ADMIN_RESET_CODE_KEY = "admin:reset:code:";
-    private static final String ADMIN_CHANGE_EMAIL_CODE_KEY = "admin:change-email:code:";
-    private static final String USER_BIND_EMAIL_CODE_KEY = "user:bind-email:code:";
+    private static final String ADMIN_CHANGE_PHONE_CODE_KEY = "admin:change-phone:code:";
+    private static final String USER_BIND_PHONE_CODE_KEY = "user:bind-phone:code:";
     private static final String WORKER_LOGIN_CODE_KEY = "worker:login:code:";
     private static final String WORKER_RESET_PASSWORD_CODE_KEY = "worker:reset-password:code:";
-    private static final String WORKER_CHANGE_EMAIL_CODE_KEY = "worker:change-email:code:";
-
-    @Value("${spring.mail.username}")
-    private String fromEmail;
+    private static final String WORKER_CHANGE_PHONE_CODE_KEY = "worker:change-phone:code:";
+    private static final String SMS_RATE_LIMIT_KEY = "sms:ratelimit:";
+    private static final String SMS_DAILY_LIMIT_KEY = "sms:daily:";
+    private static final String VERIFY_ATTEMPTS_KEY = "auth:code:attempts:";
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final StringRedisTemplate redisTemplate;
-    private final JavaMailSender mailSender;
+    private final SmsService smsService;
     private final SystemConfigsService systemConfigsService;
-    private final EmailTemplateService emailTemplateService;
 
     public AuthCodeServiceImpl(
-        StringRedisTemplate redisTemplate,
-        JavaMailSender mailSender,
-        SystemConfigsService systemConfigsService,
-        EmailTemplateService emailTemplateService
-    ) {
+            StringRedisTemplate redisTemplate,
+            SmsService smsService,
+            SystemConfigsService systemConfigsService) {
         this.redisTemplate = redisTemplate;
-        this.mailSender = mailSender;
+        this.smsService = smsService;
         this.systemConfigsService = systemConfigsService;
-        this.emailTemplateService = emailTemplateService;
     }
 
     @Override
-    public void sendCode(String email, String type) {
+    public void sendCode(String phone, String type) {
+        // 频率限制：同一手机号 N 秒内只能发一次
+        String rateLimitKey = SMS_RATE_LIMIT_KEY + phone;
+        int intervalSeconds = getRateLimitIntervalSeconds();
+        Boolean locked =
+                redisTemplate
+                        .opsForValue()
+                        .setIfAbsent(rateLimitKey, "1", Duration.ofSeconds(intervalSeconds));
+        if (locked == null || !locked) {
+            throw new BusinessException(
+                    ErrorCode.BUSINESS_ERROR, "发送过于频繁，请 " + intervalSeconds + " 秒后再试");
+        }
+
+        enforceDailyLimit(phone);
+
         String code = generateCode();
         String keyPrefix = resolveKeyPrefix(type);
-        String key = keyPrefix + email;
+        String key = keyPrefix + phone;
         int expireMinutes = getCodeExpireMinutes();
         redisTemplate.opsForValue().set(key, code, Duration.ofMinutes(expireMinutes));
+        redisTemplate.delete(attemptKey(phone, type));
 
-        String subject = resolveSubject(type);
-        String html = emailTemplateService.buildAuthCodeHtml(code, expireMinutes);
-        log.info("准备发送验证码邮件: to={}, subject={}", email, subject);
-        sendHtmlMail(email, subject, html);
-        log.info("验证码邮件发送成功: to={}", email);
+        log.info("准备发送短信验证码: phone={}, type={}", phone, type);
+        smsService.sendCode(phone, code, expireMinutes, type);
+        log.info("短信验证码发送成功: phone={}, type={}", phone, type);
     }
 
     @Override
-    public void verifyCode(String email, String type, String code) {
+    public void verifyCode(String phone, String type, String code) {
         String keyPrefix = resolveKeyPrefix(type);
-        String key = keyPrefix + email;
+        String key = keyPrefix + phone;
         String cached = redisTemplate.opsForValue().get(key);
         if (!StringUtils.hasText(cached) || !cached.equals(code)) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "邮箱或验证码有误");
+            registerFailedAttempt(phone, type, key);
+            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "手机号或验证码有误");
         }
-        redisTemplate.delete(key);
+        redisTemplate.delete(List.of(key, attemptKey(phone, type)));
     }
 
     private String generateCode() {
-        Random random = new Random();
-        int val = random.nextInt(900000) + 100000;
+        int val = SECURE_RANDOM.nextInt(900000) + 100000;
         return String.valueOf(val);
+    }
+
+    private void registerFailedAttempt(String phone, String type, String codeKey) {
+        String attemptsKey = attemptKey(phone, type);
+        Long attempts = redisTemplate.opsForValue().increment(attemptsKey);
+        if (attempts != null && attempts == 1) {
+            redisTemplate.expire(attemptsKey, Duration.ofMinutes(getCodeExpireMinutes()));
+        }
+        if (attempts != null && attempts >= getMaxVerifyAttempts()) {
+            redisTemplate.delete(List.of(codeKey, attemptsKey));
+            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "验证码错误次数过多，请重新获取");
+        }
+    }
+
+    private void enforceDailyLimit(String phone) {
+        String key = SMS_DAILY_LIMIT_KEY + phone;
+        Long count = redisTemplate.opsForValue().increment(key);
+        if (count != null && count == 1) {
+            redisTemplate.expire(key, Duration.ofDays(1));
+        }
+        if (count != null && count > getDailySendLimit()) {
+            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "今日验证码发送次数已达上限");
+        }
+    }
+
+    private String attemptKey(String phone, String type) {
+        return VERIFY_ATTEMPTS_KEY + type.toUpperCase() + ":" + phone;
     }
 
     private String resolveKeyPrefix(String type) {
@@ -89,11 +123,11 @@ public class AuthCodeServiceImpl implements AuthCodeService {
         if ("ADMIN_RESET_PASSWORD".equalsIgnoreCase(type)) {
             return ADMIN_RESET_CODE_KEY;
         }
-        if ("ADMIN_CHANGE_EMAIL".equalsIgnoreCase(type)) {
-            return ADMIN_CHANGE_EMAIL_CODE_KEY;
+        if ("ADMIN_CHANGE_PHONE".equalsIgnoreCase(type)) {
+            return ADMIN_CHANGE_PHONE_CODE_KEY;
         }
-        if ("USER_BIND_EMAIL".equalsIgnoreCase(type)) {
-            return USER_BIND_EMAIL_CODE_KEY;
+        if ("USER_BIND_PHONE".equalsIgnoreCase(type)) {
+            return USER_BIND_PHONE_CODE_KEY;
         }
         if ("WORKER_LOGIN".equalsIgnoreCase(type)) {
             return WORKER_LOGIN_CODE_KEY;
@@ -101,54 +135,29 @@ public class AuthCodeServiceImpl implements AuthCodeService {
         if ("WORKER_RESET_PASSWORD".equalsIgnoreCase(type)) {
             return WORKER_RESET_PASSWORD_CODE_KEY;
         }
-        if ("WORKER_CHANGE_EMAIL".equalsIgnoreCase(type)) {
-            return WORKER_CHANGE_EMAIL_CODE_KEY;
+        if ("WORKER_CHANGE_PHONE".equalsIgnoreCase(type)) {
+            return WORKER_CHANGE_PHONE_CODE_KEY;
         }
         throw new BusinessException(ErrorCode.PARAM_ERROR, "不支持的验证码类型");
-    }
-
-    private String resolveSubject(String type) {
-        if ("ADMIN_LOGIN".equalsIgnoreCase(type)) {
-            return "管理员登录验证码";
-        }
-        if ("ADMIN_RESET_PASSWORD".equalsIgnoreCase(type)) {
-            return "管理员重置密码验证码";
-        }
-        if ("ADMIN_CHANGE_EMAIL".equalsIgnoreCase(type)) {
-            return "管理员修改邮箱验证码";
-        }
-        if ("USER_BIND_EMAIL".equalsIgnoreCase(type)) {
-            return "邮箱绑定验证码";
-        }
-        if ("WORKER_LOGIN".equalsIgnoreCase(type)) {
-            return "师傅登录验证码";
-        }
-        if ("WORKER_RESET_PASSWORD".equalsIgnoreCase(type)) {
-            return "师傅重置密码验证码";
-        }
-        if ("WORKER_CHANGE_EMAIL".equalsIgnoreCase(type)) {
-            return "师傅修改邮箱验证码";
-        }
-        return "验证码";
-    }
-
-    private void sendHtmlMail(String email, String subject, String htmlContent) {
-        try {
-            var mimeMessage = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
-            helper.setFrom(fromEmail);
-            helper.setTo(email);
-            helper.setSubject(subject);
-            helper.setText(htmlContent, true);
-            mailSender.send(mimeMessage);
-        } catch (Exception e) {
-            log.error("发送邮件失败: to={}, error={}", email, e.getMessage(), e);
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "发送验证码邮件失败");
-        }
     }
 
     private int getCodeExpireMinutes() {
         Integer value = systemConfigsService.getIntegerConfig("auth.code_expire_minutes", 5);
         return value == null || value <= 0 ? 5 : value;
+    }
+
+    private int getRateLimitIntervalSeconds() {
+        Integer value = systemConfigsService.getIntegerConfig("auth.sms_rate_limit_seconds", 60);
+        return value == null || value <= 0 ? 60 : value;
+    }
+
+    private int getMaxVerifyAttempts() {
+        Integer value = systemConfigsService.getIntegerConfig("auth.code_max_verify_attempts", 5);
+        return value == null || value <= 0 ? 5 : value;
+    }
+
+    private int getDailySendLimit() {
+        Integer value = systemConfigsService.getIntegerConfig("auth.sms_daily_limit", 10);
+        return value == null || value <= 0 ? 10 : value;
     }
 }

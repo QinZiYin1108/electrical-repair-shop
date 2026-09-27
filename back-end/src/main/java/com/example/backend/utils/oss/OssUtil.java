@@ -4,14 +4,13 @@ import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.example.backend.common.ErrorCode;
 import com.example.backend.exception.BusinessException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 
 @Component
 public class OssUtil {
@@ -36,7 +35,12 @@ public class OssUtil {
             ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
             ossClient.putObject(bucketName, objectName, inputStream);
         } catch (Exception e) {
-            log.error("上传文件到OSS失败: bucket={}, object={}, error={}", bucketName, objectName, e.getMessage(), e);
+            log.error(
+                    "上传文件到OSS失败: bucket={}, object={}, error={}",
+                    bucketName,
+                    objectName,
+                    e.getMessage(),
+                    e);
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传文件到OSS失败");
         } finally {
             if (ossClient != null) {
@@ -46,18 +50,49 @@ public class OssUtil {
         return "https://" + bucketName + "." + endpoint + "/" + objectName;
     }
 
+    /** 删除 OSS 对象。用于审核不通过时清理已上传文件。 */
+    public void delete(String objectName) {
+        OSS ossClient = null;
+        try {
+            ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
+            ossClient.deleteObject(bucketName, objectName);
+        } catch (Exception e) {
+            log.error(
+                    "删除OSS文件失败: bucket={}, object={}, error={}",
+                    bucketName,
+                    objectName,
+                    e.getMessage(),
+                    e);
+        } finally {
+            if (ossClient != null) {
+                ossClient.shutdown();
+            }
+        }
+    }
+
     public String downloadAsString(String objectName) {
         OSS ossClient = null;
         try {
             ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
-            try (InputStream inputStream = ossClient.getObject(bucketName, objectName).getObjectContent()) {
+            try (InputStream inputStream =
+                    ossClient.getObject(bucketName, objectName).getObjectContent()) {
                 return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
             }
         } catch (IOException e) {
-            log.error("读取OSS文件失败: bucket={}, object={}, error={}", bucketName, objectName, e.getMessage(), e);
+            log.error(
+                    "读取OSS文件失败: bucket={}, object={}, error={}",
+                    bucketName,
+                    objectName,
+                    e.getMessage(),
+                    e);
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "读取OSS文件失败");
         } catch (Exception e) {
-            log.error("从OSS获取文件失败: bucket={}, object={}, error={}", bucketName, objectName, e.getMessage(), e);
+            log.error(
+                    "从OSS获取文件失败: bucket={}, object={}, error={}",
+                    bucketName,
+                    objectName,
+                    e.getMessage(),
+                    e);
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "从OSS获取文件失败");
         } finally {
             if (ossClient != null) {

@@ -1,7 +1,6 @@
 package com.example.backend.common;
 
 public enum ErrorCode {
-
     SUCCESS(200, "success"),
     PARAM_ERROR(400, "参数错误"),
     UNAUTHORIZED(401, "未授权"),

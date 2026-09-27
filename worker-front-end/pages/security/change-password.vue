@@ -53,13 +53,7 @@
       </view>
 
       <view class="actions">
-        <u-button
-          text="确认修改"
-          type="primary"
-          shape="circle"
-          :loading="saving"
-          @click="submit"
-        />
+        <u-button text="确认修改" type="primary" shape="circle" :loading="saving" @click="submit" />
       </view>
 
       <view class="helper">

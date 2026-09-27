@@ -58,4 +58,30 @@
         WHERE email = #{email}
         LIMIT 1
     </select>
+
+    <select id="selectByPhoneIncludeDeleted" resultMap="BaseResultMap">
+        SELECT
+            id,
+            username,
+            phone,
+            email,
+            wechat_openid,
+            wechat_unionid,
+            password_hash,
+            salt,
+            account_status,
+            last_login_time,
+            last_login_ip,
+            work_status,
+            rating,
+            order_count,
+            completion_rate,
+            created_time,
+            updated_time,
+            version,
+            is_delete
+        FROM technician_accounts
+        WHERE phone = #{phone}
+        LIMIT 1
+    </select>
 </mapper>

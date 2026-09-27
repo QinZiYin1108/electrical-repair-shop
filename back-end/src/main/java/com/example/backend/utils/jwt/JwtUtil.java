@@ -6,21 +6,17 @@ import com.example.backend.security.model.AccountRole;
 import com.example.backend.security.model.LoginUserInfo;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
-/**
- * JWT 工具类
- * 负责生成和解析基于 HS256 的 JSON Web Token
- */
+/** JWT 工具类 负责生成和解析基于 HS256 的 JSON Web Token */
 @Component
 public class JwtUtil {
 
@@ -28,35 +24,27 @@ public class JwtUtil {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    /**
-     * 签名用密钥
-     */
+    /** 签名用密钥 */
     private final String secret;
 
-    /**
-     * token 过期时间（秒）
-     */
+    /** token 过期时间（秒） */
     private final long expireSeconds;
 
     public JwtUtil(
-        @Value("${security.jwt.secret:change-me}") String secret,
-        @Value("${security.jwt.expire-seconds:2592000}") long expireSeconds
-    ) {
+            @Value("${security.jwt.secret:change-me}") String secret,
+            @Value("${security.jwt.expire-seconds:2592000}") long expireSeconds) {
         this.secret = secret;
         this.expireSeconds = expireSeconds;
     }
 
-    /**
-     * 生成包含账号ID和角色的 JWT 字符串
-     */
+    /** 生成包含账号ID和角色的 JWT 字符串 */
     public String generateToken(String accountId, AccountRole role) {
         return generateToken(accountId, role, null);
     }
 
-    /**
-     * 生成 JWT 字符串，支持额外 claims（如 adminRole、storeId）
-     */
-    public String generateToken(String accountId, AccountRole role, Map<String, Object> extraClaims) {
+    /** 生成 JWT 字符串，支持额外 claims（如 adminRole、storeId） */
+    public String generateToken(
+            String accountId, AccountRole role, Map<String, Object> extraClaims) {
         long now = Instant.now().getEpochSecond();
         long exp = now + expireSeconds;
 
@@ -106,10 +94,9 @@ public class JwtUtil {
             }
 
             String payloadJson = new String(base64UrlDecode(payloadPart), StandardCharsets.UTF_8);
-            Map<String, Object> payload = objectMapper.readValue(
-                payloadJson,
-                new TypeReference<Map<String, Object>>() {}
-            );
+            Map<String, Object> payload =
+                    objectMapper.readValue(
+                            payloadJson, new TypeReference<Map<String, Object>>() {});
 
             Object expObj = payload.get("exp");
             long exp = toLong(expObj);
@@ -128,6 +115,11 @@ public class JwtUtil {
             LoginUserInfo userInfo = new LoginUserInfo();
             userInfo.setAccountId(accountId);
             userInfo.setRole(role);
+
+            Object tokenVersionObj = payload.get("tokenVersion");
+            if (tokenVersionObj != null) {
+                userInfo.setTokenVersion(toInt(tokenVersionObj));
+            }
 
             // 解析管理员扩展字段
             Object adminRoleObj = payload.get("adminRole");
@@ -149,7 +141,8 @@ public class JwtUtil {
 
     private String sign(String content) throws Exception {
         Mac mac = Mac.getInstance(HMAC_ALG);
-        SecretKeySpec keySpec = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), HMAC_ALG);
+        SecretKeySpec keySpec =
+                new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), HMAC_ALG);
         mac.init(keySpec);
         byte[] sigBytes = mac.doFinal(content.getBytes(StandardCharsets.UTF_8));
         return base64UrlEncode(sigBytes);

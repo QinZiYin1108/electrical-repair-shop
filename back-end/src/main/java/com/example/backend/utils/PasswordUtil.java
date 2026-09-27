@@ -4,12 +4,42 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 public class PasswordUtil {
 
-    private static final String SALT_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private static final BCryptPasswordEncoder BCRYPT = new BCryptPasswordEncoder(12);
+
+    private static final String SALT_CHARS =
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
     public static String hashPassword(String plainPassword, String salt) {
+        return BCRYPT.encode(plainPassword);
+    }
+
+    public static boolean matches(String plainPassword, String storedHash, String legacySalt) {
+        if (plainPassword == null || storedHash == null) {
+            return false;
+        }
+        if (storedHash.startsWith("$2a$")
+                || storedHash.startsWith("$2b$")
+                || storedHash.startsWith("$2y$")) {
+            return BCRYPT.matches(plainPassword, storedHash);
+        }
+        if (legacySalt == null) {
+            return false;
+        }
+        byte[] expected =
+                legacySha256(plainPassword, legacySalt).getBytes(StandardCharsets.US_ASCII);
+        byte[] actual = storedHash.getBytes(StandardCharsets.US_ASCII);
+        return MessageDigest.isEqual(expected, actual);
+    }
+
+    public static boolean needsRehash(String storedHash) {
+        return storedHash == null || !storedHash.startsWith("$2");
+    }
+
+    private static String legacySha256(String plainPassword, String salt) {
         String content = plainPassword + "@" + salt;
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -37,4 +67,6 @@ public class PasswordUtil {
         }
         return sb.toString();
     }
+
+    private PasswordUtil() {}
 }

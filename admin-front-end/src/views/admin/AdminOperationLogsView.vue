@@ -8,12 +8,7 @@
         </div>
       </div>
 
-      <el-form
-        :inline="true"
-        :model="query"
-        class="logs-query-form"
-        label-width="83px"
-      >
+      <el-form :inline="true" :model="query" class="logs-query-form" label-width="83px">
         <el-form-item label="模块名称">
           <el-select
             v-model="query.moduleName"
@@ -86,12 +81,8 @@
           />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">
-            查询
-          </el-button>
-          <el-button @click="handleReset">
-            重置
-          </el-button>
+          <el-button type="primary" @click="handleSearch"> 查询 </el-button>
+          <el-button @click="handleReset"> 重置 </el-button>
         </el-form-item>
       </el-form>
 
@@ -110,7 +101,12 @@
           </template>
         </el-table-column>
         <el-table-column prop="operationType" label="操作类型" width="100" align="center" />
-        <el-table-column prop="operationDesc" label="操作描述" min-width="200" show-overflow-tooltip />
+        <el-table-column
+          prop="operationDesc"
+          label="操作描述"
+          min-width="200"
+          show-overflow-tooltip
+        />
         <el-table-column prop="moduleName" label="模块名称" width="130" align="center" />
         <el-table-column prop="requestMethod" label="方法" width="80" align="center" />
         <el-table-column prop="requestUrl" label="请求URL" min-width="220" show-overflow-tooltip />
@@ -129,9 +125,7 @@
         </el-table-column>
         <el-table-column label="操作" width="90" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button type="primary" link @click="handleView(row)">
-              查看
-            </el-button>
+            <el-button type="primary" link @click="handleView(row)"> 查看 </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -151,9 +145,7 @@
     </el-card>
 
     <el-dialog v-model="detailVisible" width="800px">
-      <template #title>
-        操作日志详情
-      </template>
+      <template #title> 操作日志详情 </template>
       <el-descriptions :column="2" border>
         <el-descriptions-item label="日志ID">
           {{ detail.id || '-' }}
@@ -539,4 +531,3 @@ useAdminPageRefresh(async () => {
   word-break: break-all;
 }
 </style>
-

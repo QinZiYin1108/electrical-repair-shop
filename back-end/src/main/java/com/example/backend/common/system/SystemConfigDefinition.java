@@ -18,18 +18,17 @@ public class SystemConfigDefinition {
     private final Integer sortOrder;
 
     public SystemConfigDefinition(
-        String key,
-        String groupName,
-        String groupLabel,
-        String label,
-        String description,
-        Integer configType,
-        String defaultValue,
-        String unit,
-        Long minValue,
-        Long maxValue,
-        Integer sortOrder
-    ) {
+            String key,
+            String groupName,
+            String groupLabel,
+            String label,
+            String description,
+            Integer configType,
+            String defaultValue,
+            String unit,
+            Long minValue,
+            Long maxValue,
+            Integer sortOrder) {
         this.key = key;
         this.groupName = groupName;
         this.groupLabel = groupLabel;
@@ -42,5 +41,4 @@ public class SystemConfigDefinition {
         this.maxValue = maxValue;
         this.sortOrder = sortOrder;
     }
-
 }

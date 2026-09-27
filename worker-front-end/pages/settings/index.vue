@@ -70,11 +70,13 @@
       <view class="brand-head">
         <image class="brand-logo" src="/static/logo.png" mode="aspectFit" />
         <view class="brand-meta">
-          <text class="brand-title">安修到家师傅端</text>
+          <text class="brand-title">速修派师傅端</text>
           <text class="brand-sub">面向维修师傅的接单与服务协同工具</text>
         </view>
       </view>
-      <text class="brand-copy">支持接单、定位、服务进度、评价与资金管理，让服务过程更清楚，协作更顺畅。</text>
+      <text class="brand-copy"
+        >支持接单、定位、服务进度、评价与资金管理，让服务过程更清楚，协作更顺畅。</text
+      >
       <view class="brand-tags">
         <text class="brand-tag">接单更高效</text>
         <text class="brand-tag">服务更清楚</text>
@@ -152,7 +154,8 @@ export default {
     applyCancel() {
       uni.showModal({
         title: '注销账号',
-        content: '注销后将进入7天反悔期。\n7天内再次登录将取消注销，7天后账号将自动注销。\n确定要继续吗？',
+        content:
+          '注销后将进入7天反悔期。\n7天内再次登录将取消注销，7天后账号将自动注销。\n确定要继续吗？',
         confirmText: '申请注销',
         cancelText: '取消',
         success: (res) => {

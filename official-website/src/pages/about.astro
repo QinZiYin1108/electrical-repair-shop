@@ -2,7 +2,11 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<BaseLayout title="关于我们" description="安修到家致力于打造专业、透明、便捷的线上电器维修预约平台，让每一个家庭都能享受到放心的维修服务。">
+<BaseLayout
+  title="关于我们"
+  description="速修派致力于打造专业、透明、便捷的线上电器维修预约平台，让每一个家庭都能享受到放心的维修服务。"
+>
+  <!-- Page Hero -->
   <section class="page-hero">
     <div class="container">
       <h1>关于我们</h1>
@@ -10,27 +14,111 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     </div>
   </section>
 
+  <!-- Our Story -->
   <section class="section">
     <div class="container about-story">
-      <div class="about-text">
-        <h2 class="section-title" style="text-align:left;">我们的故事</h2>
-        <p>安修到家成立于 2024 年，致力于通过互联网技术解决传统家电维修行业中的信息不对称、价格不透明、服务质量参差不齐等痛点。</p>
-        <p>我们搭建了一个连接用户与专业维修师傅的线上平台——用户通过微信小程序一键预约，系统智能匹配附近经过严格认证的专业师傅，提供透明报价、准时上门、售后保障的一站式维修服务。</p>
-        <p>目前平台已覆盖空调、冰箱、洗衣机、电视、热水器、厨房电器等全品类家电维修，累计服务超过 10,000 个家庭，合作认证师傅超过 500 名，用户好评率 98%。</p>
+      <div class="about-text reveal-left">
+        <span class="section-label" style="margin-bottom:12px;">我们的故事</span>
+        <h2 class="section-title" style="text-align:left;margin-bottom:20px;">
+          用互联网重新定义家电维修
+        </h2>
+        <p>
+          速修派成立于 2024
+          年，致力于通过互联网技术解决传统家电维修行业中的信息不对称、价格不透明、服务质量参差不齐等痛点。
+        </p>
+        <p>
+          我们搭建了一个连接用户与专业维修师傅的线上平台——用户通过微信小程序一键预约，系统智能匹配附近经过严格认证的专业师傅，提供透明报价、准时上门、售后保障的一站式维修服务。
+        </p>
+        <p>
+          目前平台已覆盖空调、冰箱、洗衣机、电视、热水器、厨房电器等全品类家电维修，累计服务超过 <strong
+            >10,000</strong
+          > 个家庭，合作认证师傅超过 <strong>500</strong> 名，用户好评率 <strong>98%</strong>。
+        </p>
       </div>
-      <div class="about-values">
+
+      <!--
+        📌 图片占位区
+        用途：团队照片或工作场景照片
+        建议尺寸：540×400px · JPG/WebP
+        风格：团队合影/师傅工作照/办公室环境
+      -->
+      <div class="about-image reveal-right">
+        <div
+          class="img-placeholder"
+          style="width:100%;aspect-ratio:1.35/1;border-radius:var(--radius-lg);"
+        >
+          <span class="ph-icon">📷</span>
+          <span>团队照片 / 工作场景</span>
+          <span class="ph-size">建议 540×400px · JPG/WebP</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Mission / Vision / Values -->
+  <section class="section" style="background:var(--color-bg-alt);">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="section-label">使命与愿景</span>
+        <h2 class="section-title">我们的承诺</h2>
+        <p class="section-subtitle">不只是修好电器，更是守护每一个家庭的安心</p>
+      </div>
+
+      <div class="about-values-grid reveal-stagger">
         <div class="value-card">
-          <div class="value-icon">🎯</div>
+          <div class="value-icon-wrap">
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              ><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"
+              ></circle><circle cx="12" cy="12" r="2"></circle></svg
+            >
+          </div>
           <h3>使命</h3>
           <p>让每一个家庭都能享受到便捷、专业、放心的家电维修服务。</p>
         </div>
         <div class="value-card">
-          <div class="value-icon">🔍</div>
+          <div class="value-icon-wrap">
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              ><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"></path><circle
+                cx="12"
+                cy="12"
+                r="3"></circle></svg
+            >
+          </div>
           <h3>愿景</h3>
           <p>成为国内最受信赖的线上家电维修服务品牌。</p>
         </div>
         <div class="value-card">
-          <div class="value-icon">💎</div>
+          <div class="value-icon-wrap">
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              ><path
+                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+              ></path></svg
+            >
+          </div>
           <h3>价值观</h3>
           <p>透明定价、品质第一、用户至上、持续创新。</p>
         </div>
@@ -38,25 +126,34 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     </div>
   </section>
 
-  <section class="section" style="background:var(--color-bg-alt);">
+  <!-- Platform Stats -->
+  <section class="section">
     <div class="container" style="text-align:center;">
-      <h2 class="section-title">平台数据</h2>
-      <p class="section-subtitle">用数字说话，见证我们的成长</p>
-      <div class="stats-row">
+      <div class="section-header reveal">
+        <span class="section-label">平台数据</span>
+        <h2 class="section-title">用数字说话</h2>
+        <p class="section-subtitle">见证我们的成长与用户的信任</p>
+      </div>
+
+      <div class="stats-row reveal-stagger">
         <div class="stat-card">
-          <strong>10,000+</strong>
+          <div class="stat-icon">👥</div>
+          <strong>10,000<span style="font-size:1.2rem;">+</span></strong>
           <span>服务用户</span>
         </div>
         <div class="stat-card">
-          <strong>500+</strong>
+          <div class="stat-icon">🔧</div>
+          <strong>500<span style="font-size:1.2rem;">+</span></strong>
           <span>认证师傅</span>
         </div>
         <div class="stat-card">
-          <strong>98%</strong>
+          <div class="stat-icon">⭐</div>
+          <strong>98<span style="font-size:1.2rem;">%</span></strong>
           <span>好评率</span>
         </div>
         <div class="stat-card">
-          <strong>8+</strong>
+          <div class="stat-icon">📦</div>
+          <strong>8<span style="font-size:1.2rem;">+</span></strong>
           <span>服务品类</span>
         </div>
       </div>
@@ -65,93 +162,144 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 </BaseLayout>
 
 <style>
-.page-hero {
-  background: linear-gradient(135deg, var(--color-primary), #6366F1);
-  color: #fff;
-  padding: 120px 0 64px;
-  text-align: center;
-}
-.page-hero h1 {
-  font-size: 2.5rem;
-  font-weight: 800;
-  margin-bottom: 8px;
-}
-.page-hero p {
-  font-size: 1.1rem;
-  opacity: .85;
-}
+  /* ===== Story Grid ===== */
+  .about-story {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 72px;
+    align-items: center;
+  }
 
-.about-story {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 64px;
-  align-items: start;
-}
+  .about-text p {
+    font-size: 1rem;
+    line-height: 1.9;
+    color: var(--color-text-secondary);
+    margin-bottom: 18px;
+  }
+  .about-text p strong {
+    color: var(--color-primary);
+    font-weight: 700;
+  }
 
-.about-text p {
-  font-size: 1rem;
-  line-height: 1.9;
-  color: var(--color-text-secondary);
-  margin-bottom: 16px;
-}
+  /* ===== Values Grid ===== */
+  .about-values-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
 
-.about-values {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
+  .value-card {
+    background: #fff;
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius);
+    padding: 36px 28px;
+    box-shadow: var(--shadow-xs);
+    transition:
+      transform 0.35s var(--ease-out-expo),
+      box-shadow 0.35s;
+    text-align: center;
+  }
+  .value-card:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-md);
+  }
 
-.value-card {
-  background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 24px;
-  box-shadow: var(--shadow-sm);
-}
+  .value-icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    margin-bottom: 18px;
+  }
+  .value-card:nth-child(1) .value-icon-wrap {
+    color: #2563eb;
+    background: rgba(37, 99, 235, 0.08);
+  }
+  .value-card:nth-child(2) .value-icon-wrap {
+    color: #2563eb;
+    background: rgba(37, 99, 235, 0.08);
+  }
+  .value-card:nth-child(3) .value-icon-wrap {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.08);
+  }
 
-.value-icon {
-  font-size: 1.75rem;
-  margin-bottom: 10px;
-}
+  .value-card h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
 
-.value-card h3 {
-  font-size: 1.05rem;
-  margin-bottom: 6px;
-}
+  .value-card p {
+    font-size: 0.92rem;
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+  }
 
-.value-card p {
-  font-size: .92rem;
-  color: var(--color-text-secondary);
-}
+  /* ===== Stats Row ===== */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 28px;
+  }
 
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
-}
+  .stat-card {
+    background: #fff;
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius);
+    padding: 40px 20px;
+    box-shadow: var(--shadow-xs);
+    transition:
+      transform 0.35s var(--ease-out-expo),
+      box-shadow 0.35s;
+    text-align: center;
+  }
+  .stat-card:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-md);
+  }
 
-.stat-card {
-  background: #fff;
-  border-radius: var(--radius);
-  padding: 36px 20px;
-  box-shadow: var(--shadow-sm);
-}
+  .stat-icon {
+    font-size: 2rem;
+    margin-bottom: 14px;
+    display: block;
+  }
 
-.stat-card strong {
-  display: block;
-  font-size: 2rem;
-  font-weight: 800;
-  color: var(--color-primary);
-  margin-bottom: 6px;
-}
+  .stat-card strong {
+    display: block;
+    font-size: 2.25rem;
+    font-weight: 850;
+    background: var(--gradient-brand);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+  }
 
-.stat-card span {
-  font-size: .95rem;
-  color: var(--color-text-secondary);
-}
+  .stat-card span {
+    font-size: 0.92rem;
+    color: var(--color-text-secondary);
+  }
 
-@media (max-width: 768px) {
-  .about-story { grid-template-columns: 1fr; }
-  .stats-row { grid-template-columns: 1fr 1fr; }
-}
+  /* ===== Responsive ===== */
+  @media (max-width: 768px) {
+    .about-story {
+      grid-template-columns: 1fr;
+      gap: 40px;
+    }
+    .about-image {
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    .about-values-grid {
+      grid-template-columns: 1fr;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    .stats-row {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
 </style>

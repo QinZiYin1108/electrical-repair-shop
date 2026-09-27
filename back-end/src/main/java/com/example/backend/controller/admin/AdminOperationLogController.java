@@ -12,6 +12,10 @@ import com.example.backend.security.context.AuthUserContext;
 import com.example.backend.security.model.AccountRole;
 import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.OperationLogsService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,10 +23,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @RestController
+@Tag(name = "管理员端/操作日志")
 @RequestMapping("/admin/system/operation-logs")
 public class AdminOperationLogController {
 
@@ -34,16 +36,15 @@ public class AdminOperationLogController {
 
     @GetMapping
     public Result<Page<AdminOperationLogListItemResponse>> listLogs(
-        @RequestParam(value = "pageNum", defaultValue = "1") long pageNum,
-        @RequestParam(value = "pageSize", defaultValue = "10") long pageSize,
-        @RequestParam(value = "moduleName", required = false) String moduleName,
-        @RequestParam(value = "operationType", required = false) String operationType,
-        @RequestParam(value = "operatorType", required = false) Integer operatorType,
-        @RequestParam(value = "operatorName", required = false) String operatorName,
-        @RequestParam(value = "status", required = false) Integer status,
-        @RequestParam(value = "startTime", required = false) Long startTime,
-        @RequestParam(value = "endTime", required = false) Long endTime
-    ) {
+            @RequestParam(value = "pageNum", defaultValue = "1") long pageNum,
+            @RequestParam(value = "pageSize", defaultValue = "10") long pageSize,
+            @RequestParam(value = "moduleName", required = false) String moduleName,
+            @RequestParam(value = "operationType", required = false) String operationType,
+            @RequestParam(value = "operatorType", required = false) Integer operatorType,
+            @RequestParam(value = "operatorName", required = false) String operatorName,
+            @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "startTime", required = false) Long startTime,
+            @RequestParam(value = "endTime", required = false) Long endTime) {
         LoginUserInfo user = AuthUserContext.get();
         if (user == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "未登录");
@@ -57,8 +58,8 @@ public class AdminOperationLogController {
         if (pageSize <= 0) {
             pageSize = 10;
         }
-        LambdaQueryWrapper<OperationLogs> wrapper = new LambdaQueryWrapper<OperationLogs>()
-            .eq(OperationLogs::getIsDelete, 0);
+        LambdaQueryWrapper<OperationLogs> wrapper =
+                new LambdaQueryWrapper<OperationLogs>().eq(OperationLogs::getIsDelete, 0);
         if (StringUtils.hasText(moduleName)) {
             wrapper.eq(OperationLogs::getModuleName, moduleName.trim());
         }
@@ -81,7 +82,8 @@ public class AdminOperationLogController {
             wrapper.le(OperationLogs::getCreatedTime, endTime);
         }
         wrapper.orderByDesc(OperationLogs::getCreatedTime);
-        Page<OperationLogs> page = operationLogsService.page(new Page<>(pageNum, pageSize), wrapper);
+        Page<OperationLogs> page =
+                operationLogsService.page(new Page<>(pageNum, pageSize), wrapper);
         List<OperationLogs> records = page.getRecords();
         List<AdminOperationLogListItemResponse> items = new ArrayList<>();
         for (OperationLogs log : records) {
@@ -98,11 +100,13 @@ public class AdminOperationLogController {
             item.setCreatedTime(log.getCreatedTime());
             items.add(item);
         }
-        Page<AdminOperationLogListItemResponse> resultPage = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
+        Page<AdminOperationLogListItemResponse> resultPage =
+                new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
         resultPage.setRecords(items);
         return Result.success(resultPage);
     }
 
+    @Operation(summary = "查询详情")
     @GetMapping("/{id}")
     public Result<AdminOperationLogDetailResponse> getDetail(@PathVariable("id") String id) {
         LoginUserInfo user = AuthUserContext.get();
@@ -141,4 +145,3 @@ public class AdminOperationLogController {
         return Result.success(resp);
     }
 }
-

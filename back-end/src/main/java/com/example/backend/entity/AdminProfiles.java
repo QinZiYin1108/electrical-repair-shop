@@ -3,70 +3,42 @@ package com.example.backend.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
-/**
- * 管理员信息表
- * @TableName admin_profiles
- */
-@TableName(value ="admin_profiles")
+/** 管理员信息表 @TableName admin_profiles */
+@TableName(value = "admin_profiles")
 @Data
 public class AdminProfiles {
-    /**
-     * 主键，AP+雪花ID
-     */
-    @TableId
-    private String id;
+    /** 主键，AP+雪花ID */
+    @TableId private String id;
 
-    /**
-     * 账号ID
-     */
+    /** 账号ID */
     private String accountId;
 
-    /**
-     * 真实姓名
-     */
+    /** 真实姓名 */
     private String realName;
 
-    /**
-     * 手机号
-     */
+    /** 手机号 */
     private String phone;
 
-    /**
-     * 邮箱
-     */
+    /** 邮箱 */
     private String email;
 
-    /**
-     * 部门
-     */
+    /** 部门 */
     private String department;
 
-    /**
-     * 职位
-     */
+    /** 职位 */
     private String position;
 
-    /**
-     * 创建时间戳
-     */
+    /** 创建时间戳 */
     private Long createdTime;
 
-    /**
-     * 更新时间戳
-     */
+    /** 更新时间戳 */
     private Long updatedTime;
 
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
+    /** 乐观锁版本号 */
+    @Version private Integer version;
 
-    /**
-     * 逻辑删除：0-未删除，1-已删除
-     */
-    @TableLogic
-    private Integer isDelete;
+    /** 逻辑删除：0-未删除，1-已删除 */
+    @TableLogic private Integer isDelete;
 
     @Override
     public boolean equals(Object that) {
@@ -81,16 +53,36 @@ public class AdminProfiles {
         }
         AdminProfiles other = (AdminProfiles) that;
         return (this.getId() == null ? other.getId() == null : this.getId().equals(other.getId()))
-            && (this.getAccountId() == null ? other.getAccountId() == null : this.getAccountId().equals(other.getAccountId()))
-            && (this.getRealName() == null ? other.getRealName() == null : this.getRealName().equals(other.getRealName()))
-            && (this.getPhone() == null ? other.getPhone() == null : this.getPhone().equals(other.getPhone()))
-            && (this.getEmail() == null ? other.getEmail() == null : this.getEmail().equals(other.getEmail()))
-            && (this.getDepartment() == null ? other.getDepartment() == null : this.getDepartment().equals(other.getDepartment()))
-            && (this.getPosition() == null ? other.getPosition() == null : this.getPosition().equals(other.getPosition()))
-            && (this.getCreatedTime() == null ? other.getCreatedTime() == null : this.getCreatedTime().equals(other.getCreatedTime()))
-            && (this.getUpdatedTime() == null ? other.getUpdatedTime() == null : this.getUpdatedTime().equals(other.getUpdatedTime()))
-            && (this.getVersion() == null ? other.getVersion() == null : this.getVersion().equals(other.getVersion()))
-            && (this.getIsDelete() == null ? other.getIsDelete() == null : this.getIsDelete().equals(other.getIsDelete()));
+                && (this.getAccountId() == null
+                        ? other.getAccountId() == null
+                        : this.getAccountId().equals(other.getAccountId()))
+                && (this.getRealName() == null
+                        ? other.getRealName() == null
+                        : this.getRealName().equals(other.getRealName()))
+                && (this.getPhone() == null
+                        ? other.getPhone() == null
+                        : this.getPhone().equals(other.getPhone()))
+                && (this.getEmail() == null
+                        ? other.getEmail() == null
+                        : this.getEmail().equals(other.getEmail()))
+                && (this.getDepartment() == null
+                        ? other.getDepartment() == null
+                        : this.getDepartment().equals(other.getDepartment()))
+                && (this.getPosition() == null
+                        ? other.getPosition() == null
+                        : this.getPosition().equals(other.getPosition()))
+                && (this.getCreatedTime() == null
+                        ? other.getCreatedTime() == null
+                        : this.getCreatedTime().equals(other.getCreatedTime()))
+                && (this.getUpdatedTime() == null
+                        ? other.getUpdatedTime() == null
+                        : this.getUpdatedTime().equals(other.getUpdatedTime()))
+                && (this.getVersion() == null
+                        ? other.getVersion() == null
+                        : this.getVersion().equals(other.getVersion()))
+                && (this.getIsDelete() == null
+                        ? other.getIsDelete() == null
+                        : this.getIsDelete().equals(other.getIsDelete()));
     }
 
     @Override

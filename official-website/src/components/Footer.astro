@@ -1,15 +1,39 @@
 <footer class="site-footer">
+  <!-- Subtle top decoration -->
+  <div
+    style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.08) 20%,rgba(255,255,255,.12) 50%,rgba(255,255,255,.08) 80%,transparent);"
+    aria-hidden="true"
+  >
+  </div>
+
   <div class="footer-grid">
+    <!-- Brand column -->
     <div class="footer-brand">
-      <div class="brand" style="margin-bottom:12px;">
-        <img src="/images/logo.png" alt="安修到家" style="width:36px;height:36px;border-radius:8px;" />
-        <span class="brand-name">安修到家</span>
+      <div class="brand" style="margin-bottom:14px;">
+        <img
+          src="/images/logo.png"
+          alt="速修派"
+          style="width:40px;height:40px;border-radius:var(--radius-xs);"
+        />
+        <span class="brand-name" style="font-size:1.25rem;">速修派</span>
       </div>
       <p class="footer-desc">
-        安修到家是专业的线上电器维修预约平台，覆盖空调、冰箱、洗衣机、电视等全品类家电维修服务。一键预约，师傅上门，透明定价，品质保障。
+        专业线上电器维修预约平台，覆盖空调、冰箱、洗衣机、电视等全品类家电。一键预约，师傅上门，透明定价，品质保障。
       </p>
+      <!--
+        📌 社交图标占位区
+        建议添加：微信公众号图标、微信小程序图标、微博图标 等
+        格式：SVG icon 或 iconfont
+        尺寸：24×24px 各
+      -->
+      <div class="footer-social">
+        <span class="social-icon" title="微信公众号">💬</span>
+        <span class="social-icon" title="微信小程序">📱</span>
+        <span class="social-icon" title="客服电话">📞</span>
+      </div>
     </div>
 
+    <!-- Quick nav -->
     <div class="footer-col">
       <h4>快速导航</h4>
       <a href="/">首页</a>
@@ -18,8 +42,9 @@
       <a href="/contact">联系我们</a>
     </div>
 
+    <!-- Services -->
     <div class="footer-col">
-      <h4>服务项目</h4>
+      <h4>热门服务</h4>
       <a href="/services">空调维修</a>
       <a href="/services">冰箱维修</a>
       <a href="/services">洗衣机维修</a>
@@ -27,16 +52,18 @@
       <a href="/services">热水器维修</a>
     </div>
 
+    <!-- Contact -->
     <div class="footer-col">
       <h4>联系方式</h4>
-      <a>客服热线：400-XXX-XXXX</a>
-      <a>服务时间：8:00-20:00</a>
-      <a>邮箱：support@leonyin.cn</a>
-      <a>微信公众号：安修到家</a>
+      <a>📞 客服热线：18647814174</a>
+      <a>🕐 服务时间：8:00-20:00</a>
+      <a>📧 邮箱：leonyin2003@outlook.com</a>
+      <a>💬 公众号：速修派</a>
     </div>
   </div>
 
+  <!-- Bottom bar -->
   <div class="footer-bottom">
-    <p>&copy; {new Date().getFullYear()} 安修到家 版权所有 | 备案号：待备案</p>
+    <p>&copy; {new Date().getFullYear()} 速修派 版权所有 | 备案号：待备案</p>
   </div>
 </footer>

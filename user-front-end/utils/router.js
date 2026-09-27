@@ -15,7 +15,10 @@ const needLoginPages = [
   'pages/product-order-detail/index',
   'pages/favorite-products/index',
   'pages/order-review/index',
-  'pages/after-sales/index'
+  'pages/after-sales/index',
+  'pages/report-submit/index',
+  'pages/my-reports/index',
+  'pages/credit-score/index'
 ];
 
 const checkNeedLogin = (url) => {

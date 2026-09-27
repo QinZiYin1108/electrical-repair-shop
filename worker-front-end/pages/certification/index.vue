@@ -57,7 +57,9 @@
       />
 
       <view class="tips">
-        <text class="tips-text">说明：当前为模拟认证流程，仅校验手机号和身份证号格式。</text>
+        <text class="tips-text"
+          >说明：提交后将通过权威数据源核验您的姓名和身份证号，请确保信息真实有效。</text
+        >
       </view>
     </view>
   </view>
@@ -100,7 +102,9 @@ export default {
       return /^1[3-9]\d{9}$/.test(phone);
     },
     isIdCard(idCard) {
-      return /^[1-9]\d{5}(19\d{2}|20\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{3}[0-9Xx]$/.test(idCard);
+      return /^[1-9]\d{5}(19\d{2}|20\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{3}[0-9Xx]$/.test(
+        idCard
+      );
     },
     submit() {
       if (this.submitting) return;

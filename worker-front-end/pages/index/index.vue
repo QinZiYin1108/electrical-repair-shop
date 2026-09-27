@@ -14,7 +14,11 @@
           <view class="status-dropdown-item" @click="handleStatusMenuClick">
             <text
               class="status-dropdown-dot"
-              :class="statusMenuOption.value === 1 ? 'status-dropdown-dot-online' : 'status-dropdown-dot-offline'"
+              :class="
+                statusMenuOption.value === 1
+                  ? 'status-dropdown-dot-online'
+                  : 'status-dropdown-dot-offline'
+              "
             />
             <text class="status-dropdown-text">{{ statusMenuOption.name }}</text>
           </view>
@@ -76,7 +80,10 @@
             <text class="section-title">待接单</text>
             <text class="section-count">{{ orderBoard.waitingCount || 0 }} 单</text>
           </view>
-          <view v-if="orderBoard.waitingOrders && orderBoard.waitingOrders.length" class="order-list">
+          <view
+            v-if="orderBoard.waitingOrders && orderBoard.waitingOrders.length"
+            class="order-list"
+          >
             <view
               v-for="item in orderBoard.waitingOrders"
               :key="item.id"
@@ -97,10 +104,14 @@
               </view>
               <view class="order-core-meta">
                 <view class="meta-row-item meta-row-item-address">
-                  <text class="meta-row-text">{{ item.serviceAddressShort || item.serviceAddress || '暂无地址' }}</text>
+                  <text class="meta-row-text">{{
+                    item.serviceAddressShort || item.serviceAddress || '暂无地址'
+                  }}</text>
                 </view>
                 <view class="meta-row-item">
-                  <text class="meta-chip-text">预约时间： {{ formatOrderTime(item.appointmentTime) }}</text>
+                  <text class="meta-chip-text"
+                    >预约时间： {{ formatOrderTime(item.appointmentTime) }}</text
+                  >
                 </view>
               </view>
             </view>
@@ -115,7 +126,10 @@
             <text class="section-title">进行中订单</text>
             <text class="section-count">{{ orderBoard.inProgressCount || 0 }} 单</text>
           </view>
-          <view v-if="orderBoard.inProgressOrders && orderBoard.inProgressOrders.length" class="order-list">
+          <view
+            v-if="orderBoard.inProgressOrders && orderBoard.inProgressOrders.length"
+            class="order-list"
+          >
             <view
               v-for="item in orderBoard.inProgressOrders"
               :key="item.id"
@@ -131,12 +145,16 @@
                   <text class="order-service-tag" :class="serviceTagClass(item.serviceMode)">
                     {{ serviceTagText(item.serviceMode, item.serviceModeText) }}
                   </text>
-                  <text class="order-status" :class="statusClass(item.status)">{{ item.statusText }}</text>
+                  <text class="order-status" :class="statusClass(item.status)">{{
+                    item.statusText
+                  }}</text>
                 </view>
               </view>
               <view class="order-core-meta">
                 <view class="meta-row-item meta-row-item-address">
-                  <text class="meta-row-text">{{ item.serviceAddressShort || item.serviceAddress || '暂无地址' }}</text>
+                  <text class="meta-row-text">{{
+                    item.serviceAddressShort || item.serviceAddress || '暂无地址'
+                  }}</text>
                 </view>
                 <view class="meta-row-item">
                   <text class="meta-chip-text">{{ formatOrderTime(item.appointmentTime) }}</text>
@@ -181,7 +199,12 @@
     >
       <view class="sidebar">
         <view class="sidebar-header">
-          <image class="sidebar-avatar" :src="avatarDisplayUrl" mode="aspectFill" @error="onAvatarError" />
+          <image
+            class="sidebar-avatar"
+            :src="avatarDisplayUrl"
+            mode="aspectFill"
+            @error="onAvatarError"
+          />
           <view class="sidebar-meta">
             <view class="sidebar-name">{{ workerInfo.username || '维修师傅' }}</view>
           </view>
@@ -237,35 +260,19 @@
             </view>
           </view>
           <view class="order-row order-row-address">
-            <text class="order-label">当前地址</text>
+            <text class="order-label">门店地址</text>
             <view class="order-address-wrapper">
-              <text
-                class="order-address"
-                :class="!workerInfo.address ? 'order-address-placeholder' : ''"
-              >
-                {{ workerInfo.address || '暂未定位' }}
+              <text class="order-address">
+                {{ workerInfo.storeName || '-' }}
               </text>
-              <u-button
-                class="location-btn"
-                size="mini"
-                type="primary"
-                :plain="true"
-                shape="circle"
-                :loading="locating"
-                :disabled="locating || !canAcceptOrder"
-                :text="locating ? '定位中' : '定位修改'"
-                @click="useGpsLocation"
-              />
+              <text class="order-address-sub">
+                {{ workerInfo.storeAddress || '暂无门店地址' }}
+              </text>
             </view>
           </view>
         </view>
         <view class="order-setting-footer">
-          <u-button
-            text="完成"
-            type="primary"
-            shape="circle"
-            @click="showOrderSetting = false"
-          />
+          <u-button text="完成" type="primary" shape="circle" @click="showOrderSetting = false" />
         </view>
       </view>
     </u-popup>
@@ -274,7 +281,6 @@
 
 <script>
 import { getWorkerAccountInfo, updateWorkerWorkStatus } from '@/api/workerAccount';
-import { updateWorkerLocation } from '@/api/workerLocation';
 import { fetchWorkerUnreadFlag } from '@/api/workerMessages';
 import { fetchWorkerHomeOrders } from '@/api/workerOrders';
 
@@ -363,7 +369,10 @@ export default {
         address: '',
         latitude: null,
         longitude: null,
-        avatarUrl: ''
+        avatarUrl: '',
+        storeId: null,
+        storeName: '',
+        storeAddress: ''
       },
       orderBoard: {
         waitingCount: 0,
@@ -385,7 +394,10 @@ export default {
   computed: {
     avatarDisplayUrl() {
       if (this.avatarLoadFailed) return '/static/logo.png';
-      const url = (this.workerInfo && this.workerInfo.avatarUrl) ? String(this.workerInfo.avatarUrl).trim() : '';
+      const url =
+        this.workerInfo && this.workerInfo.avatarUrl
+          ? String(this.workerInfo.avatarUrl).trim()
+          : '';
       return url || '/static/logo.png';
     },
     workStatusText() {
@@ -404,7 +416,7 @@ export default {
       };
     },
     canAcceptOrder() {
-      return this.workerInfo.accountStatus === 1;
+      return this.workerInfo.accountStatus === 1 && !!this.workerInfo.storeId;
     },
     statusNotice() {
       return this.getAccountStatusNotice(this.workerInfo.accountStatus);
@@ -417,6 +429,12 @@ export default {
   },
   onShow() {
     this.showStatusDropdown = false;
+    const app = getApp();
+    const token = uni.getStorageSync('workerToken');
+    if (!token || !(app && app.globalData && app.globalData.workerIsLogin)) {
+      uni.reLaunch({ url: '/pages/login/index' });
+      return;
+    }
     this.loadHomeData();
     this.loadUnreadFlag();
   },
@@ -438,8 +456,12 @@ export default {
               waitingCount: Number(res.data.waitingCount || 0),
               inProgressCount: Number(res.data.inProgressCount || 0),
               totalActiveCount: Number(res.data.totalActiveCount || 0),
-              waitingOrders: Array.isArray(res.data.waitingOrders) ? res.data.waitingOrders.map(normalizeHomeOrderItem) : [],
-              inProgressOrders: Array.isArray(res.data.inProgressOrders) ? res.data.inProgressOrders.map(normalizeHomeOrderItem) : []
+              waitingOrders: Array.isArray(res.data.waitingOrders)
+                ? res.data.waitingOrders.map(normalizeHomeOrderItem)
+                : [],
+              inProgressOrders: Array.isArray(res.data.inProgressOrders)
+                ? res.data.inProgressOrders.map(normalizeHomeOrderItem)
+                : []
             };
             return true;
           }
@@ -452,8 +474,9 @@ export default {
         });
     },
     loadHomeData() {
-      return Promise.all([this.loadWorkerInfo(), this.loadHomeOrders()])
-        .then(results => results.every(Boolean));
+      return Promise.all([this.loadWorkerInfo(), this.loadHomeOrders()]).then((results) =>
+        results.every(Boolean)
+      );
     },
     onAvatarError() {
       this.avatarLoadFailed = true;
@@ -484,7 +507,12 @@ export default {
       fetchWorkerUnreadFlag()
         .then((res) => {
           let hasUnread = false;
-          if (res && res.code === 200 && res.data && typeof res.data.totalUnreadCount === 'number') {
+          if (
+            res &&
+            res.code === 200 &&
+            res.data &&
+            typeof res.data.totalUnreadCount === 'number'
+          ) {
             hasUnread = res.data.totalUnreadCount > 0;
           }
           this.hasUnread = hasUnread;
@@ -680,12 +708,14 @@ export default {
       if (authorizedStatus === 'denied') {
         return true;
       }
-      return raw.includes('auth deny')
-        || raw.includes('auth denied')
-        || raw.includes('permission denied')
-        || raw.includes('system permission denied')
-        || raw.includes('without permission')
-        || raw.includes('authorize no response');
+      return (
+        raw.includes('auth deny') ||
+        raw.includes('auth denied') ||
+        raw.includes('permission denied') ||
+        raw.includes('system permission denied') ||
+        raw.includes('without permission') ||
+        raw.includes('authorize no response')
+      );
     },
     buildLocationErrorMessage(error) {
       const raw = this.getLocationErrorRawMessage(error);
@@ -698,19 +728,19 @@ export default {
         return '定位权限未开启，请在系统设置里允许定位权限后重试';
       }
       if (
-        lower.includes('gps')
-        || lower.includes('provider')
-        || lower.includes('location service')
-        || lower.includes('service unavailable')
-        || lower.includes('service not enabled')
+        lower.includes('gps') ||
+        lower.includes('provider') ||
+        lower.includes('location service') ||
+        lower.includes('service unavailable') ||
+        lower.includes('service not enabled')
       ) {
         return '系统定位服务未开启，请先打开手机定位服务后重试';
       }
       if (
-        lower.includes('config')
-        || lower.includes('sdk')
-        || lower.includes('key')
-        || lower.includes('ak')
+        lower.includes('config') ||
+        lower.includes('sdk') ||
+        lower.includes('key') ||
+        lower.includes('ak')
       ) {
         return '当前安装包定位配置不完整，请重新打包后重试';
       }
@@ -721,8 +751,8 @@ export default {
     },
     showLocationError(error) {
       const content = this.buildLocationErrorMessage(error);
-      const canOpenSetting = this.isLocationPermissionDenied(error)
-        && typeof uni.openAppAuthorizeSetting === 'function';
+      const canOpenSetting =
+        this.isLocationPermissionDenied(error) && typeof uni.openAppAuthorizeSetting === 'function';
       uni.showModal({
         title: '定位失败',
         content,
@@ -763,42 +793,16 @@ export default {
       });
     },
     updateLocation(payload) {
-      updateWorkerLocation(payload)
-        .then((res) => {
-          if (res && res.code === 200 && res.data) {
-            this.workerInfo.address = res.data.address || this.workerInfo.address;
-            const nextLatitude = res.data.latitude;
-            const nextLongitude = res.data.longitude;
-            this.workerInfo.latitude = (nextLatitude === null || nextLatitude === undefined)
-              ? this.workerInfo.latitude
-              : nextLatitude;
-            this.workerInfo.longitude = (nextLongitude === null || nextLongitude === undefined)
-              ? this.workerInfo.longitude
-              : nextLongitude;
-            const app = getApp();
-            if (app && app.globalData) {
-              app.globalData.workerInfo = this.workerInfo;
-            }
-            uni.showToast({ title: '定位已更新', icon: 'success' });
-          } else {
-            uni.showToast({
-              title: (res && res.message) || '更新失败',
-              icon: 'none'
-            });
-          }
-        })
-        .catch((error) => {
-          uni.showToast({
-            title: (error && error.message) || '更新失败',
-            icon: 'none'
-          });
-        })
-        .finally(() => {
-          this.locating = false;
-        });
+      // 个人定位已废弃，定位统一由门店管理
+      this.locating = false;
     },
     getAccountStatusNotice(accountStatus) {
-      if (accountStatus === 1) return null;
+      if (accountStatus === 1) {
+        if (!this.workerInfo.storeId) {
+          return { message: '请先绑定门店后才能上线接单', actionText: '去绑定' };
+        }
+        return null;
+      }
       if (accountStatus === 2) {
         return {
           message: '账号未实名认证，暂无法接单',
@@ -832,6 +836,11 @@ export default {
     handleStatusNoticeAction() {
       if (this.workerInfo.accountStatus === 2) {
         this.goCertification();
+      }
+      if (!this.workerInfo.storeId) {
+        uni.navigateTo({
+          url: '/pages/store-binding/index'
+        });
       }
     },
     goCertification() {

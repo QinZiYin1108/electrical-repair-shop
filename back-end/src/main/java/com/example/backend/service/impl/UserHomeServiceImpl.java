@@ -25,9 +25,6 @@ import com.example.backend.service.TechnicianAccountsService;
 import com.example.backend.service.TechnicianSkillsService;
 import com.example.backend.service.UserFollowTechniciansService;
 import com.example.backend.service.UserHomeService;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
 public class UserHomeServiceImpl implements UserHomeService {
@@ -59,15 +58,14 @@ public class UserHomeServiceImpl implements UserHomeService {
     private final TechnicianSkillsService technicianSkillsService;
 
     public UserHomeServiceImpl(
-        AnnouncementsService announcementsService,
-        ImagesService imagesService,
-        ServiceCategoriesService serviceCategoriesService,
-        ServiceTypesService serviceTypesService,
-        RepairOrdersService repairOrdersService,
-        UserFollowTechniciansService userFollowTechniciansService,
-        TechnicianAccountsService technicianAccountsService,
-        TechnicianSkillsService technicianSkillsService
-    ) {
+            AnnouncementsService announcementsService,
+            ImagesService imagesService,
+            ServiceCategoriesService serviceCategoriesService,
+            ServiceTypesService serviceTypesService,
+            RepairOrdersService repairOrdersService,
+            UserFollowTechniciansService userFollowTechniciansService,
+            TechnicianAccountsService technicianAccountsService,
+            TechnicianSkillsService technicianSkillsService) {
         this.announcementsService = announcementsService;
         this.imagesService = imagesService;
         this.serviceCategoriesService = serviceCategoriesService;
@@ -84,17 +82,22 @@ public class UserHomeServiceImpl implements UserHomeService {
         long now = System.currentTimeMillis();
 
         List<Announcements> banners = listActiveAnnouncements(ANNOUNCEMENT_CHANNEL_BANNER, now, 8);
-        Map<String, String> bannerImageMap = loadLatestImageUrlMap(
-            banners.stream()
-                .filter(item -> Objects.equals(item.getContentType(), ANNOUNCEMENT_CONTENT_TYPE_IMAGE))
-                .map(Announcements::getId)
-                .collect(Collectors.toList()),
-            ANNOUNCEMENT_IMAGE_BUSINESS_TYPE
-        );
+        Map<String, String> bannerImageMap =
+                loadLatestImageUrlMap(
+                        banners.stream()
+                                .filter(
+                                        item ->
+                                                Objects.equals(
+                                                        item.getContentType(),
+                                                        ANNOUNCEMENT_CONTENT_TYPE_IMAGE))
+                                .map(Announcements::getId)
+                                .collect(Collectors.toList()),
+                        ANNOUNCEMENT_IMAGE_BUSINESS_TYPE);
 
         List<UserHomePublicResponse.BannerItem> bannerItems = new ArrayList<>();
         for (Announcements banner : banners) {
-            boolean isImageBanner = Objects.equals(banner.getContentType(), ANNOUNCEMENT_CONTENT_TYPE_IMAGE);
+            boolean isImageBanner =
+                    Objects.equals(banner.getContentType(), ANNOUNCEMENT_CONTENT_TYPE_IMAGE);
             String imageUrl = bannerImageMap.get(banner.getId());
             if (isImageBanner && !StringUtils.hasText(imageUrl)) {
                 continue;
@@ -112,7 +115,8 @@ public class UserHomeServiceImpl implements UserHomeService {
                 item.setSubtitle("");
             } else {
                 item.setTitle(defaultText(banner.getTitle(), "平台公告"));
-                item.setSubtitle(defaultText(firstNonBlank(banner.getSubtitle(), banner.getContent()), ""));
+                item.setSubtitle(
+                        defaultText(firstNonBlank(banner.getSubtitle(), banner.getContent()), ""));
             }
             bannerItems.add(item);
         }
@@ -152,64 +156,73 @@ public class UserHomeServiceImpl implements UserHomeService {
     }
 
     private RepairOrders findLatestHomeOrder(String accountId) {
-        RepairOrders acceptedOrder = repairOrdersService.getOne(
-            new LambdaQueryWrapper<RepairOrders>()
-                .eq(RepairOrders::getAccountId, accountId)
-                .eq(RepairOrders::getIsDelete, 0)
-                .in(RepairOrders::getStatus, 2, 3, 4, 5)
-                .orderByDesc(RepairOrders::getUpdatedTime)
-                .orderByDesc(RepairOrders::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+        RepairOrders acceptedOrder =
+                repairOrdersService.getOne(
+                        new LambdaQueryWrapper<RepairOrders>()
+                                .eq(RepairOrders::getAccountId, accountId)
+                                .eq(RepairOrders::getIsDelete, 0)
+                                .in(RepairOrders::getStatus, 2, 3, 4, 5)
+                                .orderByDesc(RepairOrders::getUpdatedTime)
+                                .orderByDesc(RepairOrders::getCreatedTime)
+                                .last("limit 1"),
+                        false);
         if (acceptedOrder != null) {
             return acceptedOrder;
         }
 
         return repairOrdersService.getOne(
-            new LambdaQueryWrapper<RepairOrders>()
-                .eq(RepairOrders::getAccountId, accountId)
-                .eq(RepairOrders::getIsDelete, 0)
-                .eq(RepairOrders::getStatus, 1)
-                .orderByDesc(RepairOrders::getUpdatedTime)
-                .orderByDesc(RepairOrders::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+                new LambdaQueryWrapper<RepairOrders>()
+                        .eq(RepairOrders::getAccountId, accountId)
+                        .eq(RepairOrders::getIsDelete, 0)
+                        .eq(RepairOrders::getStatus, 1)
+                        .orderByDesc(RepairOrders::getUpdatedTime)
+                        .orderByDesc(RepairOrders::getCreatedTime)
+                        .last("limit 1"),
+                false);
     }
 
     private List<Announcements> listActiveAnnouncements(int channel, long now, int limit) {
         return announcementsService.list(
-            new LambdaQueryWrapper<Announcements>()
-                .eq(Announcements::getChannel, channel)
-                .eq(Announcements::getIsActive, 1)
-                .and(wrapper -> wrapper.isNull(Announcements::getStartTime).or().le(Announcements::getStartTime, now))
-                .and(wrapper -> wrapper.isNull(Announcements::getEndTime).or().ge(Announcements::getEndTime, now))
-                .orderByAsc(Announcements::getSortOrder)
-                .orderByDesc(Announcements::getCreatedTime)
-                .last("limit " + limit)
-        );
+                new LambdaQueryWrapper<Announcements>()
+                        .eq(Announcements::getChannel, channel)
+                        .eq(Announcements::getIsActive, 1)
+                        .and(
+                                wrapper ->
+                                        wrapper.isNull(Announcements::getStartTime)
+                                                .or()
+                                                .le(Announcements::getStartTime, now))
+                        .and(
+                                wrapper ->
+                                        wrapper.isNull(Announcements::getEndTime)
+                                                .or()
+                                                .ge(Announcements::getEndTime, now))
+                        .orderByAsc(Announcements::getSortOrder)
+                        .orderByDesc(Announcements::getCreatedTime)
+                        .last("limit " + limit));
     }
 
     private List<UserHomePublicResponse.HotCategoryItem> buildHotCategories() {
-        List<ServiceCategories> categories = serviceCategoriesService.list(
-            new LambdaQueryWrapper<ServiceCategories>()
-                .eq(ServiceCategories::getLevel, 3)
-                .eq(ServiceCategories::getIsActive, 1)
-                .orderByAsc(ServiceCategories::getSortOrder)
-                .orderByDesc(ServiceCategories::getCreatedTime)
-                .last("limit 12")
-        );
+        List<ServiceCategories> categories =
+                serviceCategoriesService.list(
+                        new LambdaQueryWrapper<ServiceCategories>()
+                                .eq(ServiceCategories::getLevel, 3)
+                                .eq(ServiceCategories::getIsActive, 1)
+                                .orderByAsc(ServiceCategories::getSortOrder)
+                                .orderByDesc(ServiceCategories::getCreatedTime)
+                                .last("limit 12"));
         if (categories.isEmpty()) {
             return new ArrayList<>();
         }
 
-        List<String> categoryIds = categories.stream().map(ServiceCategories::getId).collect(Collectors.toList());
-        Map<String, String> categoryIconMap = loadLatestImageUrlMap(categoryIds, SERVICE_CATEGORY_IMAGE_BUSINESS_TYPE);
+        List<String> categoryIds =
+                categories.stream().map(ServiceCategories::getId).collect(Collectors.toList());
+        Map<String, String> categoryIconMap =
+                loadLatestImageUrlMap(categoryIds, SERVICE_CATEGORY_IMAGE_BUSINESS_TYPE);
 
         List<UserHomePublicResponse.HotCategoryItem> result = new ArrayList<>();
         for (ServiceCategories category : categories) {
-            UserHomePublicResponse.HotCategoryItem item = new UserHomePublicResponse.HotCategoryItem();
+            UserHomePublicResponse.HotCategoryItem item =
+                    new UserHomePublicResponse.HotCategoryItem();
             item.setId(category.getId());
             item.setName(category.getName());
             item.setDesc(defaultText(category.getDescription(), "专业维修服务"));
@@ -219,51 +232,58 @@ public class UserHomeServiceImpl implements UserHomeService {
         return result;
     }
 
-    private List<UserHomePrivateResponse.FollowedWorkerItem> buildFollowedWorkers(String accountId) {
-        List<UserFollowTechnicians> follows = userFollowTechniciansService.list(
-            new LambdaQueryWrapper<UserFollowTechnicians>()
-                .eq(UserFollowTechnicians::getAccountId, accountId)
-                .orderByDesc(UserFollowTechnicians::getCreatedTime)
-                .last("limit 20")
-        );
+    private List<UserHomePrivateResponse.FollowedWorkerItem> buildFollowedWorkers(
+            String accountId) {
+        List<UserFollowTechnicians> follows =
+                userFollowTechniciansService.list(
+                        new LambdaQueryWrapper<UserFollowTechnicians>()
+                                .eq(UserFollowTechnicians::getAccountId, accountId)
+                                .orderByDesc(UserFollowTechnicians::getCreatedTime)
+                                .last("limit 20"));
         if (follows.isEmpty()) {
             return new ArrayList<>();
         }
 
-        List<String> technicianIds = follows.stream()
-            .map(UserFollowTechnicians::getTechnicianAccountId)
-            .distinct()
-            .collect(Collectors.toList());
+        List<String> technicianIds =
+                follows.stream()
+                        .map(UserFollowTechnicians::getTechnicianAccountId)
+                        .distinct()
+                        .collect(Collectors.toList());
 
-        List<TechnicianAccounts> technicians = technicianAccountsService.list(
-            new LambdaQueryWrapper<TechnicianAccounts>()
-                .in(TechnicianAccounts::getId, technicianIds)
-        );
-        Map<String, TechnicianAccounts> technicianMap = technicians.stream()
-            .collect(Collectors.toMap(TechnicianAccounts::getId, item -> item, (a, b) -> a));
+        List<TechnicianAccounts> technicians =
+                technicianAccountsService.list(
+                        new LambdaQueryWrapper<TechnicianAccounts>()
+                                .in(TechnicianAccounts::getId, technicianIds));
+        Map<String, TechnicianAccounts> technicianMap =
+                technicians.stream()
+                        .collect(
+                                Collectors.toMap(
+                                        TechnicianAccounts::getId, item -> item, (a, b) -> a));
 
-        List<TechnicianSkills> skills = technicianSkillsService.list(
-            new LambdaQueryWrapper<TechnicianSkills>()
-                .in(TechnicianSkills::getTechnicianAccountId, technicianIds)
-                .eq(TechnicianSkills::getIsActive, 1)
-                .orderByDesc(TechnicianSkills::getSkillLevel)
-                .orderByDesc(TechnicianSkills::getCreatedTime)
-        );
+        List<TechnicianSkills> skills =
+                technicianSkillsService.list(
+                        new LambdaQueryWrapper<TechnicianSkills>()
+                                .in(TechnicianSkills::getTechnicianAccountId, technicianIds)
+                                .eq(TechnicianSkills::getIsActive, 1)
+                                .orderByDesc(TechnicianSkills::getSkillLevel)
+                                .orderByDesc(TechnicianSkills::getCreatedTime));
         Map<String, String> technicianServiceTypeIdMap = new LinkedHashMap<>();
         for (TechnicianSkills skill : skills) {
-            technicianServiceTypeIdMap.putIfAbsent(skill.getTechnicianAccountId(), skill.getServiceTypeId());
+            technicianServiceTypeIdMap.putIfAbsent(
+                    skill.getTechnicianAccountId(), skill.getServiceTypeId());
         }
 
-        List<String> serviceTypeIds = technicianServiceTypeIdMap.values().stream()
-            .filter(StringUtils::hasText)
-            .distinct()
-            .collect(Collectors.toList());
+        List<String> serviceTypeIds =
+                technicianServiceTypeIdMap.values().stream()
+                        .filter(StringUtils::hasText)
+                        .distinct()
+                        .collect(Collectors.toList());
         Map<String, String> serviceTypeNameMap = new HashMap<>();
         if (!serviceTypeIds.isEmpty()) {
-            List<ServiceTypes> serviceTypes = serviceTypesService.list(
-                new LambdaQueryWrapper<ServiceTypes>()
-                    .in(ServiceTypes::getId, serviceTypeIds)
-            );
+            List<ServiceTypes> serviceTypes =
+                    serviceTypesService.list(
+                            new LambdaQueryWrapper<ServiceTypes>()
+                                    .in(ServiceTypes::getId, serviceTypeIds));
             for (ServiceTypes serviceType : serviceTypes) {
                 serviceTypeNameMap.put(serviceType.getId(), serviceType.getName());
             }
@@ -278,7 +298,8 @@ public class UserHomeServiceImpl implements UserHomeService {
                 continue;
             }
 
-            UserHomePrivateResponse.FollowedWorkerItem item = new UserHomePrivateResponse.FollowedWorkerItem();
+            UserHomePrivateResponse.FollowedWorkerItem item =
+                    new UserHomePrivateResponse.FollowedWorkerItem();
             item.setId(technician.getId());
             item.setName(defaultText(technician.getUsername(), "维修师傅"));
             item.setInitial(item.getName().substring(0, 1));
@@ -318,14 +339,7 @@ public class UserHomeServiceImpl implements UserHomeService {
         latestOrder.setAppliance(defaultText(appliance, "维修订单"));
 
         List<UserHomePrivateResponse.StepItem> steps = new ArrayList<>();
-        for (String stepText : Arrays.asList(
-            "待接单",
-            "待上门",
-            "待检查",
-            "待支付",
-            "服务中",
-            "已完成"
-        )) {
+        for (String stepText : Arrays.asList("待接单", "待上门", "待检查", "待支付", "服务中", "已完成")) {
             UserHomePrivateResponse.StepItem stepItem = new UserHomePrivateResponse.StepItem();
             stepItem.setText(stepText);
             steps.add(stepItem);
@@ -334,8 +348,10 @@ public class UserHomeServiceImpl implements UserHomeService {
         return latestOrder;
     }
 
-    private UserHomePrivateResponse.OrderSummaryItem buildSummaryItem(String key, String label, int count) {
-        UserHomePrivateResponse.OrderSummaryItem item = new UserHomePrivateResponse.OrderSummaryItem();
+    private UserHomePrivateResponse.OrderSummaryItem buildSummaryItem(
+            String key, String label, int count) {
+        UserHomePrivateResponse.OrderSummaryItem item =
+                new UserHomePrivateResponse.OrderSummaryItem();
         item.setKey(key);
         item.setLabel(label);
         item.setCount(count);
@@ -343,9 +359,10 @@ public class UserHomeServiceImpl implements UserHomeService {
     }
 
     private int countOrders(String accountId, Integer... statuses) {
-        LambdaQueryWrapper<RepairOrders> wrapper = new LambdaQueryWrapper<RepairOrders>()
-            .eq(RepairOrders::getAccountId, accountId)
-            .eq(RepairOrders::getIsDelete, 0);
+        LambdaQueryWrapper<RepairOrders> wrapper =
+                new LambdaQueryWrapper<RepairOrders>()
+                        .eq(RepairOrders::getAccountId, accountId)
+                        .eq(RepairOrders::getIsDelete, 0);
         if (statuses != null && statuses.length == 1) {
             wrapper.eq(RepairOrders::getStatus, statuses[0]);
         } else if (statuses != null && statuses.length > 1) {
@@ -355,21 +372,23 @@ public class UserHomeServiceImpl implements UserHomeService {
         return count == null ? 0 : count.intValue();
     }
 
-    private Map<String, String> loadLatestImageUrlMap(List<String> businessIds, String businessType) {
+    private Map<String, String> loadLatestImageUrlMap(
+            List<String> businessIds, String businessType) {
         if (businessIds == null || businessIds.isEmpty()) {
             return new HashMap<>();
         }
 
-        List<Images> images = imagesService.list(
-            new LambdaQueryWrapper<Images>()
-                .eq(Images::getBusinessType, businessType)
-                .in(Images::getBusinessId, businessIds)
-                .orderByDesc(Images::getCreatedTime)
-        );
+        List<Images> images =
+                imagesService.list(
+                        new LambdaQueryWrapper<Images>()
+                                .eq(Images::getBusinessType, businessType)
+                                .in(Images::getBusinessId, businessIds)
+                                .orderByDesc(Images::getCreatedTime));
 
         Map<String, String> result = new HashMap<>();
         for (Images image : images) {
-            if (!result.containsKey(image.getBusinessId()) && StringUtils.hasText(image.getFileUrl())) {
+            if (!result.containsKey(image.getBusinessId())
+                    && StringUtils.hasText(image.getFileUrl())) {
                 result.put(image.getBusinessId(), image.getFileUrl());
             }
         }
@@ -388,7 +407,10 @@ public class UserHomeServiceImpl implements UserHomeService {
         return title + "：" + content;
     }
 
-    private void fillWorkerStatusText(UserHomePrivateResponse.FollowedWorkerItem item, Integer accountStatus, Integer workStatus) {
+    private void fillWorkerStatusText(
+            UserHomePrivateResponse.FollowedWorkerItem item,
+            Integer accountStatus,
+            Integer workStatus) {
         if (!Objects.equals(accountStatus, 1)) {
             if (Objects.equals(accountStatus, 2)) {
                 item.setStatusText("未认证");

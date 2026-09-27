@@ -2,7 +2,11 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<BaseLayout title="联系我们" description="联系安修到家客服，预约电器维修服务。微信小程序搜索「安修到家」或拨打客服热线。">
+<BaseLayout
+  title="联系我们"
+  description="联系速修派客服，预约电器维修服务。微信小程序搜索「速修派」或拨打客服热线。"
+>
+  <!-- Page Hero -->
   <section class="page-hero">
     <div class="container">
       <h1>联系我们</h1>
@@ -10,104 +14,95 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     </div>
   </section>
 
-  <section class="section">
-    <div class="container contact-grid">
-      <div class="contact-info">
-        <h2>联系方式</h2>
-        <div class="contact-list">
-          <div class="contact-item">
-            <span class="contact-icon">📞</span>
-            <div>
-              <strong>客服热线</strong>
-              <p>400-XXX-XXXX</p>
-              <span class="contact-sub">服务时间：每天 8:00 - 20:00</span>
-            </div>
-          </div>
-          <div class="contact-item">
-            <span class="contact-icon">📧</span>
-            <div>
-              <strong>电子邮箱</strong>
-              <p>support@leonyin.cn</p>
-              <span class="contact-sub">我们将在 24 小时内回复</span>
-            </div>
-          </div>
-          <div class="contact-item">
-            <span class="contact-icon">💬</span>
-            <div>
-              <strong>微信公众号</strong>
-              <p>安修到家</p>
-              <span class="contact-sub">关注公众号，在线客服随时咨询</span>
-            </div>
-          </div>
-          <div class="contact-item">
-            <span class="contact-icon">📱</span>
-            <div>
-              <strong>微信小程序</strong>
-              <p>搜索「安修到家」</p>
-              <span class="contact-sub">一键预约维修，查看订单进度</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="contact-form">
-        <h2>在线留言</h2>
-        <p class="form-subtitle">留下您的需求，客服将尽快与您联系</p>
-
-        <form class="form" id="contactForm">
-          <div class="form-group">
-            <label for="name">姓名 *</label>
-            <input type="text" id="name" name="name" placeholder="请输入您的姓名" required />
-          </div>
-          <div class="form-group">
-            <label for="phone">手机号 *</label>
-            <input type="tel" id="phone" name="phone" placeholder="请输入您的手机号" required />
-          </div>
-          <div class="form-group">
-            <label for="category">维修品类</label>
-            <select id="category" name="category">
-              <option value="">请选择</option>
-              <option value="空调">空调</option>
-              <option value="冰箱">冰箱</option>
-              <option value="洗衣机">洗衣机</option>
-              <option value="电视">电视</option>
-              <option value="热水器">热水器</option>
-              <option value="厨房电器">厨房电器</option>
-              <option value="小家电">小家电</option>
-              <option value="其他">其他</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="message">故障描述 *</label>
-            <textarea id="message" name="message" rows="4" placeholder="请简要描述电器故障现象……" required></textarea>
-          </div>
-          <button type="submit" class="btn btn-primary" style="width:100%;padding:16px;">
-            提交留言 →
-          </button>
-        </form>
-      </div>
-    </div>
-  </section>
-
+  <!-- QR / Platform Section -->
   <section class="section" style="background:var(--color-bg-alt);text-align:center;">
     <div class="container">
-      <h2 class="section-title">更多方式找到我们</h2>
-      <p class="section-subtitle">扫码或搜索，随时随地预约维修</p>
-      <div class="qr-row">
+      <div class="section-header reveal">
+        <span class="section-label">扫码直达</span>
+        <h2 class="section-title">更多方式找到我们</h2>
+        <p class="section-subtitle">扫码或搜索，随时随地预约维修</p>
+      </div>
+
+      <div class="qr-row reveal-stagger">
+        <!--
+          📌 二维码占位区
+          用途：微信小程序码
+          建议尺寸：300×300px · PNG（透明底或白底）
+          可包含小程序名称文字
+        -->
         <div class="qr-card">
-          <div class="qr-placeholder">📱</div>
+          <div class="qr-placeholder">
+            <svg
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              opacity=".35"
+              ><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"
+              ></rect><rect x="3" y="14" width="7" height="7"></rect><rect
+                x="14"
+                y="14"
+                width="7"
+                height="7"></rect></svg
+            >
+          </div>
           <p>微信小程序</p>
-          <span>搜索「安修到家」</span>
+          <span>搜索「速修派」</span>
         </div>
+
+        <!--
+          📌 二维码占位区
+          用途：微信公众号二维码
+          建议尺寸：300×300px · PNG
+        -->
         <div class="qr-card">
-          <div class="qr-placeholder">💬</div>
+          <div class="qr-placeholder">
+            <svg
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              opacity=".35"
+              ><path
+                d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"
+              ></path></svg
+            >
+          </div>
           <p>微信公众号</p>
-          <span>搜索「安修到家」</span>
+          <span>搜索「速修派」</span>
         </div>
+
         <div class="qr-card">
-          <div class="qr-placeholder">📞</div>
+          <div
+            class="qr-placeholder"
+            style="background:var(--gradient-brand);color:#fff;border:none;"
+          >
+            <svg
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              opacity=".8"
+              ><path
+                d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"
+              ></path></svg
+            >
+          </div>
           <p>客服电话</p>
-          <span>400-XXX-XXXX</span>
+          <span>18647814174</span>
+          <span class="qr-size-hint">服务时间 8:00-20:00</span>
         </div>
       </div>
     </div>
@@ -115,149 +110,56 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 </BaseLayout>
 
 <style>
-.page-hero {
-  background: linear-gradient(135deg, var(--color-primary), #6366F1);
-  color: #fff;
-  padding: 120px 0 64px;
-  text-align: center;
-}
-.page-hero h1 {
-  font-size: 2.5rem;
-  font-weight: 800;
-  margin-bottom: 8px;
-}
-.page-hero p {
-  font-size: 1.1rem;
-  opacity: .85;
-}
+  /* ===== QR Cards ===== */
+  .qr-row {
+    display: flex;
+    justify-content: center;
+    gap: 56px;
+    flex-wrap: wrap;
+  }
 
-.contact-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 64px;
-}
+  .qr-card {
+    text-align: center;
+    max-width: 200px;
+  }
 
-.contact-info h2,
-.contact-form h2 {
-  font-size: 1.5rem;
-  margin-bottom: 24px;
-}
+  .qr-placeholder {
+    width: 140px;
+    height: 140px;
+    background: #fff;
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    color: var(--color-text-muted);
+    transition: border-color 0.3s;
+  }
+  .qr-card:hover .qr-placeholder {
+    border-color: var(--color-primary);
+  }
 
-.contact-list {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
+  .qr-card p {
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 4px;
+  }
+  .qr-card span {
+    font-size: 0.88rem;
+    color: var(--color-text-secondary);
+  }
+  .qr-size-hint {
+    display: block;
+    font-size: 0.72rem !important;
+    color: var(--color-text-muted) !important;
+    margin-top: 6px;
+  }
 
-.contact-item {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-}
-
-.contact-icon {
-  font-size: 1.5rem;
-  flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  background: var(--color-primary-light);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-}
-
-.contact-item strong {
-  display: block;
-  font-size: .95rem;
-  margin-bottom: 4px;
-}
-
-.contact-item p {
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--color-primary);
-}
-
-.contact-sub {
-  font-size: .85rem;
-  color: var(--color-text-secondary);
-}
-
-.form-subtitle {
-  color: var(--color-text-secondary);
-  font-size: .95rem;
-  margin-bottom: 24px;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  font-size: .92rem;
-  font-weight: 600;
-  margin-bottom: 6px;
-  color: var(--color-text);
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-  width: 100%;
-  padding: 12px 16px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-size: .95rem;
-  font-family: inherit;
-  color: var(--color-text);
-  transition: border-color .25s;
-  background: #fff;
-}
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-light);
-}
-
-.qr-row {
-  display: flex;
-  justify-content: center;
-  gap: 48px;
-  flex-wrap: wrap;
-}
-
-.qr-card {
-  text-align: center;
-}
-
-.qr-placeholder {
-  width: 120px;
-  height: 120px;
-  background: #fff;
-  border: 2px dashed var(--color-border);
-  border-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2.5rem;
-  margin: 0 auto 12px;
-}
-
-.qr-card p {
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.qr-card span {
-  font-size: .88rem;
-  color: var(--color-text-secondary);
-}
-
-@media (max-width: 768px) {
-  .contact-grid { grid-template-columns: 1fr; }
-}
+  /* ===== Responsive ===== */
+  @media (max-width: 768px) {
+    .qr-row {
+      gap: 36px;
+    }
+  }
 </style>

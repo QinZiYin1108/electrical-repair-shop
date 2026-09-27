@@ -4,7 +4,9 @@
       <div class="page-header">
         <div>
           <div class="page-title">线下订单代录</div>
-          <div class="page-subtitle">按步骤完成用户选择、服务分配、故障补充与订单确认，减少管理员误操作。</div>
+          <div class="page-subtitle">
+            按步骤完成用户选择、服务分配、故障补充与订单确认，减少管理员误操作。
+          </div>
         </div>
         <el-tag type="success" effect="plain">流程录入</el-tag>
       </div>
@@ -28,7 +30,11 @@
             <div class="section-title">第一步：选择申请用户</div>
             <div class="section-desc">管理员代顾客提交申请时，先明确当前订单归属的用户账号。</div>
           </div>
-          <div class="section-side-text">已选用户：{{ selectedUser ? (selectedUser.username || selectedUser.phone || '-') : '未选择' }}</div>
+          <div class="section-side-text">
+            已选用户：{{
+              selectedUser ? selectedUser.username || selectedUser.phone || '-' : '未选择'
+            }}
+          </div>
         </div>
 
         <div class="toolbar">
@@ -44,7 +50,9 @@
               <el-icon><Search /></el-icon>
             </template>
           </el-input>
-          <el-button type="primary" :loading="userLoading" @click="handleUserSearch">查询用户</el-button>
+          <el-button type="primary" :loading="userLoading" @click="handleUserSearch"
+            >查询用户</el-button
+          >
         </div>
 
         <div v-if="selectedUser" class="selected-user-panel">
@@ -83,7 +91,13 @@
                 <div class="user-phone">{{ item.phone || item.email || '-' }}</div>
               </div>
               <el-tag size="small" :type="form.userId === item.id ? 'success' : 'info'">
-                {{ form.userId === item.id ? '已选择' : (Number(item.status) === 1 ? '可选择' : '不可用') }}
+                {{
+                  form.userId === item.id
+                    ? '已选择'
+                    : Number(item.status) === 1
+                      ? '可选择'
+                      : '不可用'
+                }}
               </el-tag>
             </div>
             <div class="user-card-bottom">
@@ -93,7 +107,10 @@
           </button>
         </div>
 
-        <el-empty v-if="!userLoading && !userList.length" :description="userSearched ? '没有找到匹配的用户' : '请搜索用户后选择'" />
+        <el-empty
+          v-if="!userLoading && !userList.length"
+          :description="userSearched ? '没有找到匹配的用户' : '请搜索用户后选择'"
+        />
 
         <div class="pagination-wrap">
           <el-pagination
@@ -111,7 +128,9 @@
         <div class="section-head">
           <div>
             <div class="section-title">第二步：选择服务分类、服务类型与师傅</div>
-            <div class="section-desc">先定位服务分类，再选择线下维修服务类型，并给本次订单指派合适的维修师傅。</div>
+            <div class="section-desc">
+              先定位服务分类，再选择线下维修服务类型，并给本次订单指派合适的维修师傅。
+            </div>
           </div>
           <div class="section-side-text">
             {{ selectedServiceType ? `已选服务：${selectedServiceType.name}` : '请先选择服务类型' }}
@@ -160,10 +179,15 @@
                   @click="selectServiceType(item)"
                 >
                   <div class="service-type-name">{{ item.name }}</div>
-                  <div class="service-type-path">{{ resolveCategoryPath(item.categoryId) || item.categoryName || '-' }}</div>
+                  <div class="service-type-path">
+                    {{ resolveCategoryPath(item.categoryId) || item.categoryName || '-' }}
+                  </div>
                   <div class="service-type-foot">
                     <span>基础价：{{ formatPrice(item.basePrice) }}</span>
-                    <el-tag size="small" :type="form.serviceTypeId === item.id ? 'success' : 'info'">
+                    <el-tag
+                      size="small"
+                      :type="form.serviceTypeId === item.id ? 'success' : 'info'"
+                    >
                       {{ form.serviceTypeId === item.id ? '已选择' : '可选' }}
                     </el-tag>
                   </div>
@@ -250,11 +274,11 @@
         <div class="section-head">
           <div>
             <div class="section-title">第三步：填写故障现象并补充图片/视频</div>
-            <div class="section-desc">每个故障现象支持上传最多 5 张图片和 1 段视频，便于师傅提前判断问题。</div>
+            <div class="section-desc">
+              每个故障现象支持上传最多 5 张图片和 1 段视频，便于师傅提前判断问题。
+            </div>
           </div>
-          <div class="section-side-text">
-            已选故障：{{ selectedFaultOptions.length }} 项
-          </div>
+          <div class="section-side-text">已选故障：{{ selectedFaultOptions.length }} 项</div>
         </div>
 
         <div class="fault-select-panel">
@@ -287,19 +311,20 @@
               </el-tag>
             </label>
           </div>
-          <el-empty v-if="!availableFaultOptions.length" description="当前服务类型暂无已启用故障现象" />
+          <el-empty
+            v-if="!availableFaultOptions.length"
+            description="当前服务类型暂无已启用故障现象"
+          />
         </div>
 
         <div v-if="selectedFaultOptions.length" class="fault-media-list">
-          <div
-            v-for="item in selectedFaultOptions"
-            :key="item.id"
-            class="fault-media-card"
-          >
+          <div v-for="item in selectedFaultOptions" :key="item.id" class="fault-media-card">
             <div class="fault-media-head">
               <div>
                 <div class="fault-media-title">{{ item.name }}</div>
-                <div class="fault-media-subtitle">{{ item.description || '可补充更详细的故障描述和现场材料。' }}</div>
+                <div class="fault-media-subtitle">
+                  {{ item.description || '可补充更详细的故障描述和现场材料。' }}
+                </div>
               </div>
               <el-tag type="success" effect="plain">已选择</el-tag>
             </div>
@@ -318,7 +343,9 @@
 
               <el-form-item label="故障图片">
                 <div class="upload-block">
-                  <div class="upload-tip">最多 5 张，单张不超过 5MB，先暂存在前端，提交订单时统一上传到系统</div>
+                  <div class="upload-tip">
+                    最多 5 张，单张不超过 5MB，先暂存在前端，提交订单时统一上传到系统
+                  </div>
                   <el-upload
                     :file-list="getImageFileList(item.id)"
                     list-type="picture-card"
@@ -326,10 +353,10 @@
                     :limit="5"
                     :multiple="true"
                     :show-file-list="true"
-                    :http-request="options => handleImageUpload(item.id, options)"
-                    :before-upload="file => beforeImageUpload(item.id, file)"
-                    :on-preview="file => handleMediaPreview(file, 'image')"
-                    :on-remove="file => handleImageRemove(item.id, file)"
+                    :http-request="(options) => handleImageUpload(item.id, options)"
+                    :before-upload="(file) => beforeImageUpload(item.id, file)"
+                    :on-preview="(file) => handleMediaPreview(file, 'image')"
+                    :on-remove="(file) => handleImageRemove(item.id, file)"
                     :on-exceed="() => handleImageExceed()"
                   >
                     <el-icon><Picture /></el-icon>
@@ -339,17 +366,19 @@
 
               <el-form-item label="故障视频">
                 <div class="upload-block">
-                  <div class="upload-tip">最多 1 段，视频不超过 30MB，先暂存在前端，提交订单时统一上传到系统</div>
+                  <div class="upload-tip">
+                    最多 1 段，视频不超过 30MB，先暂存在前端，提交订单时统一上传到系统
+                  </div>
                   <el-upload
                     :file-list="getVideoFileList(item.id)"
                     accept="video/*"
                     :limit="1"
                     :multiple="false"
                     :show-file-list="false"
-                    :http-request="options => handleVideoUpload(item.id, options)"
-                    :before-upload="file => beforeVideoUpload(item.id, file)"
-                    :on-preview="file => handleMediaPreview(file, 'video')"
-                    :on-remove="file => handleVideoRemove(item.id, file)"
+                    :http-request="(options) => handleVideoUpload(item.id, options)"
+                    :before-upload="(file) => beforeVideoUpload(item.id, file)"
+                    :on-preview="(file) => handleMediaPreview(file, 'video')"
+                    :on-remove="(file) => handleVideoRemove(item.id, file)"
                     :on-exceed="() => handleVideoExceed()"
                   >
                     <el-button plain>
@@ -371,10 +400,17 @@
                       >
                         <el-icon><Delete /></el-icon>
                       </button>
-                      <video :src="file.url" controls preload="metadata" class="video-preview-player" />
+                      <video
+                        :src="file.url"
+                        controls
+                        preload="metadata"
+                        class="video-preview-player"
+                      />
                       <div class="video-preview-foot">
                         <span class="video-preview-name">{{ file.name }}</span>
-                        <el-button link type="primary" @click="handleMediaPreview(file, 'video')">放大预览</el-button>
+                        <el-button link type="primary" @click="handleMediaPreview(file, 'video')"
+                          >放大预览</el-button
+                        >
                       </div>
                     </div>
                   </div>
@@ -399,23 +435,43 @@
         <div class="summary-grid">
           <div class="summary-card">
             <div class="summary-label">申请用户</div>
-            <div class="summary-value">{{ selectedUser ? (selectedUser.username || '-') : '-' }}</div>
-            <div class="summary-meta">{{ selectedUser ? (selectedUser.phone || selectedUser.email || '-') : '未选择' }}</div>
+            <div class="summary-value">{{ selectedUser ? selectedUser.username || '-' : '-' }}</div>
+            <div class="summary-meta">
+              {{ selectedUser ? selectedUser.phone || selectedUser.email || '-' : '未选择' }}
+            </div>
           </div>
           <div class="summary-card">
             <div class="summary-label">服务类型</div>
-            <div class="summary-value">{{ selectedServiceType ? selectedServiceType.name : '-' }}</div>
-            <div class="summary-meta">{{ selectedServiceType ? (resolveCategoryPath(selectedServiceType.categoryId) || '-') : '未选择' }}</div>
+            <div class="summary-value">
+              {{ selectedServiceType ? selectedServiceType.name : '-' }}
+            </div>
+            <div class="summary-meta">
+              {{
+                selectedServiceType
+                  ? resolveCategoryPath(selectedServiceType.categoryId) || '-'
+                  : '未选择'
+              }}
+            </div>
           </div>
           <div class="summary-card">
             <div class="summary-label">服务师傅</div>
-            <div class="summary-value">{{ selectedTechnician ? (selectedTechnician.name || '-') : '-' }}</div>
-            <div class="summary-meta">{{ selectedTechnician ? (selectedTechnician.phone || selectedTechnician.email || '-') : '未选择' }}</div>
+            <div class="summary-value">
+              {{ selectedTechnician ? selectedTechnician.name || '-' : '-' }}
+            </div>
+            <div class="summary-meta">
+              {{
+                selectedTechnician
+                  ? selectedTechnician.phone || selectedTechnician.email || '-'
+                  : '未选择'
+              }}
+            </div>
           </div>
           <div class="summary-card">
             <div class="summary-label">故障现象</div>
             <div class="summary-value">{{ selectedFaultOptions.length }} 项</div>
-            <div class="summary-meta">{{ selectedFaultOptions.map(item => item.name).join('、') || '未选择' }}</div>
+            <div class="summary-meta">
+              {{ selectedFaultOptions.map((item) => item.name).join('、') || '未选择' }}
+            </div>
           </div>
         </div>
 
@@ -423,12 +479,20 @@
           <el-row :gutter="16">
             <el-col :xs="24" :md="12">
               <el-form-item label="设备品牌">
-                <el-input v-model="form.applianceBrand" maxlength="50" placeholder="例如：美的、海尔、格力" />
+                <el-input
+                  v-model="form.applianceBrand"
+                  maxlength="50"
+                  placeholder="例如：美的、海尔、格力"
+                />
               </el-form-item>
             </el-col>
             <el-col :xs="24" :md="12">
               <el-form-item label="设备型号">
-                <el-input v-model="form.applianceModel" maxlength="50" placeholder="请输入设备型号" />
+                <el-input
+                  v-model="form.applianceModel"
+                  maxlength="50"
+                  placeholder="请输入设备型号"
+                />
               </el-form-item>
             </el-col>
             <el-col :xs="24" :md="12">
@@ -511,7 +575,11 @@ import { ElMessage } from 'element-plus';
 import { ArrowRight, Delete, Picture, Search, VideoPlay } from '@element-plus/icons-vue';
 import { fetchAdminUserList } from '../../api/adminUsers';
 import { useAdminPageRefresh } from '../../utils/adminPageRefresh';
-import { isUploadRelatedError, showUploadErrorDialog, showUploadLimitDialog } from '../../utils/uploadFeedback';
+import {
+  isUploadRelatedError,
+  showUploadErrorDialog,
+  showUploadLimitDialog
+} from '../../utils/uploadFeedback';
 import {
   createAdminOfflineOrder,
   fetchAdminOfflineOrderTechnicians,
@@ -584,7 +652,9 @@ const categoryPathMap = computed(() => {
 });
 
 const offlineServiceTypes = computed(() => {
-  return (serviceTypeList.value || []).filter(item => Number(item.type) === 3 && Number(item.isActive) === 1);
+  return (serviceTypeList.value || []).filter(
+    (item) => Number(item.type) === 3 && Number(item.isActive) === 1
+  );
 });
 
 const filteredOfflineServiceTypes = computed(() => {
@@ -592,29 +662,29 @@ const filteredOfflineServiceTypes = computed(() => {
   if (!filterId) {
     return offlineServiceTypes.value;
   }
-  return offlineServiceTypes.value.filter(item => matchesCategory(item.categoryId, filterId, categoryList.value));
+  return offlineServiceTypes.value.filter((item) =>
+    matchesCategory(item.categoryId, filterId, categoryList.value)
+  );
 });
 
 const availableFaultOptions = computed(() => {
-  return (faultList.value || []).filter(item => (
-    item.serviceTypeId === form.serviceTypeId && Number(item.isActive) === 1
-  ));
+  return (faultList.value || []).filter(
+    (item) => item.serviceTypeId === form.serviceTypeId && Number(item.isActive) === 1
+  );
 });
 
 const selectedFaultOptions = computed(() => {
   const optionMap = {};
-  availableFaultOptions.value.forEach(item => {
+  availableFaultOptions.value.forEach((item) => {
     optionMap[item.id] = item;
   });
-  return selectedFaultIds.value
-    .map(id => optionMap[id])
-    .filter(Boolean);
+  return selectedFaultIds.value.map((id) => optionMap[id]).filter(Boolean);
 });
 
 const selectedUser = computed(() => userMap[form.userId] || null);
-const selectedServiceType = computed(() => (
-  offlineServiceTypes.value.find(item => item.id === form.serviceTypeId) || null
-));
+const selectedServiceType = computed(
+  () => offlineServiceTypes.value.find((item) => item.id === form.serviceTypeId) || null
+);
 const selectedTechnician = computed(() => technicianMap[form.technicianId] || null);
 
 async function loadPageData() {
@@ -626,10 +696,11 @@ async function loadPageData() {
       fetchFaultPhenomena()
     ]);
 
-    categoryList.value = categoryRes?.code === 200 && Array.isArray(categoryRes.data) ? categoryRes.data : [];
-    serviceTypeList.value = typeRes?.code === 200 && Array.isArray(typeRes.data) ? typeRes.data : [];
+    categoryList.value =
+      categoryRes?.code === 200 && Array.isArray(categoryRes.data) ? categoryRes.data : [];
+    serviceTypeList.value =
+      typeRes?.code === 200 && Array.isArray(typeRes.data) ? typeRes.data : [];
     faultList.value = faultRes?.code === 200 && Array.isArray(faultRes.data) ? faultRes.data : [];
-
   } catch (error) {
     ElMessage.error(getErrorMessage(error) || '初始化线下订单页面失败');
   } finally {
@@ -653,7 +724,7 @@ async function loadUsers() {
       const records = data.records || data.list || [];
       userList.value = records;
       userTotal.value = data.total || 0;
-      records.forEach(item => {
+      records.forEach((item) => {
         if (item?.id) {
           userMap[item.id] = item;
         }
@@ -686,7 +757,7 @@ async function loadTechnicians() {
     const res = await fetchAdminOfflineOrderTechnicians(params);
     if (res?.code === 200 && Array.isArray(res.data)) {
       technicianList.value = res.data;
-      res.data.forEach(item => {
+      res.data.forEach((item) => {
         if (item?.id) {
           technicianMap[item.id] = item;
         }
@@ -761,14 +832,14 @@ function handleTechnicianSearch() {
 }
 
 function clearFaultExtraData() {
-  Object.values(faultMediaMap).forEach(state => {
-    (state?.images || []).forEach(file => revokeLocalPreviewUrl(file));
-    (state?.videos || []).forEach(file => revokeLocalPreviewUrl(file));
+  Object.values(faultMediaMap).forEach((state) => {
+    (state?.images || []).forEach((file) => revokeLocalPreviewUrl(file));
+    (state?.videos || []).forEach((file) => revokeLocalPreviewUrl(file));
   });
-  Object.keys(faultDescriptionMap).forEach(key => {
+  Object.keys(faultDescriptionMap).forEach((key) => {
     delete faultDescriptionMap[key];
   });
-  Object.keys(faultMediaMap).forEach(key => {
+  Object.keys(faultMediaMap).forEach((key) => {
     delete faultMediaMap[key];
   });
 }
@@ -798,9 +869,9 @@ function toggleFaultSelection(item, checked) {
     return;
   }
 
-  selectedFaultIds.value = selectedFaultIds.value.filter(id => id !== item.id);
-  (ensureFaultMediaState(item.id).images || []).forEach(file => revokeLocalPreviewUrl(file));
-  (ensureFaultMediaState(item.id).videos || []).forEach(file => revokeLocalPreviewUrl(file));
+  selectedFaultIds.value = selectedFaultIds.value.filter((id) => id !== item.id);
+  (ensureFaultMediaState(item.id).images || []).forEach((file) => revokeLocalPreviewUrl(file));
+  (ensureFaultMediaState(item.id).videos || []).forEach((file) => revokeLocalPreviewUrl(file));
   delete faultDescriptionMap[item.id];
   delete faultMediaMap[item.id];
 }
@@ -897,24 +968,30 @@ async function handleVideoUpload(faultId, options) {
 }
 
 function handleImageRemove(faultId, file) {
-  const target = getImageFileList(faultId).find(item => item.uid === file.uid);
+  const target = getImageFileList(faultId).find((item) => item.uid === file.uid);
   revokeLocalPreviewUrl(target);
-  ensureFaultMediaState(faultId).images = getImageFileList(faultId).filter(item => item.uid !== file.uid);
+  ensureFaultMediaState(faultId).images = getImageFileList(faultId).filter(
+    (item) => item.uid !== file.uid
+  );
 }
 
 function handleVideoRemove(faultId, file) {
-  const target = getVideoFileList(faultId).find(item => item.uid === file.uid);
+  const target = getVideoFileList(faultId).find((item) => item.uid === file.uid);
   revokeLocalPreviewUrl(target);
-  ensureFaultMediaState(faultId).videos = getVideoFileList(faultId).filter(item => item.uid !== file.uid);
+  ensureFaultMediaState(faultId).videos = getVideoFileList(faultId).filter(
+    (item) => item.uid !== file.uid
+  );
 }
 
 function removeVideoByUid(faultId, uid) {
-  const target = getVideoFileList(faultId).find(item => item.uid === uid);
+  const target = getVideoFileList(faultId).find((item) => item.uid === uid);
   if (!target) {
     return;
   }
   revokeLocalPreviewUrl(target);
-  ensureFaultMediaState(faultId).videos = getVideoFileList(faultId).filter(item => item.uid !== uid);
+  ensureFaultMediaState(faultId).videos = getVideoFileList(faultId).filter(
+    (item) => item.uid !== uid
+  );
   if (mediaPreview.visible && mediaPreview.url === target.url) {
     resetMediaPreview();
   }
@@ -960,7 +1037,7 @@ async function buildFaultSubmitList() {
   for (const item of selectedFaultOptions.value) {
     const state = ensureFaultMediaState(item.id);
     const images = [];
-    for (const file of (state.images || [])) {
+    for (const file of state.images || []) {
       const uploaded = await uploadCachedFile(file, 'image');
       images.push({
         url: uploaded.url || '',
@@ -973,16 +1050,18 @@ async function buildFaultSubmitList() {
     }
     const videoFile = (state.videos || [])[0];
     const uploadedVideo = videoFile ? await uploadCachedFile(videoFile, 'video') : null;
-    const video = uploadedVideo ? {
-      url: uploadedVideo.url || '',
-      name: uploadedVideo.name || videoFile.name || '',
-      fileSize: uploadedVideo.fileSize ?? videoFile.rawFile?.size ?? 0,
-      mimeType: uploadedVideo.mimeType || videoFile.rawFile?.type || '',
-      duration: uploadedVideo.duration ?? null,
-      width: uploadedVideo.width ?? null,
-      height: uploadedVideo.height ?? null,
-      thumbnailUrl: uploadedVideo.thumbnailUrl || ''
-    } : null;
+    const video = uploadedVideo
+      ? {
+          url: uploadedVideo.url || '',
+          name: uploadedVideo.name || videoFile.name || '',
+          fileSize: uploadedVideo.fileSize ?? videoFile.rawFile?.size ?? 0,
+          mimeType: uploadedVideo.mimeType || videoFile.rawFile?.type || '',
+          duration: uploadedVideo.duration ?? null,
+          width: uploadedVideo.width ?? null,
+          height: uploadedVideo.height ?? null,
+          thumbnailUrl: uploadedVideo.thumbnailUrl || ''
+        }
+      : null;
     faultSubmitList.push({
       faultId: item.id,
       faultDescription: (faultDescriptionMap[item.id] || '').trim(),
@@ -1178,7 +1257,7 @@ function buildCategoryTree(list) {
   const map = {};
   const roots = [];
 
-  (list || []).forEach(item => {
+  (list || []).forEach((item) => {
     if (!item?.id || Number(item.isActive) !== 1) {
       return;
     }
@@ -1188,7 +1267,7 @@ function buildCategoryTree(list) {
     };
   });
 
-  Object.keys(map).forEach(key => {
+  Object.keys(map).forEach((key) => {
     const node = map[key];
     if (node.parentId && map[node.parentId]) {
       map[node.parentId].children.push(node);
@@ -1197,7 +1276,7 @@ function buildCategoryTree(list) {
     }
   });
 
-  const sortNodes = nodes => {
+  const sortNodes = (nodes) => {
     nodes.sort((a, b) => {
       const sortA = Number(a.sortOrder || 0);
       const sortB = Number(b.sortOrder || 0);
@@ -1206,7 +1285,7 @@ function buildCategoryTree(list) {
       }
       return String(a.name || '').localeCompare(String(b.name || ''));
     });
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       if (node.children?.length) {
         sortNodes(node.children);
       }
@@ -1218,7 +1297,7 @@ function buildCategoryTree(list) {
 }
 
 function buildCategoryPathMap(nodes, parentNames, result) {
-  (nodes || []).forEach(node => {
+  (nodes || []).forEach((node) => {
     const names = [...parentNames, node.name].filter(Boolean);
     result[node.id] = names.join(' / ');
     if (node.children?.length) {
@@ -1235,7 +1314,7 @@ function matchesCategory(categoryId, filterId, list) {
     return true;
   }
   const map = {};
-  (list || []).forEach(item => {
+  (list || []).forEach((item) => {
     if (item?.id) {
       map[item.id] = item;
     }

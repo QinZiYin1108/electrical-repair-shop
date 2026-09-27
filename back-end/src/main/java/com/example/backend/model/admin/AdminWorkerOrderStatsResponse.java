@@ -1,14 +1,32 @@
 package com.example.backend.model.admin;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "管理员师傅订单Stats响应")
 public class AdminWorkerOrderStatsResponse {
 
+    @Schema(description = "总数数量")
     private Long totalCount;
+
+    @Schema(description = "waiting数量")
     private Long waitingCount;
+
+    @Schema(description = "ongoing数量")
     private Long ongoingCount;
+
+    @Schema(description = "waitingPay数量")
     private Long waitingPayCount;
+
+    @Schema(description = "completed数量")
     private Long completedCount;
+
+    @Schema(description = "canceled数量")
     private Long canceledCount;
+
+    @Schema(description = "refunded数量")
     private Long refundedCount;
+
+    @Schema(description = "latest排序时间")
     private Long latestOrderTime;
 
     public Long getTotalCount() {

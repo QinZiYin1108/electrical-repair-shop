@@ -20,17 +20,17 @@
           data-mode="password"
           bindtap="onModeTap"
         >
-          邮箱密码登录
+          手机号密码登录
         </view>
       </view>
 
       <view wx:if="{{loginMode === 'password'}}" class="login-fields">
         <view class="login-field-shell">
           <van-field
-            value="{{email}}"
-            data-field="email"
-            label="邮箱"
-            placeholder="请输入邮箱"
+            value="{{phone}}"
+            data-field="phone"
+            label="手机号"
+            placeholder="请输入手机号"
             clearable
             border="{{false}}"
             bind:change="onFieldChange"
@@ -48,7 +48,7 @@
             bind:change="onFieldChange"
           />
         </view>
-        <view class="login-mode-tip">请使用已绑定邮箱且已设置密码的账号登录</view>
+        <view class="login-mode-tip">请使用已绑定手机号且已设置密码的账号登录</view>
       </view>
 
       <button
@@ -61,10 +61,104 @@
           <view wx:if="{{loginMode === 'wechat'}}" class="btn-icon">
             <van-icon name="wechat" />
           </view>
-          <text>{{loginMode === 'wechat' ? '微信一键登录' : '邮箱密码登录'}}</text>
+          <text>{{loginMode === 'wechat' ? '微信一键登录' : '手机号密码登录'}}</text>
         </view>
       </button>
     </view>
+
+  <!-- 邮箱绑定弹窗 -->
+  <view class="bind-mask" wx:if="{{showBindEmail}}" catchtouchmove="noop">
+    <view class="bind-modal">
+      <view class="bind-modal-title">绑定邮箱</view>
+      <view class="bind-modal-desc">为了保障账号安全，请先绑定邮箱</view>
+
+      <view class="bind-field">
+        <input
+          class="bind-input"
+          type="text"
+          placeholder="请输入邮箱"
+          value="{{bindEmail}}"
+          bindinput="onBindEmailInput"
+          maxlength="100"
+        />
+      </view>
+
+      <view class="bind-code-row">
+        <input
+          class="bind-input bind-code-input"
+          type="text"
+          placeholder="验证码"
+          value="{{bindCode}}"
+          bindinput="onBindCodeInput"
+          maxlength="6"
+        />
+        <button
+          class="bind-code-btn {{bindCountdown > 0 || bindSending ? 'bind-code-btn-disabled' : ''}}"
+          size="mini"
+          bindtap="onBindSendCode"
+          disabled="{{bindSending || bindCountdown > 0}}"
+        >
+          {{bindCountdown > 0 ? bindCountdown + 's' : (bindSending ? '发送中' : '获取验证码')}}
+        </button>
+      </view>
+
+      <button
+        class="bind-submit-btn"
+        bindtap="onBindSubmit"
+        loading="{{bindSubmitting}}"
+        disabled="{{bindSubmitting}}"
+      >
+        确认绑定
+      </button>
+    </view>
+  </view>
+
+  <!-- 手机号绑定弹窗 -->
+  <view class="bind-mask" wx:if="{{showBindPhone}}" catchtouchmove="noop">
+    <view class="bind-modal">
+      <view class="bind-modal-title">绑定手机号</view>
+      <view class="bind-modal-desc">为了保障账号安全，请先绑定手机号</view>
+
+      <view class="bind-field">
+        <input
+          class="bind-input"
+          type="text"
+          placeholder="请输入手机号"
+          value="{{bindPhone}}"
+          bindinput="onBindPhoneInput"
+          maxlength="11"
+        />
+      </view>
+
+      <view class="bind-code-row">
+        <input
+          class="bind-input bind-code-input"
+          type="text"
+          placeholder="验证码"
+          value="{{bindCode}}"
+          bindinput="onBindCodeInput"
+          maxlength="6"
+        />
+        <button
+          class="bind-code-btn {{bindCountdown > 0 || bindSending ? 'bind-code-btn-disabled' : ''}}"
+          size="mini"
+          bindtap="onBindSendCode"
+          disabled="{{bindSending || bindCountdown > 0}}"
+        >
+          {{bindCountdown > 0 ? bindCountdown + 's' : (bindSending ? '发送中' : '获取验证码')}}
+        </button>
+      </view>
+
+      <button
+        class="bind-submit-btn"
+        bindtap="onBindSubmit"
+        loading="{{bindSubmitting}}"
+        disabled="{{bindSubmitting}}"
+      >
+        确认绑定
+      </button>
+    </view>
+  </view>
 
     <view class="agreement-row" bindtap="onToggleAgree">
       <view class="checkbox {{agreed ? 'checkbox-checked' : ''}}">

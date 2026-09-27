@@ -9,15 +9,15 @@ import com.example.backend.entity.OperationLogs;
 import com.example.backend.entity.RepairOrders;
 import com.example.backend.entity.ServiceCategories;
 import com.example.backend.entity.ServiceTypes;
-import com.example.backend.entity.SystemMessages;
 import com.example.backend.entity.Stores;
+import com.example.backend.entity.SystemMessages;
 import com.example.backend.entity.TechnicianAccounts;
 import com.example.backend.entity.TechnicianProfiles;
-import com.example.backend.entity.TechnicianServiceAreas;
 import com.example.backend.entity.TechnicianSkills;
 import com.example.backend.entity.TechnicianVisitFeePolicies;
 import com.example.backend.entity.TechnicianWorkTimes;
 import com.example.backend.exception.BusinessException;
+import com.example.backend.mapper.TechnicianSkillsMapper;
 import com.example.backend.model.admin.AdminWorkerDetailResponse;
 import com.example.backend.model.admin.AdminWorkerListItemResponse;
 import com.example.backend.model.admin.AdminWorkerOrderStatsResponse;
@@ -33,10 +33,11 @@ import com.example.backend.model.admin.AdminWorkerWorkTimeResponse;
 import com.example.backend.model.admin.AdminWorkerWorkTimesUpdateRequest;
 import com.example.backend.model.worker.WorkerSkillCategoryNode;
 import com.example.backend.model.worker.WorkerSkillServiceTypeOption;
-import com.example.backend.mapper.TechnicianSkillsMapper;
 import com.example.backend.security.context.AuthUserContext;
 import com.example.backend.security.model.AccountRole;
 import com.example.backend.security.model.LoginUserInfo;
+import com.example.backend.security.token.TokenVersions;
+import com.example.backend.service.AdminDataScopeService;
 import com.example.backend.service.ImagesService;
 import com.example.backend.service.OperationLogsService;
 import com.example.backend.service.RepairOrdersService;
@@ -46,27 +47,15 @@ import com.example.backend.service.StoresService;
 import com.example.backend.service.SystemMessagesService;
 import com.example.backend.service.TechnicianAccountsService;
 import com.example.backend.service.TechnicianProfilesService;
-import com.example.backend.service.TechnicianServiceAreasService;
 import com.example.backend.service.TechnicianSkillsService;
 import com.example.backend.service.TechnicianVisitFeePoliciesService;
 import com.example.backend.service.TechnicianWorkTimesService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
 import com.example.backend.utils.oss.OssUtil;
 import com.example.backend.utils.upload.UploadLimitUtil;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.dao.DuplicateKeyException;
-import org.springframework.http.MediaType;
-import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
@@ -89,9 +78,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.http.MediaType;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+@Tag(name = "管理员端/师傅管理")
 @RestController
 @RequestMapping("/admin/workers")
 public class AdminWorkerManageController {
@@ -105,12 +106,13 @@ public class AdminWorkerManageController {
     private static final int SERVICE_MODE_OFFLINE_REPAIR = 3;
     private static final LocalTime DEFAULT_WORK_START_TIME = LocalTime.of(9, 0);
     private static final LocalTime DEFAULT_WORK_END_TIME = LocalTime.of(18, 0);
-    private static final DateTimeFormatter WORK_TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
-    private static final DateTimeFormatter WORK_TIME_SHORT_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter WORK_TIME_FORMATTER =
+            DateTimeFormatter.ofPattern("HH:mm:ss");
+    private static final DateTimeFormatter WORK_TIME_SHORT_FORMATTER =
+            DateTimeFormatter.ofPattern("HH:mm");
 
     private final TechnicianAccountsService technicianAccountsService;
     private final TechnicianProfilesService technicianProfilesService;
-    private final TechnicianServiceAreasService technicianServiceAreasService;
     private final TechnicianSkillsService technicianSkillsService;
     private final TechnicianSkillsMapper technicianSkillsMapper;
     private final ServiceTypesService serviceTypesService;
@@ -123,27 +125,26 @@ public class AdminWorkerManageController {
     private final OperationLogsService operationLogsService;
     private final SystemMessagesService systemMessagesService;
     private final StoresService storesService;
+    private final AdminDataScopeService adminDataScopeService;
 
     public AdminWorkerManageController(
-        TechnicianAccountsService technicianAccountsService,
-        TechnicianProfilesService technicianProfilesService,
-        TechnicianServiceAreasService technicianServiceAreasService,
-        TechnicianSkillsService technicianSkillsService,
-        TechnicianSkillsMapper technicianSkillsMapper,
-        ServiceTypesService serviceTypesService,
-        ServiceCategoriesService serviceCategoriesService,
-        TechnicianVisitFeePoliciesService technicianVisitFeePoliciesService,
-        TechnicianWorkTimesService technicianWorkTimesService,
-        RepairOrdersService repairOrdersService,
-        ImagesService imagesService,
-        OssUtil ossUtil,
-        OperationLogsService operationLogsService,
-        SystemMessagesService systemMessagesService,
-        StoresService storesService
-    ) {
+            TechnicianAccountsService technicianAccountsService,
+            TechnicianProfilesService technicianProfilesService,
+            TechnicianSkillsService technicianSkillsService,
+            TechnicianSkillsMapper technicianSkillsMapper,
+            ServiceTypesService serviceTypesService,
+            ServiceCategoriesService serviceCategoriesService,
+            TechnicianVisitFeePoliciesService technicianVisitFeePoliciesService,
+            TechnicianWorkTimesService technicianWorkTimesService,
+            RepairOrdersService repairOrdersService,
+            ImagesService imagesService,
+            OssUtil ossUtil,
+            OperationLogsService operationLogsService,
+            SystemMessagesService systemMessagesService,
+            StoresService storesService,
+            AdminDataScopeService adminDataScopeService) {
         this.technicianAccountsService = technicianAccountsService;
         this.technicianProfilesService = technicianProfilesService;
-        this.technicianServiceAreasService = technicianServiceAreasService;
         this.technicianSkillsService = technicianSkillsService;
         this.technicianSkillsMapper = technicianSkillsMapper;
         this.serviceTypesService = serviceTypesService;
@@ -156,35 +157,49 @@ public class AdminWorkerManageController {
         this.operationLogsService = operationLogsService;
         this.systemMessagesService = systemMessagesService;
         this.storesService = storesService;
+        this.adminDataScopeService = adminDataScopeService;
     }
 
     @GetMapping
     public Result<Page<AdminWorkerListItemResponse>> listWorkers(
-        @RequestParam(value = "pageNum", defaultValue = "1") long pageNum,
-        @RequestParam(value = "pageSize", defaultValue = "10") long pageSize,
-        @RequestParam(value = "keyword", required = false) String keyword
-    ) {
+            @RequestParam(value = "pageNum", defaultValue = "1") long pageNum,
+            @RequestParam(value = "pageSize", defaultValue = "10") long pageSize,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "global", defaultValue = "false") boolean global) {
         LoginUserInfo admin = requireAdmin();
         long currentPage = pageNum <= 0 ? 1 : pageNum;
         long currentSize = pageSize <= 0 ? 10 : pageSize;
 
-        LambdaQueryWrapper<TechnicianAccounts> wrapper = new LambdaQueryWrapper<TechnicianAccounts>()
-            .eq(TechnicianAccounts::getIsDelete, 0);
+        LambdaQueryWrapper<TechnicianAccounts> wrapper =
+                new LambdaQueryWrapper<TechnicianAccounts>().eq(TechnicianAccounts::getIsDelete, 0);
 
-        // 门店管理员只能看到自己门店的师傅
-        if (admin.isStoreAdmin() && admin.getStoreId() != null) {
-            wrapper.eq(TechnicianAccounts::getStoreId, admin.getStoreId());
+        if (admin.isStoreAdmin()) {
+            adminDataScopeService.requireStoreAccess(admin, admin.getStoreId());
+            if (global) {
+                wrapper.and(
+                        query ->
+                                query.isNull(TechnicianAccounts::getStoreId)
+                                        .or()
+                                        .eq(TechnicianAccounts::getStoreId, admin.getStoreId()));
+            } else {
+                wrapper.eq(TechnicianAccounts::getStoreId, admin.getStoreId());
+            }
         }
 
         if (StringUtils.hasText(keyword)) {
             String trimmedKeyword = keyword.trim();
-            wrapper.and(w -> w.like(TechnicianAccounts::getUsername, trimmedKeyword)
-                .or().like(TechnicianAccounts::getPhone, trimmedKeyword)
-                .or().like(TechnicianAccounts::getEmail, trimmedKeyword));
+            wrapper.and(
+                    w ->
+                            w.like(TechnicianAccounts::getUsername, trimmedKeyword)
+                                    .or()
+                                    .like(TechnicianAccounts::getPhone, trimmedKeyword)
+                                    .or()
+                                    .like(TechnicianAccounts::getEmail, trimmedKeyword));
         }
         wrapper.orderByDesc(TechnicianAccounts::getCreatedTime);
 
-        Page<TechnicianAccounts> accountPage = technicianAccountsService.page(new Page<>(currentPage, currentSize), wrapper);
+        Page<TechnicianAccounts> accountPage =
+                technicianAccountsService.page(new Page<>(currentPage, currentSize), wrapper);
         List<TechnicianAccounts> accountList = accountPage.getRecords();
         List<AdminWorkerListItemResponse> responseRecords = new ArrayList<>();
         if (!accountList.isEmpty()) {
@@ -194,11 +209,11 @@ public class AdminWorkerManageController {
             }
 
             Map<String, TechnicianProfiles> profileMap = new HashMap<>();
-            List<TechnicianProfiles> profileList = technicianProfilesService.list(
-                new LambdaQueryWrapper<TechnicianProfiles>()
-                    .in(TechnicianProfiles::getTechnicianAccountId, accountIdSet)
-                    .eq(TechnicianProfiles::getIsDelete, 0)
-            );
+            List<TechnicianProfiles> profileList =
+                    technicianProfilesService.list(
+                            new LambdaQueryWrapper<TechnicianProfiles>()
+                                    .in(TechnicianProfiles::getTechnicianAccountId, accountIdSet)
+                                    .eq(TechnicianProfiles::getIsDelete, 0));
             for (TechnicianProfiles profile : profileList) {
                 profileMap.put(profile.getTechnicianAccountId(), profile);
             }
@@ -225,11 +240,13 @@ public class AdminWorkerManageController {
             }
         }
 
-        Page<AdminWorkerListItemResponse> resultPage = new Page<>(accountPage.getCurrent(), accountPage.getSize(), accountPage.getTotal());
+        Page<AdminWorkerListItemResponse> resultPage =
+                new Page<>(accountPage.getCurrent(), accountPage.getSize(), accountPage.getTotal());
         resultPage.setRecords(responseRecords);
         return Result.success(resultPage);
     }
 
+    @Operation(summary = "查询Worker详情")
     @GetMapping("/{id}")
     public Result<AdminWorkerDetailResponse> getWorkerDetail(@PathVariable("id") String id) {
         LoginUserInfo admin = requireAdmin();
@@ -237,12 +254,16 @@ public class AdminWorkerManageController {
 
         // 门店管理员只能查看自己门店的师傅
         if (admin.isStoreAdmin()) {
-            if (!StringUtils.hasText(account.getStoreId()) || !account.getStoreId().equals(admin.getStoreId())) {
+            if (!StringUtils.hasText(account.getStoreId())
+                    || !account.getStoreId().equals(admin.getStoreId())) {
                 throw new BusinessException(ErrorCode.FORBIDDEN, "无权查看其他门店的师傅");
             }
         }
         TechnicianProfiles profile = queryWorkerProfile(id);
-        TechnicianServiceAreas serviceArea = queryDefaultServiceArea(id);
+        Stores store = null;
+        if (account.getStoreId() != null) {
+            store = storesService.getById(account.getStoreId());
+        }
 
         AdminWorkerDetailResponse response = new AdminWorkerDetailResponse();
         response.setId(account.getId());
@@ -257,17 +278,18 @@ public class AdminWorkerManageController {
         response.setCompletionRate(account.getCompletionRate());
         response.setAvatarUrl(querySingleAvatarUrl(id));
 
-        if (serviceArea != null) {
-            response.setAddress(serviceArea.getCenterAddress());
-            AdminWorkerServiceAreaCenterResponse serviceAreaCenter = new AdminWorkerServiceAreaCenterResponse();
-            serviceAreaCenter.setId(serviceArea.getId());
-            serviceAreaCenter.setAreaName(serviceArea.getAreaName());
-            serviceAreaCenter.setCenterAddress(serviceArea.getCenterAddress());
-            serviceAreaCenter.setCenterLatitude(serviceArea.getCenterLatitude());
-            serviceAreaCenter.setCenterLongitude(serviceArea.getCenterLongitude());
-            serviceAreaCenter.setIsDefault(serviceArea.getIsDefault());
-            serviceAreaCenter.setIsActive(serviceArea.getIsActive());
-            serviceAreaCenter.setUpdatedTime(serviceArea.getUpdatedTime());
+        if (store != null) {
+            response.setAddress(store.getAddress());
+            AdminWorkerServiceAreaCenterResponse serviceAreaCenter =
+                    new AdminWorkerServiceAreaCenterResponse();
+            serviceAreaCenter.setId(store.getId());
+            serviceAreaCenter.setAreaName(store.getName());
+            serviceAreaCenter.setCenterAddress(store.getAddress());
+            serviceAreaCenter.setCenterLatitude(store.getLatitude());
+            serviceAreaCenter.setCenterLongitude(store.getLongitude());
+            serviceAreaCenter.setIsDefault(1);
+            serviceAreaCenter.setIsActive(store.getBusinessStatus());
+            serviceAreaCenter.setUpdatedTime(store.getUpdatedTime());
             response.setServiceAreaCenter(serviceAreaCenter);
         }
 
@@ -291,19 +313,21 @@ public class AdminWorkerManageController {
         return Result.success(response);
     }
 
+    @Operation(summary = "查询Worker技能列表")
     @GetMapping("/{id}/skills")
-    public Result<List<AdminWorkerSkillItemResponse>> listWorkerSkills(@PathVariable("id") String id) {
+    public Result<List<AdminWorkerSkillItemResponse>> listWorkerSkills(
+            @PathVariable("id") String id) {
         requireAdmin();
         getAndCheckWorkerAccount(id);
         return Result.success(buildWorkerSkillResponseList(id));
     }
 
+    @Operation(summary = "查询AvailableSkill分类列表")
     @GetMapping("/{id}/skills/available/categories")
     public Result<List<WorkerSkillCategoryNode>> listAvailableSkillCategories(
-        @PathVariable("id") String id,
-        @RequestParam(value = "keyword", required = false) String keyword,
-        @RequestParam(value = "serviceMode", required = false) Integer serviceMode
-    ) {
+            @PathVariable("id") String id,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "serviceMode", required = false) Integer serviceMode) {
         requireAdmin();
         getAndCheckWorkerAccount(id);
 
@@ -323,7 +347,8 @@ public class AdminWorkerManageController {
             categoryMap.put(category.getId(), category);
         }
 
-        List<ServiceTypes> availableServiceTypes = listAvailableServiceTypeEntities(id, normalizedKeyword, mode);
+        List<ServiceTypes> availableServiceTypes =
+                listAvailableServiceTypeEntities(id, normalizedKeyword, mode);
         if (availableServiceTypes.isEmpty()) {
             return Result.success(new ArrayList<>());
         }
@@ -339,7 +364,8 @@ public class AdminWorkerManageController {
                     break;
                 }
                 ServiceCategories currentCategory = categoryMap.get(currentId);
-                if (currentCategory == null || !StringUtils.hasText(currentCategory.getParentId())) {
+                if (currentCategory == null
+                        || !StringUtils.hasText(currentCategory.getParentId())) {
                     break;
                 }
                 currentId = currentCategory.getParentId();
@@ -365,7 +391,8 @@ public class AdminWorkerManageController {
             childrenByParentId.computeIfAbsent(parentId, key -> new ArrayList<>()).add(category);
         }
 
-        List<ServiceCategories> level1Categories = childrenByParentId.getOrDefault("ROOT", Collections.emptyList());
+        List<ServiceCategories> level1Categories =
+                childrenByParentId.getOrDefault("ROOT", Collections.emptyList());
         List<WorkerSkillCategoryNode> tree = new ArrayList<>();
         for (ServiceCategories level1Category : level1Categories) {
             tree.add(buildCategoryNode(level1Category, childrenByParentId));
@@ -373,13 +400,13 @@ public class AdminWorkerManageController {
         return Result.success(tree);
     }
 
+    @Operation(summary = "查询AvailableSkillServiceTypes")
     @GetMapping("/{id}/skills/available/service-types")
     public Result<List<WorkerSkillServiceTypeOption>> listAvailableSkillServiceTypes(
-        @PathVariable("id") String id,
-        @RequestParam(value = "keyword", required = false) String keyword,
-        @RequestParam(value = "serviceMode", required = false) Integer serviceMode,
-        @RequestParam(value = "categoryId", required = false) String categoryId
-    ) {
+            @PathVariable("id") String id,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "serviceMode", required = false) Integer serviceMode,
+            @RequestParam(value = "categoryId", required = false) String categoryId) {
         requireAdmin();
         getAndCheckWorkerAccount(id);
 
@@ -387,7 +414,8 @@ public class AdminWorkerManageController {
         String normalizedKeyword = trimToNull(keyword);
         String normalizedCategoryId = trimToNull(categoryId);
 
-        List<ServiceTypes> availableServiceTypes = listAvailableServiceTypeEntities(id, normalizedKeyword, mode);
+        List<ServiceTypes> availableServiceTypes =
+                listAvailableServiceTypeEntities(id, normalizedKeyword, mode);
         if (availableServiceTypes.isEmpty()) {
             return Result.success(new ArrayList<>());
         }
@@ -416,7 +444,8 @@ public class AdminWorkerManageController {
             }
             if (filterCategoryIds != null) {
                 String currentCategoryId = trimToNull(serviceType.getCategoryId());
-                if (!StringUtils.hasText(currentCategoryId) || !filterCategoryIds.contains(currentCategoryId)) {
+                if (!StringUtils.hasText(currentCategoryId)
+                        || !filterCategoryIds.contains(currentCategoryId)) {
                     continue;
                 }
             }
@@ -437,15 +466,17 @@ public class AdminWorkerManageController {
         return Result.success(result);
     }
 
+    @Operation(summary = "创建批量AddWorker技能列表")
     @PostMapping("/{id}/skills")
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> batchAddWorkerSkills(
-        @PathVariable("id") String id,
-        @Valid @RequestBody AdminWorkerSkillBatchUpdateRequest request
-    ) {
+            @PathVariable("id") String id,
+            @Valid @RequestBody AdminWorkerSkillBatchUpdateRequest request) {
         LoginUserInfo admin = requireAdmin();
         getAndCheckWorkerAccount(id);
-        if (request == null || request.getServiceTypeIds() == null || request.getServiceTypeIds().isEmpty()) {
+        if (request == null
+                || request.getServiceTypeIds() == null
+                || request.getServiceTypeIds().isEmpty()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请选择要添加的技能");
         }
 
@@ -460,58 +491,45 @@ public class AdminWorkerManageController {
 
         long now = System.currentTimeMillis();
         saveOperationLog(
-            admin.getAccountId(),
-            "UPDATE",
-            "管理员添加师傅技能",
-            "/admin/workers/" + id + "/skills",
-            "{\"count\":" + uniqueServiceTypeIds.size() + "}"
-        );
+                admin.getAccountId(),
+                "UPDATE",
+                "管理员添加师傅技能",
+                "/admin/workers/" + id + "/skills",
+                "{\"count\":" + uniqueServiceTypeIds.size() + "}");
         saveSystemMessage(
-            id,
-            "师傅技能已更新",
-            "您的技能信息已由管理员更新，请前往技能页面查看。",
-            "ADMIN_WORKER_SKILL_ADD",
-            2,
-            now
-        );
+                id, "师傅技能已更新", "您的技能信息已由管理员更新，请前往技能页面查看。", "ADMIN_WORKER_SKILL_ADD", 2, now);
         return Result.success();
     }
 
+    @Operation(summary = "删除removeWorkerSkill")
     @PostMapping("/{id}/skills/remove")
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> removeWorkerSkill(
-        @PathVariable("id") String id,
-        @Valid @RequestBody AdminWorkerSkillDeleteRequest request
-    ) {
+            @PathVariable("id") String id,
+            @Valid @RequestBody AdminWorkerSkillDeleteRequest request) {
         LoginUserInfo admin = requireAdmin();
         getAndCheckWorkerAccount(id);
-        String serviceTypeId = normalizeServiceTypeId(request == null ? null : request.getServiceTypeId());
-        technicianSkillsMapper.logicalDeleteByTechnicianAndServiceType(id, serviceTypeId, System.currentTimeMillis());
+        String serviceTypeId =
+                normalizeServiceTypeId(request == null ? null : request.getServiceTypeId());
+        technicianSkillsMapper.logicalDeleteByTechnicianAndServiceType(
+                id, serviceTypeId, System.currentTimeMillis());
 
         long now = System.currentTimeMillis();
         saveOperationLog(
-            admin.getAccountId(),
-            "UPDATE",
-            "管理员删除师傅技能",
-            "/admin/workers/" + id + "/skills/remove",
-            "{\"serviceTypeId\":\"" + serviceTypeId + "\"}"
-        );
+                admin.getAccountId(),
+                "UPDATE",
+                "管理员删除师傅技能",
+                "/admin/workers/" + id + "/skills/remove",
+                "{\"serviceTypeId\":\"" + serviceTypeId + "\"}");
         saveSystemMessage(
-            id,
-            "师傅技能已更新",
-            "您的技能信息已由管理员更新，请前往技能页面查看。",
-            "ADMIN_WORKER_SKILL_REMOVE",
-            2,
-            now
-        );
+                id, "师傅技能已更新", "您的技能信息已由管理员更新，请前往技能页面查看。", "ADMIN_WORKER_SKILL_REMOVE", 2, now);
         return Result.success();
     }
 
+    @Operation(summary = "修改编辑Worker")
     @PostMapping("/{id}/update")
     public Result<Void> updateWorker(
-        @PathVariable("id") String id,
-        @Valid @RequestBody AdminWorkerUpdateRequest request
-    ) {
+            @PathVariable("id") String id, @Valid @RequestBody AdminWorkerUpdateRequest request) {
         LoginUserInfo admin = requireAdmin();
         TechnicianAccounts account = getAndCheckWorkerAccount(id);
         long now = System.currentTimeMillis();
@@ -542,36 +560,37 @@ public class AdminWorkerManageController {
         }
 
         saveOperationLog(
-            admin.getAccountId(),
-            "UPDATE",
-            "管理员修改师傅基础信息",
-            "/admin/workers/" + id + "/update",
-            "{\"oldUsername\":\"" + oldUsername + "\",\"newUsername\":\"" + request.getUsername() + "\"}"
-        );
+                admin.getAccountId(),
+                "UPDATE",
+                "管理员修改师傅基础信息",
+                "/admin/workers/" + id + "/update",
+                "{\"oldUsername\":\""
+                        + oldUsername
+                        + "\",\"newUsername\":\""
+                        + request.getUsername()
+                        + "\"}");
         saveSystemMessage(
-            id,
-            "师傅账号信息已被管理员更新",
-            "您的师傅账号信息已由管理员更新，如有疑问请联系平台客服。",
-            "ADMIN_WORKER_UPDATE",
-            2,
-            now
-        );
+                id, "师傅账号信息已被管理员更新", "您的师傅账号信息已由管理员更新，如有疑问请联系平台客服。", "ADMIN_WORKER_UPDATE", 2, now);
         return Result.success();
     }
 
+    @Operation(summary = "修改编辑WorkerStatus")
     @PostMapping("/{id}/status")
     public Result<Void> updateWorkerStatus(
-        @PathVariable("id") String id,
-        @Valid @RequestBody AdminWorkerStatusUpdateRequest request
-    ) {
+            @PathVariable("id") String id,
+            @Valid @RequestBody AdminWorkerStatusUpdateRequest request) {
         LoginUserInfo admin = requireAdmin();
         TechnicianAccounts account = getAndCheckWorkerAccount(id);
         Integer targetStatus = request.getAccountStatus();
-        if (targetStatus == null || (targetStatus != WORKER_ACCOUNT_STATUS_NORMAL && targetStatus != WORKER_ACCOUNT_STATUS_FROZEN)) {
+        if (targetStatus == null
+                || (targetStatus != WORKER_ACCOUNT_STATUS_NORMAL
+                        && targetStatus != WORKER_ACCOUNT_STATUS_FROZEN)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "状态仅支持正常或冻结");
         }
         Integer currentStatus = account.getAccountStatus();
-        if (currentStatus == null || (currentStatus != WORKER_ACCOUNT_STATUS_NORMAL && currentStatus != WORKER_ACCOUNT_STATUS_FROZEN)) {
+        if (currentStatus == null
+                || (currentStatus != WORKER_ACCOUNT_STATUS_NORMAL
+                        && currentStatus != WORKER_ACCOUNT_STATUS_FROZEN)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "当前状态不支持该操作");
         }
         if (currentStatus.equals(targetStatus)) {
@@ -580,33 +599,31 @@ public class AdminWorkerManageController {
 
         long now = System.currentTimeMillis();
         account.setAccountStatus(targetStatus);
+        account.setTokenVersion(TokenVersions.next(account.getTokenVersion()));
         account.setUpdatedTime(now);
         technicianAccountsService.updateById(account);
 
         saveOperationLog(
-            admin.getAccountId(),
-            "UPDATE",
-            "管理员修改师傅账号状态",
-            "/admin/workers/" + id + "/status",
-            "{\"oldStatus\":" + currentStatus + ",\"newStatus\":" + targetStatus + "}"
-        );
+                admin.getAccountId(),
+                "UPDATE",
+                "管理员修改师傅账号状态",
+                "/admin/workers/" + id + "/status",
+                "{\"oldStatus\":" + currentStatus + ",\"newStatus\":" + targetStatus + "}");
         String statusText = targetStatus == WORKER_ACCOUNT_STATUS_NORMAL ? "正常" : "冻结";
         saveSystemMessage(
-            id,
-            "师傅账号状态已被管理员调整",
-            "您的师傅账号状态已被调整为：" + statusText + "，如有疑问请联系平台客服。",
-            "ADMIN_WORKER_STATUS",
-            1,
-            now
-        );
+                id,
+                "师傅账号状态已被管理员调整",
+                "您的师傅账号状态已被调整为：" + statusText + "，如有疑问请联系平台客服。",
+                "ADMIN_WORKER_STATUS",
+                1,
+                now);
         return Result.success();
     }
 
+    @Operation(summary = "提交绑定WorkerToStore")
     @PostMapping("/{id}/bind-store")
     public Result<Void> bindWorkerToStore(
-        @PathVariable("id") String id,
-        @RequestBody Map<String, String> body
-    ) {
+            @PathVariable("id") String id, @RequestBody Map<String, String> body) {
         LoginUserInfo admin = requireAdmin();
         // 仅超级管理员可绑定师傅到门店
         if (admin.getAdminRole() != null && admin.getAdminRole() != 1) {
@@ -624,15 +641,15 @@ public class AdminWorkerManageController {
         technicianAccountsService.bindStore(id, storeId);
 
         saveOperationLog(
-            admin.getAccountId(),
-            "UPDATE",
-            "绑定师傅到门店：" + store.getName(),
-            "/admin/workers/" + id + "/bind-store",
-            "{\"storeId\":\"" + storeId + "\"}"
-        );
+                admin.getAccountId(),
+                "UPDATE",
+                "绑定师傅到门店：" + store.getName(),
+                "/admin/workers/" + id + "/bind-store",
+                "{\"storeId\":\"" + storeId + "\"}");
         return Result.success();
     }
 
+    @Operation(summary = "提交解绑WorkerFromStore")
     @PostMapping("/{id}/unbind-store")
     public Result<Void> unbindWorkerFromStore(@PathVariable("id") String id) {
         LoginUserInfo admin = requireAdmin();
@@ -646,20 +663,19 @@ public class AdminWorkerManageController {
         technicianAccountsService.unbindStore(id);
 
         saveOperationLog(
-            admin.getAccountId(),
-            "UPDATE",
-            "解绑师傅门店",
-            "/admin/workers/" + id + "/unbind-store",
-            "{}"
-        );
+                admin.getAccountId(),
+                "UPDATE",
+                "解绑师傅门店",
+                "/admin/workers/" + id + "/unbind-store",
+                "{}");
         return Result.success();
     }
 
+    @Operation(summary = "修改编辑VisitFeePolicies")
     @PostMapping("/{id}/visit-fee-policies")
     public Result<Void> updateVisitFeePolicies(
-        @PathVariable("id") String id,
-        @Valid @RequestBody AdminWorkerVisitFeePoliciesUpdateRequest request
-    ) {
+            @PathVariable("id") String id,
+            @Valid @RequestBody AdminWorkerVisitFeePoliciesUpdateRequest request) {
         LoginUserInfo admin = requireAdmin();
         getAndCheckWorkerAccount(id);
         if (request == null || request.getPolicies() == null || request.getPolicies().isEmpty()) {
@@ -667,7 +683,8 @@ public class AdminWorkerManageController {
         }
 
         Set<Integer> serviceKindSet = new HashSet<>();
-        for (AdminWorkerVisitFeePoliciesUpdateRequest.PolicyItem policyItem : request.getPolicies()) {
+        for (AdminWorkerVisitFeePoliciesUpdateRequest.PolicyItem policyItem :
+                request.getPolicies()) {
             validatePolicyItem(policyItem);
             if (!serviceKindSet.add(policyItem.getServiceKind())) {
                 throw new BusinessException(ErrorCode.PARAM_ERROR, "同一服务类型不能重复提交");
@@ -675,7 +692,8 @@ public class AdminWorkerManageController {
         }
 
         long now = System.currentTimeMillis();
-        for (AdminWorkerVisitFeePoliciesUpdateRequest.PolicyItem policyItem : request.getPolicies()) {
+        for (AdminWorkerVisitFeePoliciesUpdateRequest.PolicyItem policyItem :
+                request.getPolicies()) {
             TechnicianVisitFeePolicies policy = findPolicyForUpdate(id, policyItem);
             boolean isNew = policy == null;
             if (isNew) {
@@ -694,7 +712,8 @@ public class AdminWorkerManageController {
             policy.setDistanceCalcType(policyItem.getDistanceCalcType());
             policy.setRoundingRule(policyItem.getRoundingRule());
             policy.setMaxVisitFee(policyItem.getMaxVisitFee());
-            policy.setIsActive(policyItem.getIsActive() != null && policyItem.getIsActive() == 0 ? 0 : 1);
+            policy.setIsActive(
+                    policyItem.getIsActive() != null && policyItem.getIsActive() == 0 ? 0 : 1);
             policy.setUpdatedTime(now);
 
             if (isNew) {
@@ -705,28 +724,21 @@ public class AdminWorkerManageController {
         }
 
         saveOperationLog(
-            admin.getAccountId(),
-            "UPDATE",
-            "管理员修改师傅上门计费策略",
-            "/admin/workers/" + id + "/visit-fee-policies",
-            "{\"count\":" + request.getPolicies().size() + "}"
-        );
+                admin.getAccountId(),
+                "UPDATE",
+                "管理员修改师傅上门计费策略",
+                "/admin/workers/" + id + "/visit-fee-policies",
+                "{\"count\":" + request.getPolicies().size() + "}");
         saveSystemMessage(
-            id,
-            "上门计费策略已更新",
-            "您的上门计费策略已由管理员更新，如有疑问请联系平台客服。",
-            "ADMIN_WORKER_FEE_POLICY",
-            2,
-            now
-        );
+                id, "上门计费策略已更新", "您的上门计费策略已由管理员更新，如有疑问请联系平台客服。", "ADMIN_WORKER_FEE_POLICY", 2, now);
         return Result.success();
     }
 
+    @Operation(summary = "修改编辑WorkerWorkTimes")
     @PostMapping("/{id}/work-times")
     public Result<Void> updateWorkerWorkTimes(
-        @PathVariable("id") String id,
-        @Valid @RequestBody AdminWorkerWorkTimesUpdateRequest request
-    ) {
+            @PathVariable("id") String id,
+            @Valid @RequestBody AdminWorkerWorkTimesUpdateRequest request) {
         LoginUserInfo admin = requireAdmin();
         getAndCheckWorkerAccount(id);
         if (request == null || request.getWorkTimes() == null || request.getWorkTimes().isEmpty()) {
@@ -761,7 +773,8 @@ public class AdminWorkerManageController {
             workTime.setDayOfWeek(item.getDayOfWeek());
             workTime.setStartTime(Time.valueOf(startTime));
             workTime.setEndTime(Time.valueOf(endTime));
-            workTime.setIsAvailable(item.getIsAvailable() != null && item.getIsAvailable() == 0 ? 0 : 1);
+            workTime.setIsAvailable(
+                    item.getIsAvailable() != null && item.getIsAvailable() == 0 ? 0 : 1);
             workTime.setUpdatedTime(now);
             workTime.setIsDelete(0);
 
@@ -773,28 +786,20 @@ public class AdminWorkerManageController {
         }
 
         saveOperationLog(
-            admin.getAccountId(),
-            "UPDATE",
-            "管理员修改师傅工作时间",
-            "/admin/workers/" + id + "/work-times",
-            "{\"count\":" + request.getWorkTimes().size() + "}"
-        );
+                admin.getAccountId(),
+                "UPDATE",
+                "管理员修改师傅工作时间",
+                "/admin/workers/" + id + "/work-times",
+                "{\"count\":" + request.getWorkTimes().size() + "}");
         saveSystemMessage(
-            id,
-            "工作时间已更新",
-            "您的可接单工作时间已由管理员更新，如有疑问请联系平台客服。",
-            "ADMIN_WORKER_WORK_TIME",
-            2,
-            now
-        );
+                id, "工作时间已更新", "您的可接单工作时间已由管理员更新，如有疑问请联系平台客服。", "ADMIN_WORKER_WORK_TIME", 2, now);
         return Result.success();
     }
 
+    @Operation(summary = "上传上传Worker头像")
     @PostMapping(value = "/{id}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Result<String> uploadWorkerAvatar(
-        @PathVariable("id") String id,
-        @RequestPart("file") MultipartFile file
-    ) {
+            @PathVariable("id") String id, @RequestPart("file") MultipartFile file) {
         LoginUserInfo admin = requireAdmin();
         getAndCheckWorkerAccount(id);
         if (file == null || file.isEmpty()) {
@@ -844,20 +849,13 @@ public class AdminWorkerManageController {
         imagesService.save(image);
 
         saveOperationLog(
-            admin.getAccountId(),
-            "UPDATE",
-            "管理员修改师傅头像",
-            "/admin/workers/" + id + "/avatar",
-            "{\"filename\":\"" + originalFilename + "\"}"
-        );
+                admin.getAccountId(),
+                "UPDATE",
+                "管理员修改师傅头像",
+                "/admin/workers/" + id + "/avatar",
+                "{\"filename\":\"" + originalFilename + "\"}");
         saveSystemMessage(
-            id,
-            "师傅头像已被管理员修改",
-            "您的头像已由管理员修改，如有疑问请联系平台客服。",
-            "ADMIN_WORKER_AVATAR",
-            2,
-            now
-        );
+                id, "师傅头像已被管理员修改", "您的头像已由管理员修改，如有疑问请联系平台客服。", "ADMIN_WORKER_AVATAR", 2, now);
         return Result.success(uploadUrl);
     }
 
@@ -880,28 +878,16 @@ public class AdminWorkerManageController {
         if (account == null || (account.getIsDelete() != null && account.getIsDelete() != 0)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "师傅账号不存在");
         }
+        adminDataScopeService.requireTechnicianAccess(requireAdmin(), account);
         return account;
     }
 
     private TechnicianProfiles queryWorkerProfile(String accountId) {
         return technicianProfilesService.getOne(
-            new LambdaQueryWrapper<TechnicianProfiles>()
-                .eq(TechnicianProfiles::getTechnicianAccountId, accountId)
-                .eq(TechnicianProfiles::getIsDelete, 0),
-            false
-        );
-    }
-
-    private TechnicianServiceAreas queryDefaultServiceArea(String accountId) {
-        return technicianServiceAreasService.getOne(
-            new LambdaQueryWrapper<TechnicianServiceAreas>()
-                .eq(TechnicianServiceAreas::getTechnicianAccountId, accountId)
-                .eq(TechnicianServiceAreas::getIsDelete, 0)
-                .orderByDesc(TechnicianServiceAreas::getIsDefault)
-                .orderByDesc(TechnicianServiceAreas::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+                new LambdaQueryWrapper<TechnicianProfiles>()
+                        .eq(TechnicianProfiles::getTechnicianAccountId, accountId)
+                        .eq(TechnicianProfiles::getIsDelete, 0),
+                false);
     }
 
     private Map<String, String> queryAvatarUrlMap(Set<String> accountIdSet) {
@@ -909,13 +895,13 @@ public class AdminWorkerManageController {
         if (accountIdSet == null || accountIdSet.isEmpty()) {
             return avatarUrlMap;
         }
-        List<Images> imageList = imagesService.list(
-            new LambdaQueryWrapper<Images>()
-                .eq(Images::getBusinessType, "AVATAR")
-                .in(Images::getBusinessId, accountIdSet)
-                .eq(Images::getIsDelete, 0)
-                .orderByDesc(Images::getCreatedTime)
-        );
+        List<Images> imageList =
+                imagesService.list(
+                        new LambdaQueryWrapper<Images>()
+                                .eq(Images::getBusinessType, "AVATAR")
+                                .in(Images::getBusinessId, accountIdSet)
+                                .eq(Images::getIsDelete, 0)
+                                .orderByDesc(Images::getCreatedTime));
         for (Images image : imageList) {
             String businessId = image.getBusinessId();
             if (!avatarUrlMap.containsKey(businessId) && StringUtils.hasText(image.getFileUrl())) {
@@ -926,30 +912,31 @@ public class AdminWorkerManageController {
     }
 
     private String querySingleAvatarUrl(String accountId) {
-        Images avatarImage = imagesService.getOne(
-            new LambdaQueryWrapper<Images>()
-                .eq(Images::getBusinessType, "AVATAR")
-                .eq(Images::getBusinessId, accountId)
-                .eq(Images::getIsDelete, 0)
-                .orderByDesc(Images::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+        Images avatarImage =
+                imagesService.getOne(
+                        new LambdaQueryWrapper<Images>()
+                                .eq(Images::getBusinessType, "AVATAR")
+                                .eq(Images::getBusinessId, accountId)
+                                .eq(Images::getIsDelete, 0)
+                                .orderByDesc(Images::getCreatedTime)
+                                .last("limit 1"),
+                        false);
         if (avatarImage == null || !StringUtils.hasText(avatarImage.getFileUrl())) {
             return null;
         }
         return avatarImage.getFileUrl();
     }
 
-    private List<AdminWorkerVisitFeePolicyResponse> buildVisitFeePolicyResponseList(String accountId) {
-        List<TechnicianVisitFeePolicies> allPolicyList = technicianVisitFeePoliciesService.list(
-            new LambdaQueryWrapper<TechnicianVisitFeePolicies>()
-                .eq(TechnicianVisitFeePolicies::getTechnicianAccountId, accountId)
-                .eq(TechnicianVisitFeePolicies::getIsDelete, 0)
-                .orderByAsc(TechnicianVisitFeePolicies::getServiceKind)
-                .orderByDesc(TechnicianVisitFeePolicies::getEffectiveTime)
-                .orderByDesc(TechnicianVisitFeePolicies::getCreatedTime)
-        );
+    private List<AdminWorkerVisitFeePolicyResponse> buildVisitFeePolicyResponseList(
+            String accountId) {
+        List<TechnicianVisitFeePolicies> allPolicyList =
+                technicianVisitFeePoliciesService.list(
+                        new LambdaQueryWrapper<TechnicianVisitFeePolicies>()
+                                .eq(TechnicianVisitFeePolicies::getTechnicianAccountId, accountId)
+                                .eq(TechnicianVisitFeePolicies::getIsDelete, 0)
+                                .orderByAsc(TechnicianVisitFeePolicies::getServiceKind)
+                                .orderByDesc(TechnicianVisitFeePolicies::getEffectiveTime)
+                                .orderByDesc(TechnicianVisitFeePolicies::getCreatedTime));
 
         Map<Integer, TechnicianVisitFeePolicies> latestPolicyMap = new LinkedHashMap<>();
         for (TechnicianVisitFeePolicies policy : allPolicyList) {
@@ -968,7 +955,8 @@ public class AdminWorkerManageController {
         return responseList;
     }
 
-    private AdminWorkerVisitFeePolicyResponse toVisitFeePolicyResponse(TechnicianVisitFeePolicies policy, Integer defaultServiceKind) {
+    private AdminWorkerVisitFeePolicyResponse toVisitFeePolicyResponse(
+            TechnicianVisitFeePolicies policy, Integer defaultServiceKind) {
         AdminWorkerVisitFeePolicyResponse response = new AdminWorkerVisitFeePolicyResponse();
         if (policy == null) {
             response.setServiceKind(defaultServiceKind);
@@ -982,9 +970,12 @@ public class AdminWorkerManageController {
         }
         response.setId(policy.getId());
         response.setServiceKind(policy.getServiceKind());
-        response.setMinVisitFee(policy.getMinVisitFee() == null ? BigDecimal.ZERO : policy.getMinVisitFee());
-        response.setBaseRadiusKm(policy.getBaseRadiusKm() == null ? BigDecimal.ZERO : policy.getBaseRadiusKm());
-        response.setExtraFeePerKm(policy.getExtraFeePerKm() == null ? BigDecimal.ZERO : policy.getExtraFeePerKm());
+        response.setMinVisitFee(
+                policy.getMinVisitFee() == null ? BigDecimal.ZERO : policy.getMinVisitFee());
+        response.setBaseRadiusKm(
+                policy.getBaseRadiusKm() == null ? BigDecimal.ZERO : policy.getBaseRadiusKm());
+        response.setExtraFeePerKm(
+                policy.getExtraFeePerKm() == null ? BigDecimal.ZERO : policy.getExtraFeePerKm());
         response.setDistanceCalcType(policy.getDistanceCalcType());
         response.setRoundingRule(policy.getRoundingRule());
         response.setMaxVisitFee(policy.getMaxVisitFee());
@@ -995,14 +986,14 @@ public class AdminWorkerManageController {
     }
 
     private List<AdminWorkerWorkTimeResponse> buildWorkerWorkTimeResponseList(String accountId) {
-        List<TechnicianWorkTimes> workTimesList = technicianWorkTimesService.list(
-            new LambdaQueryWrapper<TechnicianWorkTimes>()
-                .eq(TechnicianWorkTimes::getTechnicianAccountId, accountId)
-                .eq(TechnicianWorkTimes::getIsDelete, 0)
-                .orderByAsc(TechnicianWorkTimes::getDayOfWeek)
-                .orderByDesc(TechnicianWorkTimes::getUpdatedTime)
-                .orderByDesc(TechnicianWorkTimes::getCreatedTime)
-        );
+        List<TechnicianWorkTimes> workTimesList =
+                technicianWorkTimesService.list(
+                        new LambdaQueryWrapper<TechnicianWorkTimes>()
+                                .eq(TechnicianWorkTimes::getTechnicianAccountId, accountId)
+                                .eq(TechnicianWorkTimes::getIsDelete, 0)
+                                .orderByAsc(TechnicianWorkTimes::getDayOfWeek)
+                                .orderByDesc(TechnicianWorkTimes::getUpdatedTime)
+                                .orderByDesc(TechnicianWorkTimes::getCreatedTime));
         Map<Integer, TechnicianWorkTimes> latestWorkTimeMap = new LinkedHashMap<>();
         for (TechnicianWorkTimes item : workTimesList) {
             if (item == null || item.getDayOfWeek() == null) {
@@ -1024,7 +1015,8 @@ public class AdminWorkerManageController {
         return responseList;
     }
 
-    private AdminWorkerWorkTimeResponse toWorkTimeResponse(TechnicianWorkTimes entity, Integer defaultDayOfWeek) {
+    private AdminWorkerWorkTimeResponse toWorkTimeResponse(
+            TechnicianWorkTimes entity, Integer defaultDayOfWeek) {
         AdminWorkerWorkTimeResponse response = new AdminWorkerWorkTimeResponse();
         if (entity == null) {
             response.setDayOfWeek(defaultDayOfWeek);
@@ -1034,10 +1026,12 @@ public class AdminWorkerManageController {
             return response;
         }
         response.setId(entity.getId());
-        response.setDayOfWeek(entity.getDayOfWeek() == null ? defaultDayOfWeek : entity.getDayOfWeek());
+        response.setDayOfWeek(
+                entity.getDayOfWeek() == null ? defaultDayOfWeek : entity.getDayOfWeek());
         response.setStartTime(formatWorkTime(entity.getStartTime(), DEFAULT_WORK_START_TIME));
         response.setEndTime(formatWorkTime(entity.getEndTime(), DEFAULT_WORK_END_TIME));
-        response.setIsAvailable(entity.getIsAvailable() != null && entity.getIsAvailable() == 0 ? 0 : 1);
+        response.setIsAvailable(
+                entity.getIsAvailable() != null && entity.getIsAvailable() == 0 ? 0 : 1);
         response.setUpdatedTime(entity.getUpdatedTime());
         return response;
     }
@@ -1055,9 +1049,9 @@ public class AdminWorkerManageController {
             return ((Time) dateValue).toLocalTime().withNano(0);
         }
         return Instant.ofEpochMilli(dateValue.getTime())
-            .atZone(ZoneId.systemDefault())
-            .toLocalTime()
-            .withNano(0);
+                .atZone(ZoneId.systemDefault())
+                .toLocalTime()
+                .withNano(0);
     }
 
     private LocalTime parseWorkTime(String value, String fieldName) {
@@ -1071,7 +1065,8 @@ public class AdminWorkerManageController {
             }
             return LocalTime.parse(normalized, WORK_TIME_FORMATTER);
         } catch (DateTimeParseException e) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, fieldName + " 格式错误，应为 HH:mm 或 HH:mm:ss");
+            throw new BusinessException(
+                    ErrorCode.PARAM_ERROR, fieldName + " 格式错误，应为 HH:mm 或 HH:mm:ss");
         }
     }
 
@@ -1086,12 +1081,15 @@ public class AdminWorkerManageController {
         if (!StringUtils.hasText(item.getStartTime()) || !StringUtils.hasText(item.getEndTime())) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "开始时间和结束时间不能为空");
         }
-        if (item.getIsAvailable() != null && item.getIsAvailable() != 0 && item.getIsAvailable() != 1) {
+        if (item.getIsAvailable() != null
+                && item.getIsAvailable() != 0
+                && item.getIsAvailable() != 1) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "isAvailable 仅支持 0 或 1");
         }
     }
 
-    private TechnicianWorkTimes findWorkTimeForUpdate(String accountId, AdminWorkerWorkTimesUpdateRequest.WorkTimeItem item) {
+    private TechnicianWorkTimes findWorkTimeForUpdate(
+            String accountId, AdminWorkerWorkTimesUpdateRequest.WorkTimeItem item) {
         if (StringUtils.hasText(item.getId())) {
             TechnicianWorkTimes byId = technicianWorkTimesService.getById(item.getId());
             if (byId != null && accountId.equals(byId.getTechnicianAccountId())) {
@@ -1099,14 +1097,13 @@ public class AdminWorkerManageController {
             }
         }
         return technicianWorkTimesService.getOne(
-            new LambdaQueryWrapper<TechnicianWorkTimes>()
-                .eq(TechnicianWorkTimes::getTechnicianAccountId, accountId)
-                .eq(TechnicianWorkTimes::getDayOfWeek, item.getDayOfWeek())
-                .orderByDesc(TechnicianWorkTimes::getUpdatedTime)
-                .orderByDesc(TechnicianWorkTimes::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+                new LambdaQueryWrapper<TechnicianWorkTimes>()
+                        .eq(TechnicianWorkTimes::getTechnicianAccountId, accountId)
+                        .eq(TechnicianWorkTimes::getDayOfWeek, item.getDayOfWeek())
+                        .orderByDesc(TechnicianWorkTimes::getUpdatedTime)
+                        .orderByDesc(TechnicianWorkTimes::getCreatedTime)
+                        .last("limit 1"),
+                false);
     }
 
     private AdminWorkerOrderStatsResponse buildOrderStats(String accountId) {
@@ -1119,14 +1116,14 @@ public class AdminWorkerManageController {
         stats.setCanceledCount(countOrdersByStatuses(accountId, 7));
         stats.setRefundedCount(countOrdersByStatuses(accountId, 8));
 
-        RepairOrders latestOrder = repairOrdersService.getOne(
-            new LambdaQueryWrapper<RepairOrders>()
-                .eq(RepairOrders::getTechnicianAccountId, accountId)
-                .eq(RepairOrders::getIsDelete, 0)
-                .orderByDesc(RepairOrders::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+        RepairOrders latestOrder =
+                repairOrdersService.getOne(
+                        new LambdaQueryWrapper<RepairOrders>()
+                                .eq(RepairOrders::getTechnicianAccountId, accountId)
+                                .eq(RepairOrders::getIsDelete, 0)
+                                .orderByDesc(RepairOrders::getCreatedTime)
+                                .last("limit 1"),
+                        false);
         if (latestOrder != null) {
             stats.setLatestOrderTime(latestOrder.getCreatedTime());
         }
@@ -1134,9 +1131,10 @@ public class AdminWorkerManageController {
     }
 
     private long countOrdersByStatuses(String accountId, Integer... statusArray) {
-        LambdaQueryWrapper<RepairOrders> wrapper = new LambdaQueryWrapper<RepairOrders>()
-            .eq(RepairOrders::getTechnicianAccountId, accountId)
-            .eq(RepairOrders::getIsDelete, 0);
+        LambdaQueryWrapper<RepairOrders> wrapper =
+                new LambdaQueryWrapper<RepairOrders>()
+                        .eq(RepairOrders::getTechnicianAccountId, accountId)
+                        .eq(RepairOrders::getIsDelete, 0);
         if (statusArray != null && statusArray.length > 0) {
             if (statusArray.length == 1) {
                 wrapper.eq(RepairOrders::getStatus, statusArray[0]);
@@ -1147,7 +1145,8 @@ public class AdminWorkerManageController {
         return repairOrdersService.count(wrapper);
     }
 
-    private void validatePolicyItem(AdminWorkerVisitFeePoliciesUpdateRequest.PolicyItem policyItem) {
+    private void validatePolicyItem(
+            AdminWorkerVisitFeePoliciesUpdateRequest.PolicyItem policyItem) {
         if (policyItem == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "计费策略不能为空");
         }
@@ -1165,52 +1164,57 @@ public class AdminWorkerManageController {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "超区每公里费用不能小于0");
         }
         if (policyItem.getDistanceCalcType() == null
-            || (policyItem.getDistanceCalcType() != 1 && policyItem.getDistanceCalcType() != 2)) {
+                || (policyItem.getDistanceCalcType() != 1
+                        && policyItem.getDistanceCalcType() != 2)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "距离计算方式不合法");
         }
         if (policyItem.getRoundingRule() == null
-            || (policyItem.getRoundingRule() != 1 && policyItem.getRoundingRule() != 2)) {
+                || (policyItem.getRoundingRule() != 1 && policyItem.getRoundingRule() != 2)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "公里取整规则不合法");
         }
-        if (policyItem.getMaxVisitFee() != null && policyItem.getMaxVisitFee().compareTo(BigDecimal.ZERO) < 0) {
+        if (policyItem.getMaxVisitFee() != null
+                && policyItem.getMaxVisitFee().compareTo(BigDecimal.ZERO) < 0) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "封顶公里数不能小于0");
         }
-        if (policyItem.getIsActive() != null && policyItem.getIsActive() != 0 && policyItem.getIsActive() != 1) {
+        if (policyItem.getIsActive() != null
+                && policyItem.getIsActive() != 0
+                && policyItem.getIsActive() != 1) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "启用状态不合法");
         }
     }
 
-    private TechnicianVisitFeePolicies findPolicyForUpdate(String accountId, AdminWorkerVisitFeePoliciesUpdateRequest.PolicyItem policyItem) {
+    private TechnicianVisitFeePolicies findPolicyForUpdate(
+            String accountId, AdminWorkerVisitFeePoliciesUpdateRequest.PolicyItem policyItem) {
         if (StringUtils.hasText(policyItem.getId())) {
-            TechnicianVisitFeePolicies byId = technicianVisitFeePoliciesService.getById(policyItem.getId());
+            TechnicianVisitFeePolicies byId =
+                    technicianVisitFeePoliciesService.getById(policyItem.getId());
             if (byId != null
-                && byId.getIsDelete() != null
-                && byId.getIsDelete() == 0
-                && accountId.equals(byId.getTechnicianAccountId())
-                && policyItem.getServiceKind().equals(byId.getServiceKind())) {
+                    && byId.getIsDelete() != null
+                    && byId.getIsDelete() == 0
+                    && accountId.equals(byId.getTechnicianAccountId())
+                    && policyItem.getServiceKind().equals(byId.getServiceKind())) {
                 return byId;
             }
         }
         return technicianVisitFeePoliciesService.getOne(
-            new LambdaQueryWrapper<TechnicianVisitFeePolicies>()
-                .eq(TechnicianVisitFeePolicies::getTechnicianAccountId, accountId)
-                .eq(TechnicianVisitFeePolicies::getServiceKind, policyItem.getServiceKind())
-                .eq(TechnicianVisitFeePolicies::getIsDelete, 0)
-                .orderByDesc(TechnicianVisitFeePolicies::getEffectiveTime)
-                .orderByDesc(TechnicianVisitFeePolicies::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+                new LambdaQueryWrapper<TechnicianVisitFeePolicies>()
+                        .eq(TechnicianVisitFeePolicies::getTechnicianAccountId, accountId)
+                        .eq(TechnicianVisitFeePolicies::getServiceKind, policyItem.getServiceKind())
+                        .eq(TechnicianVisitFeePolicies::getIsDelete, 0)
+                        .orderByDesc(TechnicianVisitFeePolicies::getEffectiveTime)
+                        .orderByDesc(TechnicianVisitFeePolicies::getCreatedTime)
+                        .last("limit 1"),
+                false);
     }
 
     private List<AdminWorkerSkillItemResponse> buildWorkerSkillResponseList(String accountId) {
-        List<TechnicianSkills> skills = technicianSkillsService.list(
-            new LambdaQueryWrapper<TechnicianSkills>()
-                .eq(TechnicianSkills::getTechnicianAccountId, accountId)
-                .eq(TechnicianSkills::getIsDelete, 0)
-                .orderByDesc(TechnicianSkills::getUpdatedTime)
-                .orderByDesc(TechnicianSkills::getCreatedTime)
-        );
+        List<TechnicianSkills> skills =
+                technicianSkillsService.list(
+                        new LambdaQueryWrapper<TechnicianSkills>()
+                                .eq(TechnicianSkills::getTechnicianAccountId, accountId)
+                                .eq(TechnicianSkills::getIsDelete, 0)
+                                .orderByDesc(TechnicianSkills::getUpdatedTime)
+                                .orderByDesc(TechnicianSkills::getCreatedTime));
         if (skills == null || skills.isEmpty()) {
             return new ArrayList<>();
         }
@@ -1224,11 +1228,11 @@ public class AdminWorkerManageController {
 
         Map<String, ServiceTypes> serviceTypeMap = new LinkedHashMap<>();
         if (!serviceTypeIds.isEmpty()) {
-            List<ServiceTypes> serviceTypeList = serviceTypesService.list(
-                new LambdaQueryWrapper<ServiceTypes>()
-                    .in(ServiceTypes::getId, serviceTypeIds)
-                    .eq(ServiceTypes::getIsDelete, 0)
-            );
+            List<ServiceTypes> serviceTypeList =
+                    serviceTypesService.list(
+                            new LambdaQueryWrapper<ServiceTypes>()
+                                    .in(ServiceTypes::getId, serviceTypeIds)
+                                    .eq(ServiceTypes::getIsDelete, 0));
             for (ServiceTypes serviceType : serviceTypeList) {
                 if (serviceType == null || !StringUtils.hasText(serviceType.getId())) {
                     continue;
@@ -1258,10 +1262,9 @@ public class AdminWorkerManageController {
     }
 
     private AdminWorkerSkillItemResponse toWorkerSkillItemResponse(
-        TechnicianSkills skill,
-        ServiceTypes serviceType,
-        Map<String, ServiceCategories> categoryMap
-    ) {
+            TechnicianSkills skill,
+            ServiceTypes serviceType,
+            Map<String, ServiceCategories> categoryMap) {
         AdminWorkerSkillItemResponse response = new AdminWorkerSkillItemResponse();
         response.setId(skill.getId());
         response.setServiceTypeId(skill.getServiceTypeId());
@@ -1282,21 +1285,21 @@ public class AdminWorkerManageController {
 
     private List<ServiceCategories> listActiveCategories() {
         return serviceCategoriesService.list(
-            new LambdaQueryWrapper<ServiceCategories>()
-                .eq(ServiceCategories::getIsActive, 1)
-                .eq(ServiceCategories::getIsDelete, 0)
-                .orderByAsc(ServiceCategories::getLevel)
-                .orderByAsc(ServiceCategories::getSortOrder)
-                .orderByAsc(ServiceCategories::getCreatedTime)
-        );
+                new LambdaQueryWrapper<ServiceCategories>()
+                        .eq(ServiceCategories::getIsActive, 1)
+                        .eq(ServiceCategories::getIsDelete, 0)
+                        .orderByAsc(ServiceCategories::getLevel)
+                        .orderByAsc(ServiceCategories::getSortOrder)
+                        .orderByAsc(ServiceCategories::getCreatedTime));
     }
 
-    private List<ServiceTypes> listAvailableServiceTypeEntities(String accountId, String keyword, Integer serviceMode) {
-        List<TechnicianSkills> existingSkills = technicianSkillsService.list(
-            new LambdaQueryWrapper<TechnicianSkills>()
-                .eq(TechnicianSkills::getTechnicianAccountId, accountId)
-                .eq(TechnicianSkills::getIsDelete, 0)
-        );
+    private List<ServiceTypes> listAvailableServiceTypeEntities(
+            String accountId, String keyword, Integer serviceMode) {
+        List<TechnicianSkills> existingSkills =
+                technicianSkillsService.list(
+                        new LambdaQueryWrapper<TechnicianSkills>()
+                                .eq(TechnicianSkills::getTechnicianAccountId, accountId)
+                                .eq(TechnicianSkills::getIsDelete, 0));
         Set<String> selectedTypeIds = new LinkedHashSet<>();
         for (TechnicianSkills skill : existingSkills) {
             if (skill != null && StringUtils.hasText(skill.getServiceTypeId())) {
@@ -1304,19 +1307,22 @@ public class AdminWorkerManageController {
             }
         }
 
-        List<ServiceTypes> serviceTypes = serviceTypesService.list(
-            new LambdaQueryWrapper<ServiceTypes>()
-                .eq(ServiceTypes::getIsActive, 1)
-                .eq(ServiceTypes::getIsDelete, 0)
-                .eq(serviceMode != null, ServiceTypes::getType, serviceMode)
-                .and(StringUtils.hasText(keyword), wrapper -> wrapper
-                    .like(ServiceTypes::getName, keyword)
-                    .or()
-                    .like(ServiceTypes::getDescription, keyword)
-                )
-                .orderByAsc(ServiceTypes::getSortOrder)
-                .orderByAsc(ServiceTypes::getCreatedTime)
-        );
+        List<ServiceTypes> serviceTypes =
+                serviceTypesService.list(
+                        new LambdaQueryWrapper<ServiceTypes>()
+                                .eq(ServiceTypes::getIsActive, 1)
+                                .eq(ServiceTypes::getIsDelete, 0)
+                                .eq(serviceMode != null, ServiceTypes::getType, serviceMode)
+                                .and(
+                                        StringUtils.hasText(keyword),
+                                        wrapper ->
+                                                wrapper.like(ServiceTypes::getName, keyword)
+                                                        .or()
+                                                        .like(
+                                                                ServiceTypes::getDescription,
+                                                                keyword))
+                                .orderByAsc(ServiceTypes::getSortOrder)
+                                .orderByAsc(ServiceTypes::getCreatedTime));
 
         List<ServiceTypes> available = new ArrayList<>();
         for (ServiceTypes serviceType : serviceTypes) {
@@ -1331,7 +1337,8 @@ public class AdminWorkerManageController {
         return available;
     }
 
-    private Set<String> findDescendantCategoryIds(String categoryId, List<ServiceCategories> categories) {
+    private Set<String> findDescendantCategoryIds(
+            String categoryId, List<ServiceCategories> categories) {
         Set<String> descendants = new LinkedHashSet<>();
         if (!StringUtils.hasText(categoryId) || categories == null || categories.isEmpty()) {
             return descendants;
@@ -1348,7 +1355,9 @@ public class AdminWorkerManageController {
             if (!StringUtils.hasText(parentId)) {
                 continue;
             }
-            childrenByParentId.computeIfAbsent(parentId, key -> new ArrayList<>()).add(category.getId());
+            childrenByParentId
+                    .computeIfAbsent(parentId, key -> new ArrayList<>())
+                    .add(category.getId());
         }
 
         if (!allCategoryIds.contains(categoryId)) {
@@ -1362,30 +1371,31 @@ public class AdminWorkerManageController {
             if (!descendants.add(currentId)) {
                 continue;
             }
-            List<String> children = childrenByParentId.getOrDefault(currentId, Collections.emptyList());
+            List<String> children =
+                    childrenByParentId.getOrDefault(currentId, Collections.emptyList());
             queue.addAll(children);
         }
         return descendants;
     }
 
     private WorkerSkillCategoryNode buildCategoryNode(
-        ServiceCategories category,
-        Map<String, List<ServiceCategories>> childrenByParentId
-    ) {
+            ServiceCategories category, Map<String, List<ServiceCategories>> childrenByParentId) {
         WorkerSkillCategoryNode node = new WorkerSkillCategoryNode();
         node.setId(category.getId());
         node.setName(category.getName());
         node.setLevel(category.getLevel());
         node.setParentId(category.getParentId());
 
-        List<ServiceCategories> children = childrenByParentId.getOrDefault(category.getId(), Collections.emptyList());
+        List<ServiceCategories> children =
+                childrenByParentId.getOrDefault(category.getId(), Collections.emptyList());
         for (ServiceCategories child : children) {
             node.getChildren().add(buildCategoryNode(child, childrenByParentId));
         }
         return node;
     }
 
-    private String buildCategoryPath(String categoryId, Map<String, ServiceCategories> categoryMap) {
+    private String buildCategoryPath(
+            String categoryId, Map<String, ServiceCategories> categoryMap) {
         if (!StringUtils.hasText(categoryId) || categoryMap == null || categoryMap.isEmpty()) {
             return "";
         }
@@ -1409,14 +1419,15 @@ public class AdminWorkerManageController {
     private void addSkillForWorker(String accountId, String serviceTypeId) {
         requireActiveServiceType(serviceTypeId);
 
-        TechnicianSkills currentSkill = technicianSkillsService.getOne(
-            new LambdaQueryWrapper<TechnicianSkills>()
-                .eq(TechnicianSkills::getTechnicianAccountId, accountId)
-                .eq(TechnicianSkills::getServiceTypeId, serviceTypeId)
-                .eq(TechnicianSkills::getIsDelete, 0),
-            false
-        );
-        if (currentSkill != null && (currentSkill.getIsActive() == null || currentSkill.getIsActive() == 1)) {
+        TechnicianSkills currentSkill =
+                technicianSkillsService.getOne(
+                        new LambdaQueryWrapper<TechnicianSkills>()
+                                .eq(TechnicianSkills::getTechnicianAccountId, accountId)
+                                .eq(TechnicianSkills::getServiceTypeId, serviceTypeId)
+                                .eq(TechnicianSkills::getIsDelete, 0),
+                        false);
+        if (currentSkill != null
+                && (currentSkill.getIsActive() == null || currentSkill.getIsActive() == 1)) {
             return;
         }
 
@@ -1429,9 +1440,13 @@ public class AdminWorkerManageController {
             return;
         }
 
-        TechnicianSkills anySkill = technicianSkillsMapper.selectAnyByTechnicianAndServiceType(accountId, serviceTypeId);
+        TechnicianSkills anySkill =
+                technicianSkillsMapper.selectAnyByTechnicianAndServiceType(
+                        accountId, serviceTypeId);
         if (anySkill != null) {
-            int restored = technicianSkillsMapper.restoreByTechnicianAndServiceType(accountId, serviceTypeId, now);
+            int restored =
+                    technicianSkillsMapper.restoreByTechnicianAndServiceType(
+                            accountId, serviceTypeId, now);
             if (restored <= 0) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "新增技能失败");
             }
@@ -1454,7 +1469,9 @@ public class AdminWorkerManageController {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "新增技能失败");
             }
         } catch (DuplicateKeyException ex) {
-            int restored = technicianSkillsMapper.restoreByTechnicianAndServiceType(accountId, serviceTypeId, now);
+            int restored =
+                    technicianSkillsMapper.restoreByTechnicianAndServiceType(
+                            accountId, serviceTypeId, now);
             if (restored <= 0) {
                 throw new BusinessException(ErrorCode.BUSINESS_ERROR, "技能已存在");
             }
@@ -1466,8 +1483,8 @@ public class AdminWorkerManageController {
             return null;
         }
         if (serviceMode == SERVICE_MODE_ONSITE_REPAIR
-            || serviceMode == SERVICE_MODE_ONSITE_INSTALL
-            || serviceMode == SERVICE_MODE_OFFLINE_REPAIR) {
+                || serviceMode == SERVICE_MODE_ONSITE_INSTALL
+                || serviceMode == SERVICE_MODE_OFFLINE_REPAIR) {
             return serviceMode;
         }
         throw new BusinessException(ErrorCode.PARAM_ERROR, "serviceMode 参数错误");
@@ -1481,13 +1498,13 @@ public class AdminWorkerManageController {
     }
 
     private ServiceTypes requireActiveServiceType(String serviceTypeId) {
-        ServiceTypes serviceType = serviceTypesService.getOne(
-            new LambdaQueryWrapper<ServiceTypes>()
-                .eq(ServiceTypes::getId, serviceTypeId)
-                .eq(ServiceTypes::getIsActive, 1)
-                .eq(ServiceTypes::getIsDelete, 0),
-            false
-        );
+        ServiceTypes serviceType =
+                serviceTypesService.getOne(
+                        new LambdaQueryWrapper<ServiceTypes>()
+                                .eq(ServiceTypes::getId, serviceTypeId)
+                                .eq(ServiceTypes::getIsActive, 1)
+                                .eq(ServiceTypes::getIsDelete, 0),
+                        false);
         if (serviceType == null) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "服务类型不存在或已禁用");
         }
@@ -1527,12 +1544,11 @@ public class AdminWorkerManageController {
     }
 
     private void saveOperationLog(
-        String adminAccountId,
-        String operationType,
-        String operationDesc,
-        String requestUrl,
-        String requestParams
-    ) {
+            String adminAccountId,
+            String operationType,
+            String operationDesc,
+            String requestUrl,
+            String requestParams) {
         long now = System.currentTimeMillis();
         OperationLogs log = new OperationLogs();
         log.setId("OL" + now + (int) (Math.random() * 1000));
@@ -1554,13 +1570,12 @@ public class AdminWorkerManageController {
     }
 
     private void saveSystemMessage(
-        String workerId,
-        String title,
-        String content,
-        String businessType,
-        int priority,
-        long now
-    ) {
+            String workerId,
+            String title,
+            String content,
+            String businessType,
+            int priority,
+            long now) {
         SystemMessages message = new SystemMessages();
         message.setId("SM" + now + (int) (Math.random() * 1000));
         message.setReceiverId(workerId);

@@ -10,9 +10,7 @@
 
       <div class="protocol-card">
         <h1>{{ protocol.title || '协议内容' }}</h1>
-        <div class="protocol-filename" v-if="protocol.fileName">
-          文件：{{ protocol.fileName }}
-        </div>
+        <div class="protocol-filename" v-if="protocol.fileName">文件：{{ protocol.fileName }}</div>
         <div class="protocol-content" v-html="protocol.htmlContent"></div>
       </div>
     </div>

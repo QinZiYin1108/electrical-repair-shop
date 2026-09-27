@@ -8,16 +8,8 @@
         <text class="header-title">个人资料</text>
       </view>
       <view class="header-right">
-        <text
-          v-if="!editing"
-          class="header-action"
-          @click="startEdit"
-        >编辑</text>
-        <text
-          v-else
-          class="header-action"
-          @click="saveEdit"
-        >保存</text>
+        <text v-if="!editing" class="header-action" @click="startEdit">编辑</text>
+        <text v-else class="header-action" @click="saveEdit">保存</text>
       </view>
     </view>
 
@@ -30,10 +22,7 @@
         @click="changeAvatar"
       />
       <text class="avatar-tip">点击更换头像</text>
-      <text
-        v-if="uploadingAvatar"
-        class="avatar-subtip"
-      >上传中...</text>
+      <text v-if="uploadingAvatar" class="avatar-subtip">上传中...</text>
     </view>
 
     <view class="card">
@@ -109,12 +98,7 @@
       <view class="row">
         <text class="label">生日</text>
         <view class="right">
-          <picker
-            v-if="editing"
-            mode="date"
-            :value="birthdayPickerValue"
-            @change="onBirthdayPick"
-          >
+          <picker v-if="editing" mode="date" :value="birthdayPickerValue" @change="onBirthdayPick">
             <text class="value picker-value">
               {{ birthdayText(form.birthday) }}
             </text>
@@ -134,7 +118,9 @@
             border="none"
             input-align="right"
           />
-          <text v-else class="value">{{ typeof profile.workYears === 'number' ? profile.workYears : '-' }}</text>
+          <text v-else class="value">{{
+            typeof profile.workYears === 'number' ? profile.workYears : '-'
+          }}</text>
         </view>
       </view>
 
@@ -166,32 +152,15 @@
       </view>
     </view>
 
-    <view
-      v-if="editing"
-      class="footer"
-    >
-      <u-button
-        text="取消"
-        shape="circle"
-        @click="cancelEdit"
-      />
-      <u-button
-        text="保存"
-        type="primary"
-        shape="circle"
-        :loading="saving"
-        @click="saveEdit"
-      />
+    <view v-if="editing" class="footer">
+      <u-button text="取消" shape="circle" @click="cancelEdit" />
+      <u-button text="保存" type="primary" shape="circle" :loading="saving" @click="saveEdit" />
     </view>
   </view>
 </template>
 
 <script>
-import {
-  getWorkerProfile,
-  updateWorkerProfile,
-  uploadWorkerAvatar
-} from '@/api/workerProfile';
+import { getWorkerProfile, updateWorkerProfile, uploadWorkerAvatar } from '@/api/workerProfile';
 import { showUploadErrorModal } from '@/utils/uploadFeedback';
 
 export default {
@@ -230,7 +199,8 @@ export default {
   computed: {
     avatarDisplayUrl() {
       if (this.avatarLoadFailed) return '/static/logo.png';
-      const url = this.profile && this.profile.avatarUrl ? String(this.profile.avatarUrl).trim() : '';
+      const url =
+        this.profile && this.profile.avatarUrl ? String(this.profile.avatarUrl).trim() : '';
       return url || '/static/logo.png';
     },
     genderPickerIndex() {
@@ -282,7 +252,9 @@ export default {
     },
     dateStringToTimestamp(val) {
       if (!val) return null;
-      const parts = String(val).split('-').map((x) => Number(x));
+      const parts = String(val)
+        .split('-')
+        .map((x) => Number(x));
       if (parts.length !== 3 || parts.some((n) => !Number.isFinite(n))) return null;
       const [y, m, d] = parts;
       if (!y || !m || !d) return null;
@@ -328,8 +300,7 @@ export default {
       this.form.email = p.email || '';
       this.form.gender = p.gender ?? null;
       this.form.birthday = typeof p.birthday === 'number' ? p.birthday : null;
-      this.form.workYears =
-        typeof p.workYears === 'number' ? String(p.workYears) : '';
+      this.form.workYears = typeof p.workYears === 'number' ? String(p.workYears) : '';
       this.form.education = p.education || '';
       this.form.introduction = p.introduction || '';
     },
@@ -391,7 +362,7 @@ export default {
                 this.profile.avatarUrl = body.data || '';
                 this.avatarLoadFailed = false;
                 uni.showToast({ title: '头像已更新', icon: 'success' });
-            } else {
+              } else {
                 showUploadErrorModal((body && body.message) || '头像上传失败', {
                   title: '头像上传失败',
                   fallback: '头像上传失败'
@@ -595,5 +566,4 @@ export default {
 .footer :deep(.u-button) {
   flex: 1;
 }
-
 </style>

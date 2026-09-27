@@ -8,6 +8,5 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class TechnicianVisitFeePoliciesServiceImpl
-    extends ServiceImpl<TechnicianVisitFeePoliciesMapper, TechnicianVisitFeePolicies>
-    implements TechnicianVisitFeePoliciesService {
-}
+        extends ServiceImpl<TechnicianVisitFeePoliciesMapper, TechnicianVisitFeePolicies>
+        implements TechnicianVisitFeePoliciesService {}

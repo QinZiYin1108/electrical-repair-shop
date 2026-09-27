@@ -23,12 +23,7 @@
       <view class="row">
         <text class="label">验证码</text>
         <view class="right">
-          <u-input
-            v-model="code"
-            placeholder="请输入验证码"
-            border="none"
-            input-align="right"
-          />
+          <u-input v-model="code" placeholder="请输入验证码" border="none" input-align="right" />
         </view>
         <view class="send-btn">
           <u-button
@@ -69,13 +64,7 @@
       </view>
 
       <view class="actions">
-        <u-button
-          text="确认重置"
-          type="primary"
-          shape="circle"
-          :loading="saving"
-          @click="submit"
-        />
+        <u-button text="确认重置" type="primary" shape="circle" :loading="saving" @click="submit" />
       </view>
     </view>
   </view>
@@ -83,10 +72,7 @@
 
 <script>
 import { getWorkerProfile } from '@/api/workerProfile';
-import {
-  sendWorkerResetPasswordCode,
-  resetWorkerPasswordByCode
-} from '@/api/workerSecurity';
+import { sendWorkerResetPasswordCode, resetWorkerPasswordByCode } from '@/api/workerSecurity';
 
 export default {
   name: 'WorkerResetPasswordPage',
@@ -120,10 +106,7 @@ export default {
     loadEmail() {
       const app = getApp();
       const cached =
-        app &&
-        app.globalData &&
-        app.globalData.workerInfo &&
-        app.globalData.workerInfo.email;
+        app && app.globalData && app.globalData.workerInfo && app.globalData.workerInfo.email;
       if (cached) {
         this.currentEmail = cached;
         return;
@@ -294,4 +277,3 @@ export default {
   margin-top: 24rpx;
 }
 </style>
-

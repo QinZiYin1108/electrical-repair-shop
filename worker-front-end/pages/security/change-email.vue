@@ -49,12 +49,7 @@
       <view class="row">
         <text class="label">验证码</text>
         <view class="right">
-          <u-input
-            v-model="code"
-            placeholder="请输入验证码"
-            border="none"
-            input-align="right"
-          />
+          <u-input v-model="code" placeholder="请输入验证码" border="none" input-align="right" />
         </view>
         <view class="send-btn">
           <u-button
@@ -69,13 +64,7 @@
       </view>
 
       <view class="actions">
-        <u-button
-          text="确认修改"
-          type="primary"
-          shape="circle"
-          :loading="saving"
-          @click="submit"
-        />
+        <u-button text="确认修改" type="primary" shape="circle" :loading="saving" @click="submit" />
       </view>
     </view>
   </view>
@@ -103,11 +92,13 @@ export default {
     canSend() {
       const email = this.normalizeEmail(this.newEmail);
       const confirmEmail = this.normalizeEmail(this.confirmEmail);
-      return !!email &&
+      return (
+        !!email &&
         !!confirmEmail &&
         email === confirmEmail &&
         this.isValidEmail(email) &&
-        (!this.currentEmail || email !== this.normalizeEmail(this.currentEmail));
+        (!this.currentEmail || email !== this.normalizeEmail(this.currentEmail))
+      );
     },
     sendText() {
       return this.countdown > 0 ? `${this.countdown}s` : '获取验证码';
@@ -124,7 +115,9 @@ export default {
       uni.navigateBack();
     },
     normalizeEmail(value) {
-      return String(value || '').trim().toLowerCase();
+      return String(value || '')
+        .trim()
+        .toLowerCase();
     },
     isValidEmail(value) {
       return /^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$/.test(String(value || '').trim());

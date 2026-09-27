@@ -52,10 +52,29 @@
             placeholder="全部分类"
             style="width: 240px"
           />
-          <el-select v-model="filter.status" clearable placeholder="全部状态" style="width: 140px">
+          <el-select v-model="filter.status" clearable placeholder="全部状态" style="width: 120px">
             <el-option :value="1" label="上架" />
             <el-option :value="2" label="下架" />
             <el-option :value="3" label="缺货" />
+          </el-select>
+          <el-select
+            v-model="filter.auditStatus"
+            clearable
+            placeholder="审核状态"
+            style="width: 120px"
+          >
+            <el-option :value="1" label="待审核" />
+            <el-option :value="2" label="已通过" />
+            <el-option :value="3" label="已拒绝" />
+          </el-select>
+          <el-select
+            v-model="filter.isFrozen"
+            clearable
+            placeholder="冻结状态"
+            style="width: 120px"
+          >
+            <el-option :value="0" label="正常" />
+            <el-option :value="1" label="已冻结" />
           </el-select>
           <el-button type="primary" @click="loadProducts">查询</el-button>
           <el-button @click="resetFilters">重置</el-button>
@@ -82,14 +101,41 @@
                   <el-tag v-if="row.isRecommended === 1" size="small" type="warning">推荐</el-tag>
                 </div>
                 <div class="product-subline">编号：{{ row.productNo || '-' }}</div>
-                <div class="product-subline">品牌 / 型号：{{ row.brand || '-' }} / {{ row.model || '-' }}</div>
+                <div class="product-subline">
+                  品牌 / 型号：{{ row.brand || '-' }} / {{ row.model || '-' }}
+                </div>
               </div>
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="分类" min-width="180" show-overflow-tooltip>
+        <el-table-column label="分类" min-width="150" show-overflow-tooltip>
           <template #default="{ row }">
             {{ row.categoryPath || row.categoryName || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="门店" width="130" show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ row.storeName || row.storeId || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="履约" width="90">
+          <template #default="{ row }">
+            <el-tag v-if="row.fulfillmentType === 1" size="small">自取</el-tag>
+            <el-tag v-else-if="row.fulfillmentType === 2" size="small" type="warning">配送</el-tag>
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="审核" width="80">
+          <template #default="{ row }">
+            <el-tag v-if="row.auditStatus === 2" size="small" type="success">通过</el-tag>
+            <el-tag v-else-if="row.auditStatus === 3" size="small" type="danger">拒绝</el-tag>
+            <el-tag v-else size="small" type="info">待审</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="冻结" width="70">
+          <template #default="{ row }">
+            <el-tag v-if="row.isFrozen === 1" size="small" type="danger">是</el-tag>
+            <el-tag v-else size="small" type="success">否</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="价格" width="180">
@@ -116,10 +162,30 @@
             {{ formatTime(row.updatedTime || row.createdTime) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column label="操作" width="320" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button link type="primary" @click="openEditDialog(row)">编辑</el-button>
+              <el-button
+                v-if="row.auditStatus === 1 && isSuperAdmin"
+                link
+                type="success"
+                @click="handleAudit(row, 2)"
+                >通过</el-button
+              >
+              <el-button
+                v-if="row.auditStatus === 1 && isSuperAdmin"
+                link
+                type="danger"
+                @click="handleAudit(row, 3)"
+                >拒绝</el-button
+              >
+              <el-button v-if="row.isFrozen !== 1" link type="warning" @click="handleFreeze(row)"
+                >冻结</el-button
+              >
+              <el-button v-if="row.isFrozen === 1" link type="success" @click="handleUnfreeze(row)"
+                >解冻</el-button
+              >
               <el-button link type="danger" @click="confirmDelete(row)">删除</el-button>
             </div>
           </template>
@@ -157,13 +223,31 @@
             <el-input v-model="form.model" maxlength="100" />
           </el-form-item>
           <el-form-item label="原价" required>
-            <el-input-number v-model="form.originalPrice" :min="0" :precision="2" :step="10" style="width: 100%" />
+            <el-input-number
+              v-model="form.originalPrice"
+              :min="0"
+              :precision="2"
+              :step="10"
+              style="width: 100%"
+            />
           </el-form-item>
           <el-form-item label="售价" required>
-            <el-input-number v-model="form.sellingPrice" :min="0" :precision="2" :step="10" style="width: 100%" />
+            <el-input-number
+              v-model="form.sellingPrice"
+              :min="0"
+              :precision="2"
+              :step="10"
+              style="width: 100%"
+            />
           </el-form-item>
           <el-form-item label="成本价" required>
-            <el-input-number v-model="form.costPrice" :min="0" :precision="2" :step="10" style="width: 100%" />
+            <el-input-number
+              v-model="form.costPrice"
+              :min="0"
+              :precision="2"
+              :step="10"
+              style="width: 100%"
+            />
           </el-form-item>
           <el-form-item label="库存数量" required>
             <el-input-number v-model="form.stockQuantity" :min="0" :step="1" style="width: 100%" />
@@ -185,7 +269,13 @@
             <el-input-number v-model="form.warrantyPeriod" :min="0" :step="1" style="width: 100%" />
           </el-form-item>
           <el-form-item label="重量(kg)">
-            <el-input-number v-model="form.weight" :min="0" :precision="2" :step="0.1" style="width: 100%" />
+            <el-input-number
+              v-model="form.weight"
+              :min="0"
+              :precision="2"
+              :step="0.1"
+              style="width: 100%"
+            />
           </el-form-item>
           <el-form-item label="尺寸">
             <el-input v-model="form.dimensions" maxlength="100" placeholder="例：60x45x80cm" />
@@ -203,6 +293,56 @@
               style="width: 100%"
             />
           </el-form-item>
+          <el-form-item v-if="isSuperAdmin" label="归属门店">
+            <el-select v-model="form.storeId" clearable placeholder="选择门店" style="width: 100%">
+              <el-option
+                v-for="s in storeOptions"
+                :key="s.value"
+                :value="s.value"
+                :label="s.label"
+              />
+            </el-select>
+          </el-form-item>
+          <el-divider content-position="left">履约方式</el-divider>
+          <el-form-item label="履约方式">
+            <div style="width: 100%">
+              <el-select
+                v-model="form.fulfillmentType"
+                clearable
+                placeholder="选择履约方式"
+                style="width: 100%"
+              >
+                <el-option :value="1" label="自取" />
+                <el-option :value="2" label="送货上门" />
+              </el-select>
+              <div class="field-hint">
+                自取与送货上门互斥，同一商品仅可选择一种履约方式。切换后将清除已配置的配送参数。
+              </div>
+            </div>
+          </el-form-item>
+          <template v-if="form.fulfillmentType === 2">
+            <el-form-item label="配送范围(km)">
+              <el-input-number
+                v-model="form.deliveryRangeKm"
+                :min="0"
+                :precision="1"
+                :step="1"
+                style="width: 100%"
+              />
+            </el-form-item>
+            <el-form-item label="配送费(元)">
+              <el-input-number
+                v-model="form.deliveryFee"
+                :min="0"
+                :precision="2"
+                :step="1"
+                style="width: 100%"
+              />
+            </el-form-item>
+            <el-form-item label="需要预约时间">
+              <el-switch v-model="form.needAppointment" :active-value="1" :inactive-value="0" />
+            </el-form-item>
+          </template>
           <el-form-item label="热销商品">
             <el-switch v-model="form.isHot" :active-value="1" :inactive-value="0" />
           </el-form-item>
@@ -225,11 +365,17 @@
             </div>
             <div v-if="mainImageFile" class="media-grid media-grid-main">
               <div class="media-card media-card-main">
-                <img :src="resolveMediaUrl(mainImageFile)" alt="主图预览" class="media-image media-image-main">
+                <img
+                  :src="resolveMediaUrl(mainImageFile)"
+                  alt="主图预览"
+                  class="media-image media-image-main"
+                />
                 <div class="media-card-footer">
                   <div class="media-card-name">{{ mainImageFile.name || '商品主图' }}</div>
                   <div class="media-card-actions">
-                    <el-button link type="primary" @click="openMediaPreview(mainImageFile, 'image')">预览</el-button>
+                    <el-button link type="primary" @click="openMediaPreview(mainImageFile, 'image')"
+                      >预览</el-button
+                    >
                     <el-button link type="danger" @click="removeMainImage">删除</el-button>
                   </div>
                 </div>
@@ -240,7 +386,13 @@
         </el-form-item>
 
         <el-form-item label="商品描述">
-          <el-input v-model="form.description" type="textarea" :rows="4" maxlength="5000" show-word-limit />
+          <el-input
+            v-model="form.description"
+            type="textarea"
+            :rows="4"
+            maxlength="5000"
+            show-word-limit
+          />
         </el-form-item>
 
         <el-form-item label="商品图片">
@@ -254,12 +406,20 @@
             </div>
             <div v-if="imageFileList.length" class="media-grid">
               <div v-for="file in imageFileList" :key="file.uid" class="media-card">
-                <img :src="resolveMediaUrl(file)" :alt="file.name || '商品图片'" class="media-image">
+                <img
+                  :src="resolveMediaUrl(file)"
+                  :alt="file.name || '商品图片'"
+                  class="media-image"
+                />
                 <div class="media-card-footer">
                   <div class="media-card-name">{{ file.name || '商品图片' }}</div>
                   <div class="media-card-actions">
-                    <el-button link type="primary" @click="openMediaPreview(file, 'image')">预览</el-button>
-                    <el-button link type="danger" @click="removeImageFile(file.uid)">删除</el-button>
+                    <el-button link type="primary" @click="openMediaPreview(file, 'image')"
+                      >预览</el-button
+                    >
+                    <el-button link type="danger" @click="removeImageFile(file.uid)"
+                      >删除</el-button
+                    >
                   </div>
                 </div>
               </div>
@@ -278,13 +438,26 @@
               <div class="upload-tip">支持多选，单个视频不超过 30MB，保存时统一上传</div>
             </div>
             <div v-if="videoFileList.length" class="media-grid">
-              <div v-for="file in videoFileList" :key="file.uid" class="media-card media-card-video">
-                <video :src="resolveMediaUrl(file)" class="media-video" controls preload="metadata" />
+              <div
+                v-for="file in videoFileList"
+                :key="file.uid"
+                class="media-card media-card-video"
+              >
+                <video
+                  :src="resolveMediaUrl(file)"
+                  class="media-video"
+                  controls
+                  preload="metadata"
+                />
                 <div class="media-card-footer">
                   <div class="media-card-name">{{ file.name || '商品视频' }}</div>
                   <div class="media-card-actions">
-                    <el-button link type="primary" @click="openMediaPreview(file, 'video')">预览</el-button>
-                    <el-button link type="danger" @click="removeVideoFile(file.uid)">删除</el-button>
+                    <el-button link type="primary" @click="openMediaPreview(file, 'video')"
+                      >预览</el-button
+                    >
+                    <el-button link type="danger" @click="removeVideoFile(file.uid)"
+                      >删除</el-button
+                    >
                   </div>
                 </div>
               </div>
@@ -295,10 +468,16 @@
 
         <el-form-item label="规格参数">
           <div class="dynamic-list">
-            <div v-for="(item, index) in form.specifications" :key="`spec-${index}`" class="spec-row">
+            <div
+              v-for="(item, index) in form.specifications"
+              :key="`spec-${index}`"
+              class="spec-row"
+            >
               <el-input v-model="item.key" maxlength="100" placeholder="参数名" />
               <el-input v-model="item.value" maxlength="200" placeholder="参数值" />
-              <el-button :disabled="form.specifications.length === 1" @click="removeSpecItem(index)">删除</el-button>
+              <el-button :disabled="form.specifications.length === 1" @click="removeSpecItem(index)"
+                >删除</el-button
+              >
             </div>
             <el-button type="primary" link @click="addSpecItem">+ 添加规格</el-button>
           </div>
@@ -324,7 +503,7 @@
           :src="mediaPreview.url"
           alt="素材预览"
           class="media-preview-image"
-        >
+        />
         <video
           v-else-if="mediaPreview.type === 'video' && mediaPreview.url"
           :src="mediaPreview.url"
@@ -342,7 +521,7 @@
       accept="image/*"
       style="display: none"
       @change="handleMainImageChange"
-    >
+    />
     <input
       ref="imageInputRef"
       type="file"
@@ -350,7 +529,7 @@
       multiple
       style="display: none"
       @change="handleImageChange"
-    >
+    />
     <input
       ref="videoInputRef"
       type="file"
@@ -358,7 +537,7 @@
       multiple
       style="display: none"
       @change="handleVideoChange"
-    >
+    />
   </div>
 </template>
 
@@ -368,14 +547,22 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
+  auditAdminProduct,
   createAdminProduct,
   deleteAdminProduct,
   fetchAdminProductCategories,
   fetchAdminProducts,
+  freezeAdminProduct,
+  unfreezeAdminProduct,
   updateAdminProduct,
   uploadAdminProductMedia
 } from '../../../api/adminProducts';
-import { isUploadRelatedError, showUploadErrorDialog, showUploadLimitDialog } from '../../../utils/uploadFeedback';
+import { useAdminStore } from '../../../stores/admin';
+import {
+  isUploadRelatedError,
+  showUploadErrorDialog,
+  showUploadLimitDialog
+} from '../../../utils/uploadFeedback';
 
 const props = defineProps({
   productType: {
@@ -393,6 +580,8 @@ const props = defineProps({
 });
 
 const route = useRoute();
+const adminStore = useAdminStore();
+const isSuperAdmin = computed(() => adminStore?.adminRole === 1);
 const typeKey = computed(() => (props.productType === 2 ? 'second-hand' : 'main'));
 
 const loading = ref(false);
@@ -411,7 +600,9 @@ const videoFileList = ref([]);
 const filter = reactive({
   keyword: '',
   categoryId: '',
-  status: undefined
+  status: undefined,
+  auditStatus: undefined,
+  isFrozen: undefined
 });
 
 const mediaPreview = reactive({
@@ -422,6 +613,7 @@ const mediaPreview = reactive({
 });
 
 const form = reactive(createEmptyForm());
+const storeOptions = ref([]);
 
 const categoryCascaderProps = {
   value: 'id',
@@ -431,16 +623,27 @@ const categoryCascaderProps = {
 };
 
 const categoryOptions = computed(() => normalizeCategoryOptions(categories.value));
-const onShelfCount = computed(() => rows.value.filter(item => Number(item.status) === 1).length);
-const offShelfCount = computed(() => rows.value.filter(item => Number(item.status) === 2).length);
-const warningCount = computed(() => rows.value.filter(item => isWarningStock(item)).length);
+const onShelfCount = computed(() => rows.value.filter((item) => Number(item.status) === 1).length);
+const offShelfCount = computed(() => rows.value.filter((item) => Number(item.status) === 2).length);
+const warningCount = computed(() => rows.value.filter((item) => isWarningStock(item)).length);
 const mainImageFile = computed(() => mainImageFileList.value[0] || null);
 
 watch(
   () => form.isFreeShipping,
-  value => {
+  (value) => {
     if (value === 1) {
       form.shippingFee = 0;
+    }
+  }
+);
+
+watch(
+  () => form.fulfillmentType,
+  (value) => {
+    if (value !== 2) {
+      form.deliveryRangeKm = null;
+      form.deliveryFee = null;
+      form.needAppointment = 0;
     }
   }
 );
@@ -475,10 +678,13 @@ async function loadCategories() {
 async function loadProducts() {
   loading.value = true;
   try {
+    loadStores();
     const res = await fetchAdminProducts(typeKey.value, {
       keyword: filter.keyword || undefined,
       categoryId: filter.categoryId || undefined,
-      status: filter.status
+      status: filter.status,
+      auditStatus: filter.auditStatus,
+      isFrozen: filter.isFrozen
     });
     if (res.code !== 200) {
       ElMessage.error(res.message || '加载商品列表失败');
@@ -496,7 +702,21 @@ function resetFilters() {
   filter.keyword = '';
   filter.categoryId = '';
   filter.status = undefined;
+  filter.auditStatus = undefined;
+  filter.isFrozen = undefined;
   loadProducts();
+}
+
+async function loadStores() {
+  try {
+    const res = await fetchAdminStores({ page: 1, size: 200 });
+    storeOptions.value = (res?.data?.records || res?.data?.list || []).map((s) => ({
+      value: s.id,
+      label: s.name
+    }));
+  } catch (e) {
+    /* ignore */
+  }
 }
 
 function openCreateDialog() {
@@ -555,17 +775,18 @@ async function submitForm() {
       uploadMediaFileList(videoFileList.value, 'video')
     ]);
     payload.mainImageUrl = mainImages[0]?.url || '';
-    payload.imageUrls = images.map(item => item.url).filter(Boolean);
-    payload.videoUrls = videos.map(item => item.url).filter(Boolean);
+    payload.imageUrls = images.map((item) => item.url).filter(Boolean);
+    payload.videoUrls = videos.map((item) => item.url).filter(Boolean);
 
     if (!payload.mainImageUrl) {
       showUploadErrorDialog('商品主图上传失败，请重试', '商品主图上传失败，请重试', '上传失败');
       return;
     }
 
-    const res = dialogMode.value === 'create'
-      ? await createAdminProduct(typeKey.value, payload)
-      : await updateAdminProduct(typeKey.value, form.id, payload);
+    const res =
+      dialogMode.value === 'create'
+        ? await createAdminProduct(typeKey.value, payload)
+        : await updateAdminProduct(typeKey.value, form.id, payload);
     if (res.code !== 200) {
       ElMessage.error(res.message || '保存商品失败');
       return;
@@ -607,7 +828,12 @@ function buildPayloadBase() {
     isHot: form.isHot,
     isNew: form.isNew,
     isRecommended: form.isRecommended,
-    sortOrder: form.sortOrder ?? 0
+    sortOrder: form.sortOrder ?? 0,
+    storeId: form.storeId || undefined,
+    fulfillmentType: form.fulfillmentType,
+    deliveryRangeKm: form.deliveryRangeKm,
+    deliveryFee: form.deliveryFee,
+    needAppointment: form.needAppointment
   };
 
   if (!payload.name) {
@@ -643,7 +869,9 @@ function buildPayloadBase() {
 
 async function confirmDelete(row) {
   try {
-    await ElMessageBox.confirm(`确定删除商品“${row.name || row.id}”吗？`, '删除确认', { type: 'warning' });
+    await ElMessageBox.confirm(`确定删除商品“${row.name || row.id}”吗？`, '删除确认', {
+      type: 'warning'
+    });
   } catch (error) {
     return;
   }
@@ -752,16 +980,16 @@ function removeMainImage() {
 }
 
 function removeImageFile(uid) {
-  const target = imageFileList.value.find(item => item.uid === uid);
+  const target = imageFileList.value.find((item) => item.uid === uid);
   revokeLocalPreviewUrl(target);
-  imageFileList.value = imageFileList.value.filter(item => item.uid !== uid);
+  imageFileList.value = imageFileList.value.filter((item) => item.uid !== uid);
   closePreviewIfTargetRemoved(target);
 }
 
 function removeVideoFile(uid) {
-  const target = videoFileList.value.find(item => item.uid === uid);
+  const target = videoFileList.value.find((item) => item.uid === uid);
   revokeLocalPreviewUrl(target);
-  videoFileList.value = videoFileList.value.filter(item => item.uid !== uid);
+  videoFileList.value = videoFileList.value.filter((item) => item.uid !== uid);
   closePreviewIfTargetRemoved(target);
 }
 
@@ -775,7 +1003,10 @@ function clearMainImage() {
 
 function clearImageFiles() {
   imageFileList.value.forEach(revokeLocalPreviewUrl);
-  if (mediaPreview.visible && imageFileList.value.some(item => resolveMediaUrl(item) === mediaPreview.url)) {
+  if (
+    mediaPreview.visible &&
+    imageFileList.value.some((item) => resolveMediaUrl(item) === mediaPreview.url)
+  ) {
     resetMediaPreview();
   }
   imageFileList.value = [];
@@ -783,10 +1014,61 @@ function clearImageFiles() {
 
 function clearVideoFiles() {
   videoFileList.value.forEach(revokeLocalPreviewUrl);
-  if (mediaPreview.visible && videoFileList.value.some(item => resolveMediaUrl(item) === mediaPreview.url)) {
+  if (
+    mediaPreview.visible &&
+    videoFileList.value.some((item) => resolveMediaUrl(item) === mediaPreview.url)
+  ) {
     resetMediaPreview();
   }
   videoFileList.value = [];
+}
+
+async function handleFreeze(row) {
+  try {
+    await ElMessageBox.confirm(
+      `确认冻结商品 "${row.name}"？冻结后商品将不可见、不可搜索、不可下单。`,
+      '冻结商品',
+      { type: 'warning' }
+    );
+    await freezeAdminProduct(typeKey.value, row.id);
+    ElMessage.success('商品已冻结');
+    loadProducts();
+  } catch (e) {
+    if (e !== 'cancel' && e?.toString() !== 'cancel') {
+      ElMessage.error(getErrorMessage(e) || '冻结失败');
+    }
+  }
+}
+
+async function handleUnfreeze(row) {
+  try {
+    await ElMessageBox.confirm(`确认解冻商品 "${row.name}"？`, '解冻商品', { type: 'info' });
+    await unfreezeAdminProduct(typeKey.value, row.id);
+    ElMessage.success('商品已解冻');
+    loadProducts();
+  } catch (e) {
+    if (e !== 'cancel' && e?.toString() !== 'cancel') {
+      ElMessage.error(getErrorMessage(e) || '解冻失败');
+    }
+  }
+}
+
+async function handleAudit(row, auditStatus) {
+  const statusText = auditStatus === 2 ? '通过' : '拒绝';
+  try {
+    const { value: remark } = await ElMessageBox.prompt(
+      `确认${statusText}商品 "${row.name}" 的审核？${auditStatus === 3 ? '请填写拒绝原因：' : ''}`,
+      `审核商品 - ${statusText}`,
+      { type: auditStatus === 2 ? 'success' : 'warning', inputType: 'textarea' }
+    );
+    await auditAdminProduct(typeKey.value, row.id, auditStatus, remark || '');
+    ElMessage.success(`商品审核已${statusText}`);
+    loadProducts();
+  } catch (e) {
+    if (e !== 'cancel' && String(e) !== 'cancel') {
+      ElMessage.error(getErrorMessage(e) || `审核${statusText}失败`);
+    }
+  }
 }
 
 function clearAllMediaFiles() {
@@ -824,7 +1106,9 @@ function resetMediaPreview() {
 }
 
 async function uploadMediaFileList(fileList, mediaType) {
-  const tasks = (Array.isArray(fileList) ? fileList : []).map(file => uploadSingleMediaFile(file, mediaType));
+  const tasks = (Array.isArray(fileList) ? fileList : []).map((file) =>
+    uploadSingleMediaFile(file, mediaType)
+  );
   return Promise.all(tasks);
 }
 
@@ -855,13 +1139,16 @@ async function uploadSingleMediaFile(file, mediaType) {
 function assignForm(nextValue) {
   clearAllMediaFiles();
   Object.assign(form, createEmptyForm(), nextValue);
-  mainImageFileList.value = buildMediaFileList(nextValue.mainImageUrl ? [nextValue.mainImageUrl] : [], 'image');
+  mainImageFileList.value = buildMediaFileList(
+    nextValue.mainImageUrl ? [nextValue.mainImageUrl] : [],
+    'image'
+  );
   imageFileList.value = buildMediaFileList(nextValue.imageUrls, 'image');
   videoFileList.value = buildMediaFileList(nextValue.videoUrls, 'video');
 }
 
 function buildMediaFileList(urlList, mediaType) {
-  return sanitizeStringList(urlList).map(url => createRemoteUploadFile(url, mediaType));
+  return sanitizeStringList(urlList).map((url) => createRemoteUploadFile(url, mediaType));
 }
 
 function createRemoteUploadFile(url, mediaType) {
@@ -965,12 +1252,17 @@ function createEmptyForm() {
     isHot: 0,
     isNew: 0,
     isRecommended: 0,
-    sortOrder: 0
+    sortOrder: 0,
+    storeId: '',
+    fulfillmentType: null,
+    deliveryRangeKm: null,
+    deliveryFee: null,
+    needAppointment: 0
   };
 }
 
 function normalizeCategoryOptions(nodes) {
-  return (nodes || []).map(item => ({
+  return (nodes || []).map((item) => ({
     id: item.id,
     name: item.name,
     children: normalizeCategoryOptions(item.children || [])
@@ -984,17 +1276,17 @@ function ensureSpecValue(value) {
 
 function sanitizeStringList(list) {
   return (Array.isArray(list) ? list : [])
-    .map(item => (item == null ? '' : String(item).trim()))
+    .map((item) => (item == null ? '' : String(item).trim()))
     .filter(Boolean);
 }
 
 function sanitizeSpecifications(list) {
   return (Array.isArray(list) ? list : [])
-    .map(item => ({
+    .map((item) => ({
       key: item?.key == null ? '' : String(item.key).trim(),
       value: item?.value == null ? '' : String(item.value).trim()
     }))
-    .filter(item => item.key || item.value);
+    .filter((item) => item.key || item.value);
 }
 
 function toNumber(value) {
@@ -1230,6 +1522,13 @@ function getErrorMessage(error) {
   border-radius: 12px;
   color: #6b7280;
   background: #f9fafb;
+}
+
+.field-hint {
+  margin-top: 6px;
+  color: #9ca3af;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .media-grid {

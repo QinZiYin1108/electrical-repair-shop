@@ -83,3 +83,33 @@ export function uploadAdminProductMedia(file, mediaType) {
     data: formData
   });
 }
+
+export function freezeAdminProduct(typeKey, id) {
+  return request({
+    url: `/admin/products/${typeKey}/${id}/freeze`,
+    method: 'post'
+  });
+}
+
+export function unfreezeAdminProduct(typeKey, id) {
+  return request({
+    url: `/admin/products/${typeKey}/${id}/unfreeze`,
+    method: 'post'
+  });
+}
+
+export function auditAdminProduct(typeKey, id, auditStatus, remark) {
+  return request({
+    url: `/admin/products/${typeKey}/${id}/audit`,
+    method: 'post',
+    data: { auditStatus, remark }
+  });
+}
+
+export function fetchAdminStores(params) {
+  return request({
+    url: '/admin/stores',
+    method: 'get',
+    params
+  });
+}

@@ -20,11 +20,7 @@
       <view v-if="reviewsLoading" class="state-card">评价加载中...</view>
       <view v-else-if="!reviews.length" class="state-card">暂时还没有收到评价</view>
 
-      <view
-        v-for="item in reviews"
-        :key="item.id"
-        class="review-card"
-      >
+      <view v-for="item in reviews" :key="item.id" class="review-card">
         <view class="review-card-head">
           <view class="review-main">
             <text class="review-user">{{ item.userDisplayName || '匿名用户' }}</text>
@@ -34,7 +30,8 @@
                 :key="star"
                 class="review-star"
                 :class="{ 'review-star-active': star <= item.rating }"
-              >★</text>
+                >★</text
+              >
             </view>
           </view>
           <view class="review-meta">
@@ -42,7 +39,8 @@
               v-if="item.statusText"
               class="review-status"
               :class="item.status === 2 ? 'review-status-hidden' : 'review-status-normal'"
-            >{{ item.statusText }}</text>
+              >{{ item.statusText }}</text
+            >
             <text class="review-time">{{ formatDateTime(item.createdTime) }}</text>
           </view>
         </view>
@@ -68,7 +66,9 @@
         <view v-if="item.replyContent" class="review-reply">
           <text class="review-reply-title">我的回复</text>
           <text class="review-reply-content">{{ item.replyContent }}</text>
-          <text v-if="item.replyTime" class="review-reply-time">{{ formatDateTime(item.replyTime) }}</text>
+          <text v-if="item.replyTime" class="review-reply-time">{{
+            formatDateTime(item.replyTime)
+          }}</text>
         </view>
 
         <view v-else-if="replyingReviewId === item.id" class="reply-editor">
@@ -79,11 +79,7 @@
             maxlength="200"
           />
           <view class="reply-actions">
-            <u-button
-              text="取消"
-              shape="circle"
-              @click="cancelReply"
-            />
+            <u-button text="取消" shape="circle" @click="cancelReply" />
             <u-button
               text="提交回复"
               type="primary"
@@ -197,8 +193,9 @@ export default {
             uni.showToast({ title: res?.message || '回复失败', icon: 'none' });
           }
         })
-        .catch(() => {
-          uni.showToast({ title: '回复失败', icon: 'none' });
+        .catch((err) => {
+          const msg = (err && err.message) || '回复失败，请重试';
+          uni.showModal({ title: '回复失败', content: msg, showCancel: false });
         })
         .finally(() => {
           this.replySubmitting = false;

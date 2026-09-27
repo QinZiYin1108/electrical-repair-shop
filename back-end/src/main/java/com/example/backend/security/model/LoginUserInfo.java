@@ -1,29 +1,22 @@
 package com.example.backend.security.model;
 
-/**
- * 当前登录账号的基础信息
- */
+/** 当前登录账号的基础信息 */
 public class LoginUserInfo {
 
-    /**
-     * 账号主键ID
-     */
+    /** 账号主键ID */
     private String accountId;
 
-    /**
-     * 账号角色（ADMIN / WORKER / USER）
-     */
+    /** 账号角色（ADMIN / WORKER / USER） */
     private AccountRole role;
 
-    /**
-     * 管理员角色：1-超级管理员，2-门店管理员，3-客服（仅 role=ADMIN 时有值）
-     */
+    /** 管理员角色：1-超级管理员，2-门店管理员，3-客服（仅 role=ADMIN 时有值） */
     private Integer adminRole;
 
-    /**
-     * 归属门店ID（仅 adminRole=2 门店管理员时有值）
-     */
+    /** 归属门店ID（仅 adminRole=2 门店管理员时有值） */
     private String storeId;
+
+    /** JWT 签发时的账号令牌版本 */
+    private Integer tokenVersion;
 
     // ==================== 超级管理员判断 ====================
 
@@ -67,5 +60,13 @@ public class LoginUserInfo {
 
     public void setStoreId(String storeId) {
         this.storeId = storeId;
+    }
+
+    public Integer getTokenVersion() {
+        return tokenVersion;
+    }
+
+    public void setTokenVersion(Integer tokenVersion) {
+        this.tokenVersion = tokenVersion;
     }
 }

@@ -10,8 +10,7 @@ import lombok.Data;
 @TableName("user_follow_technicians")
 public class UserFollowTechnicians {
 
-    @TableId
-    private String id;
+    @TableId private String id;
 
     private String accountId;
 
@@ -21,10 +20,7 @@ public class UserFollowTechnicians {
 
     private Long updatedTime;
 
-    @Version
-    private Integer version;
+    @Version private Integer version;
 
-    @TableLogic
-    private Integer isDelete;
+    @TableLogic private Integer isDelete;
 }
-

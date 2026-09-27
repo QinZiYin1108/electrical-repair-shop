@@ -4,16 +4,14 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.Version;
-import lombok.Data;
-
 import java.math.BigDecimal;
+import lombok.Data;
 
 @Data
 @TableName("repair_orders")
 public class RepairOrders {
 
-    @TableId
-    private String id;
+    @TableId private String id;
 
     private String orderNo;
 
@@ -45,6 +43,9 @@ public class RepairOrders {
 
     private String cancelReason;
 
+    /** 关联取消原因ID（cancel_reasons.id） */
+    private String cancelReasonId;
+
     private Long cancelTime;
 
     private String refundReason;
@@ -59,9 +60,7 @@ public class RepairOrders {
 
     private Long updatedTime;
 
-    @Version
-    private Integer version;
+    @Version private Integer version;
 
-    @TableLogic
-    private Integer isDelete;
+    @TableLogic private Integer isDelete;
 }

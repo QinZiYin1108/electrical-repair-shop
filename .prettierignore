@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+target/
+coverage/
+.astro/
+unpackage/
+miniprogram_npm/
+uni_modules/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.ico
+

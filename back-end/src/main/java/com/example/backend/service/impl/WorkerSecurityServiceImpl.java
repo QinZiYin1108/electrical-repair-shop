@@ -12,6 +12,7 @@ import com.example.backend.model.worker.WorkerResetPasswordRequest;
 import com.example.backend.security.context.AuthUserContext;
 import com.example.backend.security.model.AccountRole;
 import com.example.backend.security.model.LoginUserInfo;
+import com.example.backend.security.token.TokenVersions;
 import com.example.backend.service.AdminAccountsService;
 import com.example.backend.service.AuthCodeService;
 import com.example.backend.service.TechnicianAccountsService;
@@ -32,11 +33,10 @@ public class WorkerSecurityServiceImpl implements WorkerSecurityService {
     private final AuthCodeService authCodeService;
 
     public WorkerSecurityServiceImpl(
-        TechnicianAccountsService technicianAccountsService,
-        UserAccountsService userAccountsService,
-        AdminAccountsService adminAccountsService,
-        AuthCodeService authCodeService
-    ) {
+            TechnicianAccountsService technicianAccountsService,
+            UserAccountsService userAccountsService,
+            AdminAccountsService adminAccountsService,
+            AuthCodeService authCodeService) {
         this.technicianAccountsService = technicianAccountsService;
         this.userAccountsService = userAccountsService;
         this.adminAccountsService = adminAccountsService;
@@ -52,7 +52,9 @@ public class WorkerSecurityServiceImpl implements WorkerSecurityService {
         String oldPassword = safeTrim(request.getOldPassword());
         String newPassword = safeTrim(request.getNewPassword());
         String confirmPassword = safeTrim(request.getConfirmPassword());
-        if (!StringUtils.hasText(oldPassword) || !StringUtils.hasText(newPassword) || !StringUtils.hasText(confirmPassword)) {
+        if (!StringUtils.hasText(oldPassword)
+                || !StringUtils.hasText(newPassword)
+                || !StringUtils.hasText(confirmPassword)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "密码不能为空");
         }
         if (!newPassword.equals(confirmPassword)) {
@@ -67,7 +69,8 @@ public class WorkerSecurityServiceImpl implements WorkerSecurityService {
 
         String accountId = user.getAccountId();
         TechnicianAccounts technician = technicianAccountsService.getById(accountId);
-        if (technician == null || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
+        if (technician == null
+                || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "师傅账号不存在");
         }
         String salt = technician.getSalt();
@@ -75,12 +78,12 @@ public class WorkerSecurityServiceImpl implements WorkerSecurityService {
         if (!StringUtils.hasText(salt) || !StringUtils.hasText(hash)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "当前账号未设置密码，请使用忘记密码重置");
         }
-        String expectedHash = PasswordUtil.hashPassword(oldPassword, salt);
-        if (!hash.equals(expectedHash)) {
+        if (!PasswordUtil.matches(oldPassword, hash, salt)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "旧密码不正确");
         }
         String newHash = PasswordUtil.hashPassword(newPassword, salt);
         technician.setPasswordHash(newHash);
+        technician.setTokenVersion(TokenVersions.next(technician.getTokenVersion()));
         technician.setUpdatedTime(System.currentTimeMillis());
         technicianAccountsService.updateById(technician);
     }
@@ -89,7 +92,8 @@ public class WorkerSecurityServiceImpl implements WorkerSecurityService {
     public void sendResetPasswordCode() {
         LoginUserInfo user = requireWorker();
         TechnicianAccounts technician = technicianAccountsService.getById(user.getAccountId());
-        if (technician == null || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
+        if (technician == null
+                || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "师傅账号不存在");
         }
         String email = safeTrim(technician.getEmail());
@@ -123,7 +127,8 @@ public class WorkerSecurityServiceImpl implements WorkerSecurityService {
 
         String accountId = user.getAccountId();
         TechnicianAccounts technician = technicianAccountsService.getById(accountId);
-        if (technician == null || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
+        if (technician == null
+                || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "师傅账号不存在");
         }
         String email = safeTrim(technician.getEmail());
@@ -138,6 +143,7 @@ public class WorkerSecurityServiceImpl implements WorkerSecurityService {
             technician.setSalt(salt);
         }
         technician.setPasswordHash(PasswordUtil.hashPassword(newPassword, salt));
+        technician.setTokenVersion(TokenVersions.next(technician.getTokenVersion()));
         technician.setUpdatedTime(System.currentTimeMillis());
         technicianAccountsService.updateById(technician);
     }
@@ -150,7 +156,8 @@ public class WorkerSecurityServiceImpl implements WorkerSecurityService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "新邮箱不能为空");
         }
         TechnicianAccounts technician = technicianAccountsService.getById(user.getAccountId());
-        if (technician == null || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
+        if (technician == null
+                || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "师傅账号不存在");
         }
         if (!email.matches(EMAIL_PATTERN)) {
@@ -178,7 +185,8 @@ public class WorkerSecurityServiceImpl implements WorkerSecurityService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "邮箱格式不正确");
         }
         TechnicianAccounts technician = technicianAccountsService.getById(user.getAccountId());
-        if (technician == null || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
+        if (technician == null
+                || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "师傅账号不存在");
         }
         if (newEmail.equalsIgnoreCase(safeTrim(technician.getEmail()))) {
@@ -192,32 +200,32 @@ public class WorkerSecurityServiceImpl implements WorkerSecurityService {
     }
 
     private void ensureEmailAvailable(String email, String currentWorkerId) {
-        TechnicianAccounts technicianExists = technicianAccountsService.getOne(
-            new LambdaQueryWrapper<TechnicianAccounts>()
-                .eq(TechnicianAccounts::getEmail, email)
-                .eq(TechnicianAccounts::getIsDelete, 0),
-            false
-        );
+        TechnicianAccounts technicianExists =
+                technicianAccountsService.getOne(
+                        new LambdaQueryWrapper<TechnicianAccounts>()
+                                .eq(TechnicianAccounts::getEmail, email)
+                                .eq(TechnicianAccounts::getIsDelete, 0),
+                        false);
         if (technicianExists != null && !technicianExists.getId().equals(currentWorkerId)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "该邮箱已被注册");
         }
 
-        UserAccounts userExists = userAccountsService.getOne(
-            new LambdaQueryWrapper<UserAccounts>()
-                .eq(UserAccounts::getEmail, email)
-                .eq(UserAccounts::getIsDelete, 0),
-            false
-        );
+        UserAccounts userExists =
+                userAccountsService.getOne(
+                        new LambdaQueryWrapper<UserAccounts>()
+                                .eq(UserAccounts::getEmail, email)
+                                .eq(UserAccounts::getIsDelete, 0),
+                        false);
         if (userExists != null) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "该邮箱已被注册");
         }
 
-        AdminAccounts adminExists = adminAccountsService.getOne(
-            new LambdaQueryWrapper<AdminAccounts>()
-                .eq(AdminAccounts::getEmail, email)
-                .eq(AdminAccounts::getIsDelete, 0),
-            false
-        );
+        AdminAccounts adminExists =
+                adminAccountsService.getOne(
+                        new LambdaQueryWrapper<AdminAccounts>()
+                                .eq(AdminAccounts::getEmail, email)
+                                .eq(AdminAccounts::getIsDelete, 0),
+                        false);
         if (adminExists != null) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "该邮箱已被注册");
         }

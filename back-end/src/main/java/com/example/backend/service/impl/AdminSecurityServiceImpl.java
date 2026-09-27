@@ -12,6 +12,7 @@ import com.example.backend.model.admin.AdminChangePasswordRequest;
 import com.example.backend.security.context.AuthUserContext;
 import com.example.backend.security.model.AccountRole;
 import com.example.backend.security.model.LoginUserInfo;
+import com.example.backend.security.token.TokenVersions;
 import com.example.backend.service.AdminAccountsService;
 import com.example.backend.service.AdminProfilesService;
 import com.example.backend.service.AdminSecurityService;
@@ -34,12 +35,11 @@ public class AdminSecurityServiceImpl implements AdminSecurityService {
     private final AuthCodeService authCodeService;
 
     public AdminSecurityServiceImpl(
-        AdminAccountsService adminAccountsService,
-        AdminProfilesService adminProfilesService,
-        UserAccountsService userAccountsService,
-        TechnicianAccountsService technicianAccountsService,
-        AuthCodeService authCodeService
-    ) {
+            AdminAccountsService adminAccountsService,
+            AdminProfilesService adminProfilesService,
+            UserAccountsService userAccountsService,
+            TechnicianAccountsService technicianAccountsService,
+            AuthCodeService authCodeService) {
         this.adminAccountsService = adminAccountsService;
         this.adminProfilesService = adminProfilesService;
         this.userAccountsService = userAccountsService;
@@ -56,7 +56,9 @@ public class AdminSecurityServiceImpl implements AdminSecurityService {
         String oldPassword = safeTrim(request.getOldPassword());
         String newPassword = safeTrim(request.getNewPassword());
         String confirmPassword = safeTrim(request.getConfirmPassword());
-        if (!StringUtils.hasText(oldPassword) || !StringUtils.hasText(newPassword) || !StringUtils.hasText(confirmPassword)) {
+        if (!StringUtils.hasText(oldPassword)
+                || !StringUtils.hasText(newPassword)
+                || !StringUtils.hasText(confirmPassword)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "密码不能为空");
         }
         if (!newPassword.equals(confirmPassword)) {
@@ -75,11 +77,11 @@ public class AdminSecurityServiceImpl implements AdminSecurityService {
         if (!StringUtils.hasText(salt) || !StringUtils.hasText(hash)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "当前账号未设置密码，请使用忘记密码重置");
         }
-        String expectedHash = PasswordUtil.hashPassword(oldPassword, salt);
-        if (!hash.equals(expectedHash)) {
+        if (!PasswordUtil.matches(oldPassword, hash, salt)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "旧密码不正确");
         }
         admin.setPasswordHash(PasswordUtil.hashPassword(newPassword, salt));
+        admin.setTokenVersion(TokenVersions.next(admin.getTokenVersion()));
         admin.setUpdatedTime(System.currentTimeMillis());
         adminAccountsService.updateById(admin);
     }
@@ -128,12 +130,12 @@ public class AdminSecurityServiceImpl implements AdminSecurityService {
         admin.setUpdatedTime(now);
         adminAccountsService.updateById(admin);
 
-        AdminProfiles profile = adminProfilesService.getOne(
-            new LambdaQueryWrapper<AdminProfiles>()
-                .eq(AdminProfiles::getAccountId, admin.getId())
-                .eq(AdminProfiles::getIsDelete, 0),
-            false
-        );
+        AdminProfiles profile =
+                adminProfilesService.getOne(
+                        new LambdaQueryWrapper<AdminProfiles>()
+                                .eq(AdminProfiles::getAccountId, admin.getId())
+                                .eq(AdminProfiles::getIsDelete, 0),
+                        false);
         if (profile != null) {
             profile.setEmail(newEmail);
             profile.setUpdatedTime(now);
@@ -142,32 +144,32 @@ public class AdminSecurityServiceImpl implements AdminSecurityService {
     }
 
     private void ensureEmailAvailable(String email, String currentAdminId) {
-        AdminAccounts adminExists = adminAccountsService.getOne(
-            new LambdaQueryWrapper<AdminAccounts>()
-                .eq(AdminAccounts::getEmail, email)
-                .eq(AdminAccounts::getIsDelete, 0),
-            false
-        );
+        AdminAccounts adminExists =
+                adminAccountsService.getOne(
+                        new LambdaQueryWrapper<AdminAccounts>()
+                                .eq(AdminAccounts::getEmail, email)
+                                .eq(AdminAccounts::getIsDelete, 0),
+                        false);
         if (adminExists != null && !adminExists.getId().equals(currentAdminId)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "该邮箱已被注册");
         }
 
-        UserAccounts userExists = userAccountsService.getOne(
-            new LambdaQueryWrapper<UserAccounts>()
-                .eq(UserAccounts::getEmail, email)
-                .eq(UserAccounts::getIsDelete, 0),
-            false
-        );
+        UserAccounts userExists =
+                userAccountsService.getOne(
+                        new LambdaQueryWrapper<UserAccounts>()
+                                .eq(UserAccounts::getEmail, email)
+                                .eq(UserAccounts::getIsDelete, 0),
+                        false);
         if (userExists != null) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "该邮箱已被注册");
         }
 
-        TechnicianAccounts technicianExists = technicianAccountsService.getOne(
-            new LambdaQueryWrapper<TechnicianAccounts>()
-                .eq(TechnicianAccounts::getEmail, email)
-                .eq(TechnicianAccounts::getIsDelete, 0),
-            false
-        );
+        TechnicianAccounts technicianExists =
+                technicianAccountsService.getOne(
+                        new LambdaQueryWrapper<TechnicianAccounts>()
+                                .eq(TechnicianAccounts::getEmail, email)
+                                .eq(TechnicianAccounts::getIsDelete, 0),
+                        false);
         if (technicianExists != null) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "该邮箱已被注册");
         }

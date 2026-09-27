@@ -9,6 +9,9 @@ import com.example.backend.security.context.AuthUserContext;
 import com.example.backend.security.model.AccountRole;
 import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.ReviewsService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,9 +20,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
+@Tag(name = "师傅端/评价")
 @RequestMapping("/worker/reviews")
 public class WorkerReviewController {
 
@@ -35,14 +37,15 @@ public class WorkerReviewController {
         return Result.success(reviewsService.listWorkerReviews(worker.getAccountId()));
     }
 
+    @Operation(summary = "提交replyReview")
     @PostMapping("/{id}/reply")
     public Result<ReviewItemResponse> replyReview(
-        @PathVariable("id") String id,
-        @RequestBody(required = false) ReviewReplyRequest request
-    ) {
+            @PathVariable("id") String id,
+            @RequestBody(required = false) ReviewReplyRequest request) {
         LoginUserInfo worker = requireWorker();
         String replyContent = request == null ? null : request.getReplyContent();
-        return Result.success(reviewsService.replyWorkerReview(id, worker.getAccountId(), replyContent));
+        return Result.success(
+                reviewsService.replyWorkerReview(id, worker.getAccountId(), replyContent));
     }
 
     private LoginUserInfo requireWorker() {

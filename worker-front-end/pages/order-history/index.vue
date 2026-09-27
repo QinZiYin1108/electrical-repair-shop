@@ -36,7 +36,6 @@
             {{ appliedFilterCount ? `已筛选 ${filteredOrders.length} 单` : '当前展示全部历史订单' }}
           </text>
         </view>
-        
       </view>
 
       <view v-if="activeFilterTags.length" class="filter-tags">
@@ -73,12 +72,16 @@
               <text class="order-title">{{ item.serviceTitle }}</text>
               <text class="order-no">{{ item.orderNo }}</text>
             </view>
-            <text class="order-status" :class="statusClass(item.status)">{{ item.statusText }}</text>
+            <text class="order-status" :class="statusClass(item.status)">{{
+              item.statusText
+            }}</text>
           </view>
 
           <view class="info-row">
             <text class="info-label">服务分类</text>
-            <text class="info-value">{{ item.serviceCategoryPath || item.serviceCategoryName || '未分类' }}</text>
+            <text class="info-value">{{
+              item.serviceCategoryPath || item.serviceCategoryName || '未分类'
+            }}</text>
           </view>
           <view class="info-row">
             <text class="info-label">服务方式</text>
@@ -86,7 +89,9 @@
           </view>
           <view class="info-row">
             <text class="info-label">用户信息</text>
-            <text class="info-value">{{ item.userName || '用户' }} {{ item.contactPhone || '' }}</text>
+            <text class="info-value"
+              >{{ item.userName || '用户' }} {{ item.contactPhone || '' }}</text
+            >
           </view>
           <view class="info-row">
             <text class="info-label">下单时间</text>
@@ -94,7 +99,9 @@
           </view>
           <view class="info-row">
             <text class="info-label">服务地址</text>
-            <text class="info-value">{{ item.serviceAddressShort || item.serviceAddress || '暂无地址' }}</text>
+            <text class="info-value">{{
+              item.serviceAddressShort || item.serviceAddress || '暂无地址'
+            }}</text>
           </view>
           <view v-if="item.faultSummary" class="info-row">
             <text class="info-label">故障概述</text>
@@ -199,25 +206,43 @@
               >
                 <text
                   class="option-chip-text"
-                  :class="{ 'option-chip-text-active': draftFilters.createTimePreset === option.value }"
+                  :class="{
+                    'option-chip-text-active': draftFilters.createTimePreset === option.value
+                  }"
                 >
                   {{ option.label }}
                 </text>
               </view>
             </view>
             <view class="date-range">
-              <picker mode="date" :value="draftFilters.createTimeStart" @change="handleDateChange('createTimeStart', $event)">
+              <picker
+                mode="date"
+                :value="draftFilters.createTimeStart"
+                @change="handleDateChange('createTimeStart', $event)"
+              >
                 <view class="date-picker">
-                  <text :class="draftFilters.createTimeStart ? 'date-picker-text' : 'date-picker-placeholder'">
+                  <text
+                    :class="
+                      draftFilters.createTimeStart ? 'date-picker-text' : 'date-picker-placeholder'
+                    "
+                  >
                     {{ draftFilters.createTimeStart || '开始日期' }}
                   </text>
                   <u-icon name="calendar" size="16" color="#94a3b8" />
                 </view>
               </picker>
               <text class="date-separator">至</text>
-              <picker mode="date" :value="draftFilters.createTimeEnd" @change="handleDateChange('createTimeEnd', $event)">
+              <picker
+                mode="date"
+                :value="draftFilters.createTimeEnd"
+                @change="handleDateChange('createTimeEnd', $event)"
+              >
                 <view class="date-picker">
-                  <text :class="draftFilters.createTimeEnd ? 'date-picker-text' : 'date-picker-placeholder'">
+                  <text
+                    :class="
+                      draftFilters.createTimeEnd ? 'date-picker-text' : 'date-picker-placeholder'
+                    "
+                  >
                     {{ draftFilters.createTimeEnd || '结束日期' }}
                   </text>
                   <u-icon name="calendar" size="16" color="#94a3b8" />
@@ -321,7 +346,9 @@ function normalizeOrderItem(item) {
 
 function includesText(source, keyword) {
   if (!keyword) return true;
-  return String(source || '').toLowerCase().includes(keyword);
+  return String(source || '')
+    .toLowerCase()
+    .includes(keyword);
 }
 
 export default {
@@ -359,12 +386,17 @@ export default {
   },
   computed: {
     filteredOrders() {
-      const keyword = String(this.appliedFilters.keyword || '').trim().toLowerCase();
+      const keyword = String(this.appliedFilters.keyword || '')
+        .trim()
+        .toLowerCase();
       return this.allOrders.filter((item) => {
         if (this.appliedFilters.status && String(item.status) !== this.appliedFilters.status) {
           return false;
         }
-        if (this.appliedFilters.serviceMode && String(item.serviceMode) !== this.appliedFilters.serviceMode) {
+        if (
+          this.appliedFilters.serviceMode &&
+          String(item.serviceMode) !== this.appliedFilters.serviceMode
+        ) {
           return false;
         }
         if (!this.matchCreateTime(item.createdTime)) {
@@ -389,7 +421,10 @@ export default {
     appliedFilterCount() {
       return Object.keys(DEFAULT_FILTERS).filter((key) => {
         if (key === 'createTimePreset') return false;
-        return String(this.appliedFilters[key] || '').trim() !== String(DEFAULT_FILTERS[key] || '').trim();
+        return (
+          String(this.appliedFilters[key] || '').trim() !==
+          String(DEFAULT_FILTERS[key] || '').trim()
+        );
       }).length;
     },
     activeFilterTags() {
@@ -398,13 +433,17 @@ export default {
         tags.push({ key: 'keyword', label: `关键词：${this.appliedFilters.keyword}` });
       }
       if (this.appliedFilters.status) {
-        const matchedStatus = this.statusOptions.find((item) => item.value === this.appliedFilters.status);
+        const matchedStatus = this.statusOptions.find(
+          (item) => item.value === this.appliedFilters.status
+        );
         if (matchedStatus) {
           tags.push({ key: 'status', label: `状态：${matchedStatus.label}` });
         }
       }
       if (this.appliedFilters.serviceMode) {
-        const matchedMode = this.serviceModeOptions.find((item) => item.value === this.appliedFilters.serviceMode);
+        const matchedMode = this.serviceModeOptions.find(
+          (item) => item.value === this.appliedFilters.serviceMode
+        );
         if (matchedMode) {
           tags.push({ key: 'serviceMode', label: `方式：${matchedMode.label}` });
         }

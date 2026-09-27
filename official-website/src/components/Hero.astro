@@ -1,160 +1,458 @@
+---
+// Hero component — modern split layout with illustration placeholder
+---
+
 <section class="hero">
-  <div class="hero-bg"></div>
+  <!-- Decorative background blobs -->
+  <div class="hero-blobs" aria-hidden="true">
+    <div class="bg-blob bg-blob-primary" style="width:500px;height:500px;top:-15%;left:-10%;"></div>
+    <div class="bg-blob bg-blob-accent" style="width:360px;height:360px;top:50%;right:-8%;"></div>
+    <div
+      class="bg-blob bg-blob-primary"
+      style="width:340px;height:340px;bottom:-8%;left:28%;opacity:.25;"
+    >
+    </div>
+  </div>
+
+  <!-- Subtle grid overlay -->
+  <div class="hero-grid-overlay" aria-hidden="true"></div>
+
   <div class="container hero-content">
-    <div class="hero-text">
-      <span class="hero-badge">🔧 全品类家电维修</span>
-      <h1>专业电器维修<br /><span class="hero-highlight">一键预约上门</span></h1>
-      <p>空调、冰箱、洗衣机、电视、热水器…… 覆盖全品类家电，专业认证师傅，透明定价，品质保障，最快 2 小时上门。</p>
+    <!-- Left: text -->
+    <div class="hero-text reveal-left">
+      <span class="badge badge-primary" style="font-size:.88rem;padding:8px 20px;">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          ><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg
+        >
+        全品类家电维修
+      </span>
+
+      <h1>
+        专业电器维修<br />
+        <span class="hero-highlight">一键预约上门</span>
+      </h1>
+
+      <p class="hero-desc">
+        空调、冰箱、洗衣机、电视、热水器…… 覆盖全品类家电。 专业认证师傅，透明定价，品质保障，最快 <strong
+          >2 小时</strong
+        > 上门。
+      </p>
+
       <div class="hero-actions">
-        <a href="/contact" class="btn btn-primary" style="padding:16px 40px;font-size:1.05rem;">
-          立即预约维修 →
+        <a href="/contact" class="btn btn-primary btn-lg">
+          立即预约维修
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg
+          >
         </a>
-        <a href="/services" class="btn btn-outline" style="padding:16px 40px;font-size:1.05rem;">
-          查看服务项目
-        </a>
+        <a href="/services" class="btn btn-outline btn-lg"> 查看服务项目 </a>
       </div>
-      <div class="hero-stats">
-        <div class="stat">
-          <strong>10000+</strong>
-          <span>服务用户</span>
+
+      <!-- Stats with count-up effect -->
+      <div class="hero-stats" id="heroStats">
+        <div class="stat-item">
+          <strong class="stat-number" data-target="10000">0</strong>
+          <span class="stat-suffix">+</span>
+          <span class="stat-label">服务用户</span>
         </div>
-        <div class="stat">
-          <strong>500+</strong>
-          <span>认证师傅</span>
+        <div class="stat-divider" aria-hidden="true"></div>
+        <div class="stat-item">
+          <strong class="stat-number" data-target="500">0</strong>
+          <span class="stat-suffix">+</span>
+          <span class="stat-label">认证师傅</span>
         </div>
-        <div class="stat">
-          <strong>98%</strong>
-          <span>好评率</span>
+        <div class="stat-divider" aria-hidden="true"></div>
+        <div class="stat-item">
+          <strong class="stat-number" data-target="98">0</strong>
+          <span class="stat-suffix">%</span>
+          <span class="stat-label">好评率</span>
         </div>
       </div>
     </div>
-    <div class="hero-image">
-      <img
-        src="/images/logo.png"
-        alt="安修到家"
-        class="hero-logo"
-        width="280"
-        height="280"
-        loading="eager"
-      />
+
+    <!-- Right: illustration placeholder -->
+    <div class="hero-visual reveal-right">
+      <div class="hero-illustration">
+        <img
+          src="/images/hero-illustration.webp"
+          alt="维修师傅上门服务"
+          class="hero-img"
+          width="600"
+          height="500"
+          loading="eager"
+        />
+
+        <!-- Floating accent cards around the hero -->
+        <div class="hero-float-card hero-float-1" aria-hidden="true">
+          <span style="font-size:1.5rem;">⚡</span>
+          <div>
+            <strong>快速响应</strong>
+            <span>最快 2 小时上门</span>
+          </div>
+        </div>
+        <div class="hero-float-card hero-float-2" aria-hidden="true">
+          <span style="font-size:1.5rem;">🛡️</span>
+          <div>
+            <strong>品质保障</strong>
+            <span>90 天质保</span>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <!-- Scroll-down indicator -->
+  <div class="hero-scroll" aria-hidden="true">
+    <span>向下滚动</span>
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"><path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path></svg
+    >
   </div>
 </section>
 
 <style>
-.hero {
-  position: relative;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-  padding-top: 72px;
-}
-
-.hero-bg {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 80% 60% at 20% 50%, rgba(37,99,235,.08), transparent),
-    radial-gradient(ellipse 60% 70% at 80% 40%, rgba(245,158,11,.06), transparent),
-    linear-gradient(180deg, #F8FAFC 0%, #fff 100%);
-  z-index: 0;
-}
-
-.hero-content {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 64px;
-  align-items: center;
-}
-
-.hero-badge {
-  display: inline-block;
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-  padding: 6px 16px;
-  border-radius: 20px;
-  font-size: .9rem;
-  font-weight: 600;
-  margin-bottom: 24px;
-}
-
-.hero-text h1 {
-  font-size: 3rem;
-  font-weight: 800;
-  line-height: 1.25;
-  color: var(--color-text);
-  margin-bottom: 20px;
-}
-
-.hero-highlight {
-  background: linear-gradient(135deg, var(--color-primary), #6366F1);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.hero-text p {
-  font-size: 1.1rem;
-  color: var(--color-text-secondary);
-  line-height: 1.8;
-  margin-bottom: 32px;
-  max-width: 480px;
-}
-
-.hero-actions {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 48px;
-  flex-wrap: wrap;
-}
-
-.hero-stats {
-  display: flex;
-  gap: 40px;
-}
-
-.stat strong {
-  display: block;
-  font-size: 1.75rem;
-  font-weight: 800;
-  color: var(--color-primary);
-}
-
-.stat span {
-  font-size: .9rem;
-  color: var(--color-text-secondary);
-}
-
-.hero-image {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.hero-logo {
-  border-radius: 24px;
-  box-shadow: 0 24px 80px rgba(37,99,235,.18);
-  animation: float 6s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-18px); }
-}
-
-@media (max-width: 768px) {
-  .hero-content {
-    grid-template-columns: 1fr;
-    text-align: center;
-    gap: 40px;
+  /* ===== Hero Layout ===== */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    padding-top: var(--header-height);
+    background: var(--gradient-hero);
   }
-  .hero-text h1 { font-size: 2rem; }
-  .hero-text p { max-width: 100%; }
-  .hero-actions { justify-content: center; }
-  .hero-stats { justify-content: center; }
-  .hero-logo { width: 180px; height: 180px; }
-}
+
+  /* Decorative blobs */
+  .hero-blobs {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Subtle dot-grid overlay */
+  .hero-grid-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    opacity: 0.25;
+    background-image: radial-gradient(circle, rgba(37, 99, 235, 0.12) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none;
+  }
+
+  /* Content grid */
+  .hero-content {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 72px;
+    align-items: center;
+    width: 100%;
+  }
+
+  /* ===== Text Side ===== */
+  .hero-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .hero-text h1 {
+    font-size: 3.25rem;
+    font-weight: 850;
+    line-height: 1.2;
+    color: var(--color-text);
+    margin-top: 20px;
+    margin-bottom: 20px;
+    letter-spacing: -0.025em;
+  }
+
+  .hero-highlight {
+    background: var(--gradient-brand);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-desc {
+    font-size: 1.12rem;
+    color: var(--color-text-secondary);
+    line-height: 1.85;
+    margin-bottom: 36px;
+    max-width: 460px;
+  }
+
+  .hero-desc strong {
+    color: var(--color-primary);
+    font-weight: 700;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 56px;
+    flex-wrap: wrap;
+  }
+
+  /* ===== Stats ===== */
+  .hero-stats {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    padding: 20px 32px;
+    width: fit-content;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .stat-item {
+    text-align: center;
+    padding: 0 20px;
+  }
+  .stat-item strong {
+    font-size: 2rem;
+    font-weight: 850;
+    background: var(--gradient-brand);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .stat-suffix {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    margin-left: 2px;
+  }
+  .stat-label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    margin-top: 2px;
+  }
+
+  .stat-divider {
+    width: 1px;
+    height: 36px;
+    background: var(--color-border);
+  }
+
+  /* ===== Visual Side ===== */
+  .hero-visual {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .hero-illustration {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    aspect-ratio: 1.2 / 1;
+  }
+
+  .hero-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: var(--radius-lg);
+    filter: drop-shadow(0 20px 60px rgba(37, 99, 235, 0.18));
+    animation: float-slow 8s ease-in-out infinite;
+  }
+
+  /* Floating accent cards */
+  .hero-float-card {
+    position: absolute;
+    background: #fff;
+    border-radius: var(--radius-sm);
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: var(--shadow-lg);
+    font-size: 0.85rem;
+    pointer-events: none;
+  }
+  .hero-float-card strong {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--color-text);
+  }
+  .hero-float-card span {
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+  }
+
+  .hero-float-1 {
+    top: 8%;
+    left: -5%;
+    animation: float 5s ease-in-out infinite;
+    animation-delay: 0.5s;
+  }
+  .hero-float-2 {
+    bottom: 12%;
+    right: -8%;
+    animation: float 6s ease-in-out infinite;
+    animation-delay: 2s;
+  }
+
+  /* ===== Scroll indicator ===== */
+  .hero-scroll {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    translate: -50% 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    animation: float 2.5s ease-in-out infinite;
+    z-index: 2;
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 1024px) {
+    .hero-text h1 {
+      font-size: 2.5rem;
+    }
+    .hero-stats {
+      padding: 16px 24px;
+    }
+    .stat-item strong {
+      font-size: 1.6rem;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .hero-content {
+      grid-template-columns: 1fr;
+      text-align: center;
+      gap: 48px;
+    }
+    .hero-text {
+      align-items: center;
+      order: 1;
+    }
+    .hero-visual {
+      order: 0;
+    }
+    .hero-illustration {
+      max-width: 320px;
+    }
+    .hero-text h1 {
+      font-size: 2.1rem;
+    }
+    .hero-desc {
+      max-width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .hero-actions {
+      justify-content: center;
+    }
+    .hero-stats {
+      margin: 0 auto;
+    }
+    .hero-float-1 {
+      left: -15%;
+      top: 0;
+    }
+    .hero-float-2 {
+      right: -15%;
+      bottom: 0;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .hero-text h1 {
+      font-size: 1.75rem;
+    }
+    .hero-stats {
+      flex-direction: column;
+      gap: 10px;
+    }
+    .stat-divider {
+      width: 40px;
+      height: 1px;
+    }
+    .hero-float-card {
+      display: none;
+    }
+  }
 </style>
+
+<script>
+  // Count-up animation for stat numbers
+  function animateCountUp(el: HTMLElement, target: number, duration = 1800) {
+    const start = 0;
+    const startTime = performance.now();
+
+    function update(now: number) {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease-out-expo curve
+      const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+      const current = Math.floor(start + (target - start) * eased);
+      el.textContent = current.toLocaleString();
+
+      if (progress < 1) {
+        requestAnimationFrame(update);
+      } else {
+        el.textContent = target.toLocaleString();
+      }
+    }
+
+    requestAnimationFrame(update);
+  }
+
+  // Intersection Observer to trigger count-up when stats come into view
+  const statsContainer = document.getElementById('heroStats');
+  if (statsContainer) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const numbers = statsContainer.querySelectorAll<HTMLElement>('.stat-number');
+            numbers.forEach((el) => {
+              const target = parseInt(el.dataset.target || '0', 10);
+              animateCountUp(el, target);
+            });
+            observer.unobserve(statsContainer);
+          }
+        });
+      },
+      { threshold: 0.5 }
+    );
+
+    observer.observe(statsContainer);
+  }
+</script>

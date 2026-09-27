@@ -12,13 +12,16 @@
             <result property="accountId" column="account_id" />
             <result property="paymentMethod" column="payment_method" />
             <result property="paymentAmount" column="payment_amount" />
+            <result property="currency" column="currency" />
             <result property="paymentStatus" column="payment_status" />
             <result property="thirdPartyNo" column="third_party_no" />
+            <result property="expiresAt" column="expires_at" />
             <result property="paymentTime" column="payment_time" />
             <result property="refundAmount" column="refund_amount" />
             <result property="refundTime" column="refund_time" />
             <result property="refundReason" column="refund_reason" />
             <result property="callbackData" column="callback_data" />
+            <result property="callbackProcessedTime" column="callback_processed_time" />
             <result property="remark" column="remark" />
             <result property="createdTime" column="created_time" />
             <result property="updatedTime" column="updated_time" />
@@ -28,8 +31,8 @@
 
     <sql id="Base_Column_List">
         id,payment_no,order_id,order_type,account_id,payment_method,
-        payment_amount,payment_status,third_party_no,payment_time,refund_amount,
-        refund_time,refund_reason,callback_data,remark,created_time,
+        payment_amount,currency,payment_status,third_party_no,expires_at,payment_time,refund_amount,
+        refund_time,refund_reason,callback_data,callback_processed_time,remark,created_time,
         updated_time,version,is_delete
     </sql>
 </mapper>

@@ -14,6 +14,10 @@ import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.UserAddressesService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,14 +25,9 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 @Service
 public class UserAddressesServiceImpl extends ServiceImpl<UserAddressesMapper, UserAddresses>
-    implements UserAddressesService {
+        implements UserAddressesService {
 
     private static final int DEFAULT_NO = 0;
     private static final int DEFAULT_YES = 1;
@@ -61,11 +60,11 @@ public class UserAddressesServiceImpl extends ServiceImpl<UserAddressesMapper, U
         long now = System.currentTimeMillis();
 
         int isDefault = normalizeDefaultFlag(request.getIsDefault());
-        long addressCount = count(
-            new LambdaQueryWrapper<UserAddresses>()
-                .eq(UserAddresses::getAccountId, accountId)
-                .eq(UserAddresses::getIsDelete, 0)
-        );
+        long addressCount =
+                count(
+                        new LambdaQueryWrapper<UserAddresses>()
+                                .eq(UserAddresses::getAccountId, accountId)
+                                .eq(UserAddresses::getIsDelete, 0));
         if (addressCount == 0) {
             isDefault = DEFAULT_YES;
         }
@@ -96,10 +95,15 @@ public class UserAddressesServiceImpl extends ServiceImpl<UserAddressesMapper, U
         String accountId = user.getAccountId();
         UserAddresses entity = requireOwnedAddress(accountId, request.getId());
 
-        int currentDefault = entity.getIsDefault() != null && entity.getIsDefault() == 1 ? DEFAULT_YES : DEFAULT_NO;
+        int currentDefault =
+                entity.getIsDefault() != null && entity.getIsDefault() == 1
+                        ? DEFAULT_YES
+                        : DEFAULT_NO;
         int nextDefault = normalizeDefaultFlag(request.getIsDefault());
 
-        if (currentDefault == DEFAULT_YES && nextDefault == DEFAULT_NO && !hasOtherAddress(accountId, entity.getId())) {
+        if (currentDefault == DEFAULT_YES
+                && nextDefault == DEFAULT_NO
+                && !hasOtherAddress(accountId, entity.getId())) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "至少保留一个默认地址");
         }
 
@@ -149,7 +153,6 @@ public class UserAddressesServiceImpl extends ServiceImpl<UserAddressesMapper, U
         }
     }
 
-
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void adminDeleteUserAddress(String accountId, String addressId) {
@@ -179,13 +182,19 @@ public class UserAddressesServiceImpl extends ServiceImpl<UserAddressesMapper, U
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void adminUpdateUserAddress(String accountId, String addressId, UserAddressModel.SaveRequest request) {
+    public void adminUpdateUserAddress(
+            String accountId, String addressId, UserAddressModel.SaveRequest request) {
         UserAddresses entity = requireOwnedAddress(accountId, addressId);
 
-        int currentDefault = entity.getIsDefault() != null && entity.getIsDefault() == 1 ? DEFAULT_YES : DEFAULT_NO;
+        int currentDefault =
+                entity.getIsDefault() != null && entity.getIsDefault() == 1
+                        ? DEFAULT_YES
+                        : DEFAULT_NO;
         int nextDefault = normalizeDefaultFlag(request.getIsDefault());
 
-        if (currentDefault == DEFAULT_YES && nextDefault == DEFAULT_NO && !hasOtherAddress(accountId, entity.getId())) {
+        if (currentDefault == DEFAULT_YES
+                && nextDefault == DEFAULT_NO
+                && !hasOtherAddress(accountId, entity.getId())) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "至少保留一个默认地址");
         }
 
@@ -203,7 +212,8 @@ public class UserAddressesServiceImpl extends ServiceImpl<UserAddressesMapper, U
     }
 
     @Override
-    public UserAddressModel.LocationResolveResponse reverseGeocodeCurrentUser(BigDecimal latitude, BigDecimal longitude) {
+    public UserAddressModel.LocationResolveResponse reverseGeocodeCurrentUser(
+            BigDecimal latitude, BigDecimal longitude) {
         requireCurrentUser();
         if (latitude == null || longitude == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "经纬度不能为空");
@@ -213,18 +223,21 @@ public class UserAddressesServiceImpl extends ServiceImpl<UserAddressesMapper, U
         }
 
         ReverseGeocodeResult geocode = reverseGeocode(latitude, longitude);
-        UserAddressModel.LocationResolveResponse response = new UserAddressModel.LocationResolveResponse();
+        UserAddressModel.LocationResolveResponse response =
+                new UserAddressModel.LocationResolveResponse();
         response.setProvince(geocode.province);
         response.setCity(geocode.city);
         response.setDistrict(geocode.district);
         response.setStreet(geocode.street);
-        response.setFullAddress(buildFullAddress(geocode.province, geocode.city, geocode.district, geocode.street));
+        response.setFullAddress(
+                buildFullAddress(geocode.province, geocode.city, geocode.district, geocode.street));
         response.setLatitude(latitude);
         response.setLongitude(longitude);
         return response;
     }
 
-    private void fillAddressFields(UserAddresses entity, UserAddressModel.SaveRequest request, int isDefault) {
+    private void fillAddressFields(
+            UserAddresses entity, UserAddressModel.SaveRequest request, int isDefault) {
         entity.setContactName(trimToNull(request.getContactName()));
         entity.setContactPhone(trimToNull(request.getContactPhone()));
         entity.setProvince(trimToNull(request.getProvince()));
@@ -241,13 +254,12 @@ public class UserAddressesServiceImpl extends ServiceImpl<UserAddressesMapper, U
 
     private List<UserAddresses> listAddressEntities(String accountId) {
         return list(
-            new LambdaQueryWrapper<UserAddresses>()
-                .eq(UserAddresses::getAccountId, accountId)
-                .eq(UserAddresses::getIsDelete, 0)
-                .orderByDesc(UserAddresses::getIsDefault)
-                .orderByDesc(UserAddresses::getUpdatedTime)
-                .orderByDesc(UserAddresses::getCreatedTime)
-        );
+                new LambdaQueryWrapper<UserAddresses>()
+                        .eq(UserAddresses::getAccountId, accountId)
+                        .eq(UserAddresses::getIsDelete, 0)
+                        .orderByDesc(UserAddresses::getIsDefault)
+                        .orderByDesc(UserAddresses::getUpdatedTime)
+                        .orderByDesc(UserAddresses::getCreatedTime));
     }
 
     private UserAddresses requireOwnedAddress(String accountId, String addressId) {
@@ -255,14 +267,14 @@ public class UserAddressesServiceImpl extends ServiceImpl<UserAddressesMapper, U
         if (!StringUtils.hasText(normalizedAddressId)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "addressId不能为空");
         }
-        UserAddresses entity = getOne(
-            new LambdaQueryWrapper<UserAddresses>()
-                .eq(UserAddresses::getId, normalizedAddressId)
-                .eq(UserAddresses::getAccountId, accountId)
-                .eq(UserAddresses::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        UserAddresses entity =
+                getOne(
+                        new LambdaQueryWrapper<UserAddresses>()
+                                .eq(UserAddresses::getId, normalizedAddressId)
+                                .eq(UserAddresses::getAccountId, accountId)
+                                .eq(UserAddresses::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (entity == null) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "地址不存在");
         }
@@ -270,10 +282,11 @@ public class UserAddressesServiceImpl extends ServiceImpl<UserAddressesMapper, U
     }
 
     private void clearDefaultAddress(String accountId, String excludeAddressId, long now) {
-        LambdaUpdateWrapper<UserAddresses> wrapper = new LambdaUpdateWrapper<UserAddresses>()
-            .eq(UserAddresses::getAccountId, accountId)
-            .eq(UserAddresses::getIsDelete, 0)
-            .eq(UserAddresses::getIsDefault, 1);
+        LambdaUpdateWrapper<UserAddresses> wrapper =
+                new LambdaUpdateWrapper<UserAddresses>()
+                        .eq(UserAddresses::getAccountId, accountId)
+                        .eq(UserAddresses::getIsDelete, 0)
+                        .eq(UserAddresses::getIsDefault, 1);
         if (StringUtils.hasText(excludeAddressId)) {
             wrapper.ne(UserAddresses::getId, excludeAddressId);
         }
@@ -284,32 +297,32 @@ public class UserAddressesServiceImpl extends ServiceImpl<UserAddressesMapper, U
     }
 
     private void ensureOneDefaultAddress(String accountId, long now) {
-        long total = count(
-            new LambdaQueryWrapper<UserAddresses>()
-                .eq(UserAddresses::getAccountId, accountId)
-                .eq(UserAddresses::getIsDelete, 0)
-        );
+        long total =
+                count(
+                        new LambdaQueryWrapper<UserAddresses>()
+                                .eq(UserAddresses::getAccountId, accountId)
+                                .eq(UserAddresses::getIsDelete, 0));
         if (total <= 0) {
             return;
         }
-        long defaultCount = count(
-            new LambdaQueryWrapper<UserAddresses>()
-                .eq(UserAddresses::getAccountId, accountId)
-                .eq(UserAddresses::getIsDelete, 0)
-                .eq(UserAddresses::getIsDefault, 1)
-        );
+        long defaultCount =
+                count(
+                        new LambdaQueryWrapper<UserAddresses>()
+                                .eq(UserAddresses::getAccountId, accountId)
+                                .eq(UserAddresses::getIsDelete, 0)
+                                .eq(UserAddresses::getIsDefault, 1));
         if (defaultCount > 0) {
             return;
         }
-        UserAddresses fallback = getOne(
-            new LambdaQueryWrapper<UserAddresses>()
-                .eq(UserAddresses::getAccountId, accountId)
-                .eq(UserAddresses::getIsDelete, 0)
-                .orderByDesc(UserAddresses::getUpdatedTime)
-                .orderByDesc(UserAddresses::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+        UserAddresses fallback =
+                getOne(
+                        new LambdaQueryWrapper<UserAddresses>()
+                                .eq(UserAddresses::getAccountId, accountId)
+                                .eq(UserAddresses::getIsDelete, 0)
+                                .orderByDesc(UserAddresses::getUpdatedTime)
+                                .orderByDesc(UserAddresses::getCreatedTime)
+                                .last("limit 1"),
+                        false);
         if (fallback == null) {
             return;
         }
@@ -321,9 +334,10 @@ public class UserAddressesServiceImpl extends ServiceImpl<UserAddressesMapper, U
     }
 
     private boolean hasOtherAddress(String accountId, String excludeAddressId) {
-        LambdaQueryWrapper<UserAddresses> wrapper = new LambdaQueryWrapper<UserAddresses>()
-            .eq(UserAddresses::getAccountId, accountId)
-            .eq(UserAddresses::getIsDelete, 0);
+        LambdaQueryWrapper<UserAddresses> wrapper =
+                new LambdaQueryWrapper<UserAddresses>()
+                        .eq(UserAddresses::getAccountId, accountId)
+                        .eq(UserAddresses::getIsDelete, 0);
         if (StringUtils.hasText(excludeAddressId)) {
             wrapper.ne(UserAddresses::getId, excludeAddressId);
         }
@@ -369,13 +383,16 @@ public class UserAddressesServiceImpl extends ServiceImpl<UserAddressesMapper, U
         item.setStreet(safe(entity.getStreet()));
         item.setDetailedAddress(safe(entity.getDetailedAddress()));
         item.setPostalCode(safe(entity.getPostalCode()));
-        item.setLongitude(entity.getLongitude() == null ? "" : entity.getLongitude().toPlainString());
+        item.setLongitude(
+                entity.getLongitude() == null ? "" : entity.getLongitude().toPlainString());
         item.setLatitude(entity.getLatitude() == null ? "" : entity.getLatitude().toPlainString());
         item.setIsDefault(entity.getIsDefault() != null && entity.getIsDefault() == 1 ? 1 : 0);
-        item.setAddressType(entity.getAddressType() == null ? ADDRESS_TYPE_HOME : entity.getAddressType());
+        item.setAddressType(
+                entity.getAddressType() == null ? ADDRESS_TYPE_HOME : entity.getAddressType());
         item.setAddressTypeName(mapAddressTypeName(item.getAddressType()));
         item.setFullAddress(buildFullAddress(entity));
-        item.setLabel((safe(entity.getContactName()) + " " + safe(entity.getContactPhone())).trim());
+        item.setLabel(
+                (safe(entity.getContactName()) + " " + safe(entity.getContactPhone())).trim());
         item.setDetail(item.getFullAddress());
         item.setCreatedTime(entity.getCreatedTime());
         item.setUpdatedTime(entity.getUpdatedTime());
@@ -384,10 +401,10 @@ public class UserAddressesServiceImpl extends ServiceImpl<UserAddressesMapper, U
 
     private String buildFullAddress(UserAddresses entity) {
         return safe(entity.getProvince())
-            + safe(entity.getCity())
-            + safe(entity.getDistrict())
-            + safe(entity.getStreet())
-            + safe(entity.getDetailedAddress());
+                + safe(entity.getCity())
+                + safe(entity.getDistrict())
+                + safe(entity.getStreet())
+                + safe(entity.getDetailedAddress());
     }
 
     private String mapAddressTypeName(Integer addressType) {
@@ -402,9 +419,9 @@ public class UserAddressesServiceImpl extends ServiceImpl<UserAddressesMapper, U
 
     private boolean isValidLatLng(BigDecimal lat, BigDecimal lng) {
         return lat.compareTo(BigDecimal.valueOf(-90)) >= 0
-            && lat.compareTo(BigDecimal.valueOf(90)) <= 0
-            && lng.compareTo(BigDecimal.valueOf(-180)) >= 0
-            && lng.compareTo(BigDecimal.valueOf(180)) <= 0;
+                && lat.compareTo(BigDecimal.valueOf(90)) <= 0
+                && lng.compareTo(BigDecimal.valueOf(-180)) >= 0
+                && lng.compareTo(BigDecimal.valueOf(180)) <= 0;
     }
 
     private ReverseGeocodeResult reverseGeocode(BigDecimal latitude, BigDecimal longitude) {
@@ -412,11 +429,11 @@ public class UserAddressesServiceImpl extends ServiceImpl<UserAddressesMapper, U
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "腾讯地图Key未配置");
         }
 
-        String url = UriComponentsBuilder
-            .fromHttpUrl("https://apis.map.qq.com/ws/geocoder/v1/")
-            .queryParam("key", tencentMapKey)
-            .queryParam("location", latitude + "," + longitude)
-            .toUriString();
+        String url =
+                UriComponentsBuilder.fromHttpUrl("https://apis.map.qq.com/ws/geocoder/v1/")
+                        .queryParam("key", tencentMapKey)
+                        .queryParam("location", latitude + "," + longitude)
+                        .toUriString();
 
         System.out.println("[UserAddr-Geocode] 请求URL: " + url);
         String body;
@@ -453,7 +470,10 @@ public class UserAddressesServiceImpl extends ServiceImpl<UserAddressesMapper, U
             ret.province = asText(component.get("province"));
             ret.city = asText(component.get("city"));
             ret.district = asText(component.get("district"));
-            String street = concatText(asText(component.get("street")), asText(component.get("street_number")));
+            String street =
+                    concatText(
+                            asText(component.get("street")),
+                            asText(component.get("street_number")));
             if (!StringUtils.hasText(street)) {
                 street = asText(component.get("town"));
             }

@@ -10,11 +10,23 @@ import com.example.backend.model.admin.*;
 import com.example.backend.security.context.AuthUserContext;
 import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.*;
+import com.example.backend.service.ContentCheckLogsService;
+import com.example.backend.service.ImageReviewQueueService;
+import com.example.backend.service.contentcheck.AliyunGreenClient;
+import com.example.backend.service.contentcheck.CheckResult;
 import com.example.backend.utils.PasswordUtil;
 import com.example.backend.utils.id.SnowflakeIdUtil;
 import com.example.backend.utils.oss.OssUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.math.BigDecimal;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
@@ -23,14 +35,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.math.BigDecimal;
-
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
+@Tag(name = "管理员端/门店管理", description = "门店CRUD、审核、营业状态、营业时间、师傅绑定")
 @RestController
 @RequestMapping("/admin/stores")
 public class AdminStoreController {
@@ -52,6 +57,9 @@ public class AdminStoreController {
     private final OperationLogsService operationLogsService;
     private final OssUtil ossUtil;
     private final TechnicianBindingsService technicianBindingsService;
+    private final AliyunGreenClient aliyunGreenClient;
+    private final ContentCheckLogsService checkLogsService;
+    private final ImageReviewQueueService imageReviewQueueService;
 
     public AdminStoreController(
             StoresService storesService,
@@ -61,8 +69,10 @@ public class AdminStoreController {
             ImagesService imagesService,
             OperationLogsService operationLogsService,
             OssUtil ossUtil,
-            TechnicianBindingsService technicianBindingsService
-    ) {
+            TechnicianBindingsService technicianBindingsService,
+            AliyunGreenClient aliyunGreenClient,
+            ContentCheckLogsService checkLogsService,
+            ImageReviewQueueService imageReviewQueueService) {
         this.storesService = storesService;
         this.storeBusinessHoursService = storeBusinessHoursService;
         this.technicianAccountsService = technicianAccountsService;
@@ -71,6 +81,9 @@ public class AdminStoreController {
         this.operationLogsService = operationLogsService;
         this.ossUtil = ossUtil;
         this.technicianBindingsService = technicianBindingsService;
+        this.aliyunGreenClient = aliyunGreenClient;
+        this.checkLogsService = checkLogsService;
+        this.imageReviewQueueService = imageReviewQueueService;
     }
 
     // ==================== 门店 CRUD ====================
@@ -81,8 +94,7 @@ public class AdminStoreController {
             @RequestParam(defaultValue = "10") Integer size,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer auditStatus,
-            @RequestParam(required = false) Integer businessStatus
-    ) {
+            @RequestParam(required = false) Integer businessStatus) {
         LoginUserInfo user = AuthUserContext.get();
         LambdaQueryWrapper<Stores> wrapper = new LambdaQueryWrapper<>();
 
@@ -104,12 +116,12 @@ public class AdminStoreController {
 
         Page<Stores> storePage = storesService.page(new Page<>(page, size), wrapper);
         Page<AdminStoreResponse> result = new Page<>(page, size, storePage.getTotal());
-        result.setRecords(storePage.getRecords().stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList()));
+        result.setRecords(
+                storePage.getRecords().stream().map(this::toResponse).collect(Collectors.toList()));
         return Result.success(result);
     }
 
+    @Operation(summary = "查询详情")
     @GetMapping("/{id}")
     public Result<AdminStoreResponse> detail(@PathVariable String id) {
         LoginUserInfo user = AuthUserContext.get();
@@ -124,6 +136,7 @@ public class AdminStoreController {
         return Result.success(toResponse(store));
     }
 
+    @Operation(summary = "创建")
     @PostMapping("/create")
     public Result<AdminStoreResponse> create(@Valid @RequestBody AdminStoreCreateRequest request) {
         LoginUserInfo user = AuthUserContext.get();
@@ -139,8 +152,8 @@ public class AdminStoreController {
         storeAdmin.setUsername(request.getAdminName());
         storeAdmin.setPhone(request.getAdminPhone());
         storeAdmin.setEmail(request.getAdminEmail());
-        storeAdmin.setAdminType(2);          // 普通管理员
-        storeAdmin.setAdminRole(2);          // 门店管理员
+        storeAdmin.setAdminType(2); // 普通管理员
+        storeAdmin.setAdminRole(2); // 门店管理员
         storeAdmin.setPermissions("[]");
         storeAdmin.setAccountStatus(1);
         storeAdmin.setIsFirstLogin(1);
@@ -167,17 +180,23 @@ public class AdminStoreController {
         store.setLongitude(request.getLongitude());
         store.setDescription(request.getDescription());
         store.setBusinessLicense(request.getBusinessLicense());
-        store.setAuditStatus(2);  // 超级管理员创建的门店自动审核通过
+        store.setAuditStatus(2); // 超级管理员创建的门店自动审核通过
         store.setBusinessStatus(1);
 
         Stores created = storesService.createStore(store, user.getAccountId());
-        saveLog(user, "CREATE", "创建门店：" + created.getName() + "，管理员：" + request.getAdminEmail(),
-                "/admin/stores/create", "");
+        saveLog(
+                user,
+                "CREATE",
+                "创建门店：" + created.getName() + "，管理员：" + request.getAdminEmail(),
+                "/admin/stores/create",
+                "");
         return Result.success(toResponse(created));
     }
 
+    @Operation(summary = "修改编辑")
     @PostMapping("/{id}/update")
-    public Result<AdminStoreResponse> update(@PathVariable String id, @Valid @RequestBody AdminStoreUpdateRequest request) {
+    public Result<AdminStoreResponse> update(
+            @PathVariable String id, @Valid @RequestBody AdminStoreUpdateRequest request) {
         LoginUserInfo user = AuthUserContext.get();
         // 超管或门店管理员（仅能编辑自己的门店）
         boolean isStoreOwner = user.isStoreAdmin() && id.equals(user.getStoreId());
@@ -190,7 +209,9 @@ public class AdminStoreController {
         }
 
         if (StringUtils.hasText(request.getName())) {
-            store.setName(request.getName());
+            String name = request.getName();
+            checkText(name, "门店名称", user.getAccountId(), 3);
+            store.setName(name);
         }
         if (request.getLogoImageId() != null) {
             store.setLogoImageId(request.getLogoImageId());
@@ -207,7 +228,8 @@ public class AdminStoreController {
         if (request.getLongitude() != null) {
             store.setLongitude(request.getLongitude());
         }
-        if (request.getDescription() != null) {
+        if (request.getDescription() != null && !request.getDescription().isEmpty()) {
+            checkText(request.getDescription(), "门店介绍", user.getAccountId(), 3);
             store.setDescription(request.getDescription());
         }
         if (request.getBusinessLicense() != null) {
@@ -226,9 +248,10 @@ public class AdminStoreController {
     }
 
     // ==================== 门店审核 ====================
-
+    @Operation(summary = "审核")
     @PostMapping("/{id}/audit")
-    public Result<Void> audit(@PathVariable String id, @Valid @RequestBody AdminStoreAuditRequest request) {
+    public Result<Void> audit(
+            @PathVariable String id, @Valid @RequestBody AdminStoreAuditRequest request) {
         LoginUserInfo user = AuthUserContext.get();
         if (!user.isSuperAdmin()) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "仅超级管理员可审核门店");
@@ -237,18 +260,27 @@ public class AdminStoreController {
         if (store == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "门店不存在");
         }
-        storesService.auditStore(id, request.getAuditStatus(), request.getRemark(), user.getAccountId());
+        storesService.auditStore(
+                id, request.getAuditStatus(), request.getRemark(), user.getAccountId());
         String resultText = request.getAuditStatus() == 2 ? "通过" : "拒绝";
-        saveLog(user, "AUDIT", "审核门店：" + store.getName() + " → " + resultText,
+        saveLog(
+                user,
+                "AUDIT",
+                "审核门店：" + store.getName() + " → " + resultText,
                 "/admin/stores/" + id + "/audit",
-                "{\"auditStatus\":" + request.getAuditStatus() + ",\"remark\":\"" + request.getRemark() + "\"}");
+                "{\"auditStatus\":"
+                        + request.getAuditStatus()
+                        + ",\"remark\":\""
+                        + request.getRemark()
+                        + "\"}");
         return Result.success();
     }
 
     // ==================== 营业状态管理 ====================
-
+    @Operation(summary = "切换切换Status")
     @PostMapping("/{id}/status")
-    public Result<Void> toggleStatus(@PathVariable String id, @Valid @RequestBody AdminStoreStatusRequest request) {
+    public Result<Void> toggleStatus(
+            @PathVariable String id, @Valid @RequestBody AdminStoreStatusRequest request) {
         LoginUserInfo user = AuthUserContext.get();
         // 门店管理员只能操作自己的门店
         if (user.isStoreAdmin() && !id.equals(user.getStoreId())) {
@@ -259,31 +291,50 @@ public class AdminStoreController {
             throw new BusinessException(ErrorCode.NOT_FOUND, "门店不存在");
         }
         storesService.toggleBusinessStatus(id, request.getBusinessStatus(), user.getAccountId());
-        String statusName = request.getBusinessStatus() == 1 ? "营业中" : request.getBusinessStatus() == 2 ? "休息中" : "已关闭";
-        saveLog(user, "UPDATE", "切换门店营业状态：" + store.getName() + " → " + statusName,
+        String statusName =
+                request.getBusinessStatus() == 1
+                        ? "营业中"
+                        : request.getBusinessStatus() == 2 ? "休息中" : "已关闭";
+        saveLog(
+                user,
+                "UPDATE",
+                "切换门店营业状态：" + store.getName() + " → " + statusName,
                 "/admin/stores/" + id + "/status",
                 "{\"businessStatus\":" + request.getBusinessStatus() + "}");
         return Result.success();
     }
 
     // ==================== 营业时间管理 ====================
-
+    @Operation(summary = "查询营业时间")
     @GetMapping("/{id}/business-hours")
     public Result<List<AdminStoreBusinessHourItem>> getBusinessHours(@PathVariable String id) {
         List<StoreBusinessHours> hours = storeBusinessHoursService.getByStoreId(id);
-        List<AdminStoreBusinessHourItem> items = hours.stream().map(h -> {
-            AdminStoreBusinessHourItem item = new AdminStoreBusinessHourItem();
-            item.setDayOfWeek(h.getDayOfWeek());
-            item.setStartTime(h.getStartTime() != null ? h.getStartTime().format(TIME_FMT) : null);
-            item.setEndTime(h.getEndTime() != null ? h.getEndTime().format(TIME_FMT) : null);
-            item.setIsAvailable(h.getIsAvailable());
-            return item;
-        }).collect(Collectors.toList());
+        List<AdminStoreBusinessHourItem> items =
+                hours.stream()
+                        .map(
+                                h -> {
+                                    AdminStoreBusinessHourItem item =
+                                            new AdminStoreBusinessHourItem();
+                                    item.setDayOfWeek(h.getDayOfWeek());
+                                    item.setStartTime(
+                                            h.getStartTime() != null
+                                                    ? h.getStartTime().format(TIME_FMT)
+                                                    : null);
+                                    item.setEndTime(
+                                            h.getEndTime() != null
+                                                    ? h.getEndTime().format(TIME_FMT)
+                                                    : null);
+                                    item.setIsAvailable(h.getIsAvailable());
+                                    return item;
+                                })
+                        .collect(Collectors.toList());
         return Result.success(items);
     }
 
+    @Operation(summary = "创建保存营业时间")
     @PostMapping("/{id}/business-hours")
-    public Result<Void> saveBusinessHours(@PathVariable String id, @Valid @RequestBody AdminStoreBusinessHoursRequest request) {
+    public Result<Void> saveBusinessHours(
+            @PathVariable String id, @Valid @RequestBody AdminStoreBusinessHoursRequest request) {
         LoginUserInfo user = AuthUserContext.get();
         if (user.isStoreAdmin() && !id.equals(user.getStoreId())) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作其他门店");
@@ -305,48 +356,79 @@ public class AdminStoreController {
         }
         storeBusinessHoursService.batchSave(id, hoursList);
 
-        saveLog(user, "UPDATE", "更新门店营业时间：" + store.getName(),
-                "/admin/stores/" + id + "/business-hours", "");
+        saveLog(
+                user,
+                "UPDATE",
+                "更新门店营业时间：" + store.getName(),
+                "/admin/stores/" + id + "/business-hours",
+                "");
         return Result.success();
     }
 
     // ==================== 师傅绑定 ====================
-
+    @Operation(summary = "查询绑定列表")
     @GetMapping("/{id}/bindings")
     public Result<java.util.List<TechnicianBindings>> listBindings(
-            @PathVariable String id,
-            @RequestParam(required = false) Integer status) {
+            @PathVariable String id, @RequestParam(required = false) Integer status) {
         requireStoreAccess(id);
         return Result.success(technicianBindingsService.listByStore(id, status));
     }
 
+    @Operation(summary = "提交邀请师傅")
     @PostMapping("/{id}/invite/{technicianId}")
     public Result<TechnicianBindings> inviteTechnician(
             @PathVariable String id, @PathVariable String technicianId) {
         LoginUserInfo user = requireStoreAccess(id);
         TechnicianBindings binding = technicianBindingsService.invite(id, technicianId);
-        saveLog(user, "INVITE", "邀请师傅：" + technicianId + " 加入门店：" + id,
-                "/admin/stores/" + id + "/invite/" + technicianId, "");
+        saveLog(
+                user,
+                "INVITE",
+                "邀请师傅：" + technicianId + " 加入门店：" + id,
+                "/admin/stores/" + id + "/invite/" + technicianId,
+                "");
         return Result.success(binding);
     }
 
+    @Operation(summary = "提交直接解绑")
     @PostMapping("/{id}/unbind/{technicianId}")
-    public Result<Void> directUnbind(
-            @PathVariable String id, @PathVariable String technicianId) {
+    public Result<Void> directUnbind(@PathVariable String id, @PathVariable String technicianId) {
         LoginUserInfo user = requireStoreAccess(id);
         technicianBindingsService.directUnbind(id, technicianId);
-        saveLog(user, "UNBIND", "直接解绑师傅：" + technicianId + " 从门店：" + id,
-                "/admin/stores/" + id + "/unbind/" + technicianId, "");
+        saveLog(
+                user,
+                "UNBIND",
+                "直接解绑师傅：" + technicianId + " 从门店：" + id,
+                "/admin/stores/" + id + "/unbind/" + technicianId,
+                "");
         return Result.success();
     }
 
+    @Operation(summary = "审核批准解绑")
     @PostMapping("/{id}/approve-unbind/{technicianId}")
-    public Result<Void> approveUnbind(
-            @PathVariable String id, @PathVariable String technicianId) {
+    public Result<Void> approveUnbind(@PathVariable String id, @PathVariable String technicianId) {
         LoginUserInfo user = requireStoreAccess(id);
         technicianBindingsService.approveUnbind(id, technicianId);
-        saveLog(user, "UNBIND", "同意解绑师傅：" + technicianId + " 从门店：" + id,
-                "/admin/stores/" + id + "/approve-unbind/" + technicianId, "");
+        saveLog(
+                user,
+                "UNBIND",
+                "同意解绑师傅：" + technicianId + " 从门店：" + id,
+                "/admin/stores/" + id + "/approve-unbind/" + technicianId,
+                "");
+        return Result.success();
+    }
+
+    // ==================== 门店评分 ====================
+    @Operation(summary = "提交重新计算评分")
+    @PostMapping("/{id}/recalculate-rating")
+    public Result<Void> recalculateRating(@PathVariable String id) {
+        LoginUserInfo user = requireStoreAccess(id);
+        storesService.recalculateStoreRating(id);
+        saveLog(
+                user,
+                "UPDATE",
+                "重新计算门店评分：" + id,
+                "/admin/stores/" + id + "/recalculate-rating",
+                "");
         return Result.success();
     }
 
@@ -363,9 +445,10 @@ public class AdminStoreController {
     }
 
     // ==================== Logo 上传 ====================
-
+    @Operation(summary = "上传上传Logo")
     @PostMapping(value = "/{id}/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public Result<String> uploadLogo(@PathVariable String id, @RequestPart("file") MultipartFile file) {
+    public Result<String> uploadLogo(
+            @PathVariable String id, @RequestPart("file") MultipartFile file) {
         LoginUserInfo user = AuthUserContext.get();
         boolean isStoreOwner = user.isStoreAdmin() && id.equals(user.getStoreId());
         if (!user.isSuperAdmin() && !isStoreOwner) {
@@ -383,10 +466,20 @@ public class AdminStoreController {
             String originalFilename = file.getOriginalFilename();
             if (originalFilename != null) {
                 int idx = originalFilename.lastIndexOf('.');
-                if (idx >= 0 && idx < originalFilename.length() - 1) ext = originalFilename.substring(idx);
+                if (idx >= 0 && idx < originalFilename.length() - 1)
+                    ext = originalFilename.substring(idx);
             }
             String objectName = "stores/" + id + "/logo" + ext;
             String url = ossUtil.upload(objectName, file.getInputStream());
+
+            // 图片违规检测，不通过则删除 OSS 文件并拒绝
+            try {
+                imageReviewQueueService.checkImageOnly(url);
+            } catch (BusinessException e) {
+                ossUtil.delete(objectName);
+                throw e;
+            }
+
             // 创建 Images 记录
             long now = System.currentTimeMillis();
             Images logoImage = new Images();
@@ -421,16 +514,15 @@ public class AdminStoreController {
 
     @GetMapping("/reverse-geocode")
     public Result<java.util.Map<String, String>> reverseGeocode(
-            @RequestParam BigDecimal latitude,
-            @RequestParam BigDecimal longitude) {
+            @RequestParam BigDecimal latitude, @RequestParam BigDecimal longitude) {
         if (!StringUtils.hasText(tencentMapKey)) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "腾讯地图Key未配置");
         }
-        String url = UriComponentsBuilder
-                .fromHttpUrl("https://apis.map.qq.com/ws/geocoder/v1/")
-                .queryParam("key", tencentMapKey)
-                .queryParam("location", latitude + "," + longitude)
-                .toUriString();
+        String url =
+                UriComponentsBuilder.fromHttpUrl("https://apis.map.qq.com/ws/geocoder/v1/")
+                        .queryParam("key", tencentMapKey)
+                        .queryParam("location", latitude + "," + longitude)
+                        .toUriString();
         System.out.println("[Store-Geocode] 请求URL: " + url);
         String body;
         try {
@@ -505,27 +597,43 @@ public class AdminStoreController {
         }
 
         // 绑定师傅数量
-        Long techCount = technicianAccountsService.count(
-                new LambdaQueryWrapper<TechnicianAccounts>()
-                        .eq(TechnicianAccounts::getStoreId, store.getId())
-        );
+        Long techCount =
+                technicianAccountsService.count(
+                        new LambdaQueryWrapper<TechnicianAccounts>()
+                                .eq(TechnicianAccounts::getStoreId, store.getId()));
         resp.setTechnicianCount(techCount != null ? techCount.intValue() : 0);
 
         // 营业时间
         List<StoreBusinessHours> hours = storeBusinessHoursService.getByStoreId(store.getId());
-        resp.setBusinessHours(hours.stream().map(h -> {
-            AdminStoreBusinessHourItem item = new AdminStoreBusinessHourItem();
-            item.setDayOfWeek(h.getDayOfWeek());
-            item.setStartTime(h.getStartTime() != null ? h.getStartTime().format(TIME_FMT) : null);
-            item.setEndTime(h.getEndTime() != null ? h.getEndTime().format(TIME_FMT) : null);
-            item.setIsAvailable(h.getIsAvailable());
-            return item;
-        }).collect(Collectors.toList()));
+        resp.setBusinessHours(
+                hours.stream()
+                        .map(
+                                h -> {
+                                    AdminStoreBusinessHourItem item =
+                                            new AdminStoreBusinessHourItem();
+                                    item.setDayOfWeek(h.getDayOfWeek());
+                                    item.setStartTime(
+                                            h.getStartTime() != null
+                                                    ? h.getStartTime().format(TIME_FMT)
+                                                    : null);
+                                    item.setEndTime(
+                                            h.getEndTime() != null
+                                                    ? h.getEndTime().format(TIME_FMT)
+                                                    : null);
+                                    item.setIsAvailable(h.getIsAvailable());
+                                    return item;
+                                })
+                        .collect(Collectors.toList()));
 
         return resp;
     }
 
-    private void saveLog(LoginUserInfo user, String operationType, String operationDesc, String requestUrl, String requestParams) {
+    private void saveLog(
+            LoginUserInfo user,
+            String operationType,
+            String operationDesc,
+            String requestUrl,
+            String requestParams) {
         long now = System.currentTimeMillis();
         OperationLogs log = new OperationLogs();
         log.setId(SnowflakeIdUtil.nextOperationLogId());
@@ -543,5 +651,28 @@ public class AdminStoreController {
         log.setIsDelete(0);
         log.setCreatedTime(now);
         operationLogsService.save(log);
+    }
+
+    private void checkText(String text, String fieldName, String accountId, int accountType) {
+        CheckResult r = aliyunGreenClient.checkText(text);
+        if (r.isBlocked()) {
+            checkLogsService.logCheck(
+                    accountId,
+                    accountType,
+                    1,
+                    text,
+                    ContentCheckLogsService.RESULT_BLOCK,
+                    r.getLabel(),
+                    r.getSuggestion());
+            throw new BusinessException(
+                    ErrorCode.BUSINESS_ERROR,
+                    fieldName + "包含违规内容：" + r.getLabelDesc() + "，请修改后重新提交");
+        }
+        int logResult =
+                r.isWatch()
+                        ? ContentCheckLogsService.RESULT_WATCH
+                        : ContentCheckLogsService.RESULT_PASS;
+        checkLogsService.logCheck(
+                accountId, accountType, 1, text, logResult, r.getLabel(), r.getSuggestion());
     }
 }

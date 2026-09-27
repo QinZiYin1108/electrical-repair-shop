@@ -1,42 +1,192 @@
-<section class="cta">
-  <div class="container cta-inner">
+<section class="cta-section">
+  <!-- Decorative elements -->
+  <div class="cta-bg-pattern" aria-hidden="true"></div>
+  <div class="cta-glow cta-glow-1" aria-hidden="true"></div>
+  <div class="cta-glow cta-glow-2" aria-hidden="true"></div>
+
+  <div class="container cta-inner reveal-scale">
+    <span class="cta-icon" aria-hidden="true">
+      <svg
+        width="40"
+        height="40"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        ><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"
+        ></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg
+      >
+    </span>
+
     <h2>家里电器出问题了？</h2>
-    <p>打开微信扫码，立即预约专业师傅上门维修</p>
+    <p>
+      打开微信扫码，立即预约专业师傅上门维修。<br />最快 <strong>2 小时</strong> 上门，维修完成满意再付款。
+    </p>
+
     <div class="cta-actions">
-      <a href="/contact" class="btn btn-accent" style="padding:16px 40px;font-size:1.05rem;">
-        立即预约 →
+      <a href="/contact" class="btn btn-white btn-lg">
+        立即预约
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+          stroke-linecap="round"
+          stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg
+        >
       </a>
     </div>
-    <p class="cta-note">或搜索微信小程序「安修到家」</p>
+
+    <div class="cta-platforms">
+      <div class="cta-platform-chip">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          ><rect x="3" y="3" width="18" height="18" rx="3"></rect><path d="M8 12h8"></path><path
+            d="M12 8v8"></path></svg
+        >
+        微信小程序「速修派」
+      </div>
+      <div class="cta-platform-chip">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          ><path
+            d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"
+          ></path></svg
+        >
+        客服热线 400-XXX-XXXX
+      </div>
+    </div>
   </div>
 </section>
 
 <style>
-.cta {
-  background: linear-gradient(135deg, var(--color-primary), #6366F1);
-  padding: 80px 0;
-  text-align: center;
-  color: #fff;
-}
+  .cta-section {
+    position: relative;
+    background: var(--gradient-cta);
+    padding: 100px 0;
+    text-align: center;
+    color: #fff;
+    overflow: hidden;
+  }
 
-.cta-inner h2 {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 12px;
-}
+  /* Dot-grid pattern overlay */
+  .cta-bg-pattern {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+    background-size: 28px 28px;
+    pointer-events: none;
+  }
 
-.cta-inner p {
-  font-size: 1.05rem;
-  opacity: .9;
-  margin-bottom: 28px;
-}
+  /* Large ambient glows */
+  .cta-glow {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+    pointer-events: none;
+  }
+  .cta-glow-1 {
+    width: 400px;
+    height: 400px;
+    background: rgba(245, 158, 11, 0.18);
+    top: -30%;
+    right: -10%;
+  }
+  .cta-glow-2 {
+    width: 350px;
+    height: 350px;
+    background: rgba(37, 99, 235, 0.12);
+    bottom: -25%;
+    left: -8%;
+  }
 
-.cta-actions {
-  margin-bottom: 20px;
-}
+  .cta-inner {
+    position: relative;
+    z-index: 1;
+  }
 
-.cta-note {
-  font-size: .9rem !important;
-  opacity: .65 !important;
-}
+  .cta-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(8px);
+    margin-bottom: 24px;
+  }
+
+  .cta-inner h2 {
+    font-size: 2.25rem;
+    font-weight: 800;
+    margin-bottom: 16px;
+    letter-spacing: -0.01em;
+  }
+
+  .cta-inner p {
+    font-size: 1.08rem;
+    opacity: 0.85;
+    margin-bottom: 36px;
+    line-height: 1.8;
+  }
+  .cta-inner p strong {
+    color: #fcd34d;
+    font-weight: 700;
+  }
+
+  .cta-actions {
+    margin-bottom: 32px;
+  }
+
+  /* Platform chips */
+  .cta-platforms {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .cta-platform-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: var(--radius-full);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 768px) {
+    .cta-section {
+      padding: 72px 0;
+    }
+    .cta-inner h2 {
+      font-size: 1.75rem;
+    }
+    .cta-platforms {
+      flex-direction: column;
+      align-items: center;
+    }
+  }
 </style>

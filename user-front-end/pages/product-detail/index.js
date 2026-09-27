@@ -113,6 +113,10 @@ function normalizeDetail(data) {
     isHot: Number(data.isHot || 0) === 1,
     isNew: Number(data.isNew || 0) === 1,
     isRecommended: Number(data.isRecommended || 0) === 1,
+    fulfillmentType: data.fulfillmentType,
+    fulfillmentText: data.fulfillmentType === 1 ? '自取' : data.fulfillmentType === 2 ? '送货上门' : '',
+    storeId: data.storeId || '',
+    storeName: data.storeName || '',
     isFavorite: !!data.isFavorite,
     favoriteCount,
     reviewCount,
@@ -444,5 +448,11 @@ Page({
       .finally(() => {
         this.setData({ favoriteLoading: false });
       });
+  },
+
+  onStoreTap() {
+    const storeId = this.data.detail && this.data.detail.storeId;
+    if (!storeId) return;
+    wx.navigateTo({ url: `/pages/store-detail/index?id=${storeId}` });
   }
 });

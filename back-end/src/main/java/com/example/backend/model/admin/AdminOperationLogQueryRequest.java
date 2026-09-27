@@ -1,13 +1,29 @@
 package com.example.backend.model.admin;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "管理员操作日志Query请求")
 public class AdminOperationLogQueryRequest {
 
+    @Schema(description = "module名称")
     private String moduleName;
+
+    @Schema(description = "操作类型")
     private String operationType;
+
+    @Schema(description = "操作人类型")
     private Integer operatorType;
+
+    @Schema(description = "操作人名称")
     private String operatorName;
+
+    @Schema(description = "状态")
     private Integer status;
+
+    @Schema(description = "开始时间")
     private Long startTime;
+
+    @Schema(description = "结束时间")
     private Long endTime;
 
     public String getModuleName() {
@@ -66,4 +82,3 @@ public class AdminOperationLogQueryRequest {
         this.endTime = endTime;
     }
 }
-

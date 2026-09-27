@@ -3,75 +3,45 @@ package com.example.backend.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
-/**
- * 用户优惠券表
- * @TableName user_coupons
- */
-@TableName(value ="user_coupons")
+/** 用户优惠券表 @TableName user_coupons */
+@TableName(value = "user_coupons")
 @Data
 public class UserCoupons {
-    /**
-     * 主键，UC+雪花ID
-     */
-    @TableId
-    private String id;
+    /** 主键，UC+雪花ID */
+    @TableId private String id;
 
-    /**
-     * 用户ID
-     */
+    /** 用户ID */
     private String userId;
 
-    /**
-     * 优惠券ID
-     */
+    /** 优惠券ID */
     private String couponId;
 
-    /**
-     * 领取时间戳
-     */
+    /** 领取时间戳 */
     private Long receiveTime;
 
-    /**
-     * 使用时间戳
-     */
+    /** 使用时间戳 */
     private Long useTime;
 
-    /**
-     * 过期时间戳
-     */
+    /** 过期时间戳 */
     private Long expireTime;
 
-    /**
-     * 使用的订单ID
-     */
+    /** 使用的订单ID */
     private String orderId;
 
-    /**
-     * 状态：1-未使用，2-已使用，3-已过期
-     */
+    /** 状态：1-未使用，2-已使用，3-已过期 */
     private Integer status;
 
-    /**
-     * 创建时间戳
-     */
+    /** 创建时间戳 */
     private Long createdTime;
 
-    /**
-     * 更新时间戳
-     */
+    /** 更新时间戳 */
     private Long updatedTime;
 
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
+    /** 乐观锁版本号 */
+    @Version private Integer version;
 
-    /**
-     * 逻辑删除：0-未删除，1-已删除
-     */
-    @TableLogic
-    private Integer isDelete;
+    /** 逻辑删除：0-未删除，1-已删除 */
+    @TableLogic private Integer isDelete;
 
     @Override
     public boolean equals(Object that) {
@@ -86,17 +56,39 @@ public class UserCoupons {
         }
         UserCoupons other = (UserCoupons) that;
         return (this.getId() == null ? other.getId() == null : this.getId().equals(other.getId()))
-            && (this.getUserId() == null ? other.getUserId() == null : this.getUserId().equals(other.getUserId()))
-            && (this.getCouponId() == null ? other.getCouponId() == null : this.getCouponId().equals(other.getCouponId()))
-            && (this.getReceiveTime() == null ? other.getReceiveTime() == null : this.getReceiveTime().equals(other.getReceiveTime()))
-            && (this.getUseTime() == null ? other.getUseTime() == null : this.getUseTime().equals(other.getUseTime()))
-            && (this.getExpireTime() == null ? other.getExpireTime() == null : this.getExpireTime().equals(other.getExpireTime()))
-            && (this.getOrderId() == null ? other.getOrderId() == null : this.getOrderId().equals(other.getOrderId()))
-            && (this.getStatus() == null ? other.getStatus() == null : this.getStatus().equals(other.getStatus()))
-            && (this.getCreatedTime() == null ? other.getCreatedTime() == null : this.getCreatedTime().equals(other.getCreatedTime()))
-            && (this.getUpdatedTime() == null ? other.getUpdatedTime() == null : this.getUpdatedTime().equals(other.getUpdatedTime()))
-            && (this.getVersion() == null ? other.getVersion() == null : this.getVersion().equals(other.getVersion()))
-            && (this.getIsDelete() == null ? other.getIsDelete() == null : this.getIsDelete().equals(other.getIsDelete()));
+                && (this.getUserId() == null
+                        ? other.getUserId() == null
+                        : this.getUserId().equals(other.getUserId()))
+                && (this.getCouponId() == null
+                        ? other.getCouponId() == null
+                        : this.getCouponId().equals(other.getCouponId()))
+                && (this.getReceiveTime() == null
+                        ? other.getReceiveTime() == null
+                        : this.getReceiveTime().equals(other.getReceiveTime()))
+                && (this.getUseTime() == null
+                        ? other.getUseTime() == null
+                        : this.getUseTime().equals(other.getUseTime()))
+                && (this.getExpireTime() == null
+                        ? other.getExpireTime() == null
+                        : this.getExpireTime().equals(other.getExpireTime()))
+                && (this.getOrderId() == null
+                        ? other.getOrderId() == null
+                        : this.getOrderId().equals(other.getOrderId()))
+                && (this.getStatus() == null
+                        ? other.getStatus() == null
+                        : this.getStatus().equals(other.getStatus()))
+                && (this.getCreatedTime() == null
+                        ? other.getCreatedTime() == null
+                        : this.getCreatedTime().equals(other.getCreatedTime()))
+                && (this.getUpdatedTime() == null
+                        ? other.getUpdatedTime() == null
+                        : this.getUpdatedTime().equals(other.getUpdatedTime()))
+                && (this.getVersion() == null
+                        ? other.getVersion() == null
+                        : this.getVersion().equals(other.getVersion()))
+                && (this.getIsDelete() == null
+                        ? other.getIsDelete() == null
+                        : this.getIsDelete().equals(other.getIsDelete()));
     }
 
     @Override

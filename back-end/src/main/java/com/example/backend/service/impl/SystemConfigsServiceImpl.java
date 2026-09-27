@@ -6,12 +6,9 @@ import com.example.backend.common.ErrorCode;
 import com.example.backend.common.system.SystemConfigDefinition;
 import com.example.backend.entity.SystemConfigs;
 import com.example.backend.exception.BusinessException;
-import com.example.backend.service.SystemConfigsService;
 import com.example.backend.mapper.SystemConfigsMapper;
+import com.example.backend.service.SystemConfigsService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -19,22 +16,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 /**
-* @author Administrator
-* @description 针对表【system_configs(系统配置表)】的数据库操作Service实现
-* @createDate 2026-03-03 11:26:16
-*/
+ * @author Administrator
+ * @description 针对表【system_configs(系统配置表)】的数据库操作Service实现
+ * @createDate 2026-03-03 11:26:16
+ */
 @Service
 public class SystemConfigsServiceImpl extends ServiceImpl<SystemConfigsMapper, SystemConfigs>
-    implements SystemConfigsService{
+        implements SystemConfigsService {
 
     private final Map<String, Optional<SystemConfigs>> configCache = new ConcurrentHashMap<>();
 
     @Override
     public String getStringConfig(String key, String defaultValue) {
         Optional<SystemConfigs> configOptional = getConfigOptional(key);
-        if (configOptional.isEmpty() || !StringUtils.hasText(configOptional.get().getConfigValue())) {
+        if (configOptional.isEmpty()
+                || !StringUtils.hasText(configOptional.get().getConfigValue())) {
             return defaultValue;
         }
         return configOptional.get().getConfigValue().trim();
@@ -42,7 +42,8 @@ public class SystemConfigsServiceImpl extends ServiceImpl<SystemConfigsMapper, S
 
     @Override
     public Integer getIntegerConfig(String key, Integer defaultValue) {
-        String value = getStringConfig(key, defaultValue == null ? null : String.valueOf(defaultValue));
+        String value =
+                getStringConfig(key, defaultValue == null ? null : String.valueOf(defaultValue));
         if (!StringUtils.hasText(value)) {
             return defaultValue;
         }
@@ -55,7 +56,8 @@ public class SystemConfigsServiceImpl extends ServiceImpl<SystemConfigsMapper, S
 
     @Override
     public Long getLongConfig(String key, Long defaultValue) {
-        String value = getStringConfig(key, defaultValue == null ? null : String.valueOf(defaultValue));
+        String value =
+                getStringConfig(key, defaultValue == null ? null : String.valueOf(defaultValue));
         if (!StringUtils.hasText(value)) {
             return defaultValue;
         }
@@ -68,7 +70,8 @@ public class SystemConfigsServiceImpl extends ServiceImpl<SystemConfigsMapper, S
 
     @Override
     public Boolean getBooleanConfig(String key, Boolean defaultValue) {
-        String value = getStringConfig(key, defaultValue == null ? null : String.valueOf(defaultValue));
+        String value =
+                getStringConfig(key, defaultValue == null ? null : String.valueOf(defaultValue));
         if (!StringUtils.hasText(value)) {
             return defaultValue;
         }
@@ -96,7 +99,8 @@ public class SystemConfigsServiceImpl extends ServiceImpl<SystemConfigsMapper, S
     }
 
     @Override
-    public synchronized SystemConfigs saveOrUpdateConfig(SystemConfigDefinition definition, String value) {
+    public synchronized SystemConfigs saveOrUpdateConfig(
+            SystemConfigDefinition definition, String value) {
         if (definition == null || !StringUtils.hasText(definition.getKey())) {
             throw new IllegalArgumentException("definition is invalid");
         }
@@ -149,20 +153,16 @@ public class SystemConfigsServiceImpl extends ServiceImpl<SystemConfigsMapper, S
     }
 
     private Optional<SystemConfigs> queryConfigOptional(String key) {
-        List<SystemConfigs> list = list(
-            new LambdaQueryWrapper<SystemConfigs>()
-                .eq(SystemConfigs::getConfigKey, key)
-                .eq(SystemConfigs::getIsDelete, 0)
-                .orderByDesc(SystemConfigs::getUpdatedTime)
-                .last("limit 1")
-        );
+        List<SystemConfigs> list =
+                list(
+                        new LambdaQueryWrapper<SystemConfigs>()
+                                .eq(SystemConfigs::getConfigKey, key)
+                                .eq(SystemConfigs::getIsDelete, 0)
+                                .orderByDesc(SystemConfigs::getUpdatedTime)
+                                .last("limit 1"));
         if (list == null || list.isEmpty()) {
             return Optional.empty();
         }
         return Optional.ofNullable(list.get(0));
     }
 }
-
-
-
-

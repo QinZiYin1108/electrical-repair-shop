@@ -1,18 +1,39 @@
 package com.example.backend.model.admin;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 
+@Schema(description = "管理员用户列表Item响应")
 public class AdminUserListItemResponse {
 
+    @Schema(description = "ID")
     private String id;
+
+    @Schema(description = "username")
     private String username;
+
+    @Schema(description = "真实姓名")
     private String realName;
+
+    @Schema(description = "手机号")
     private String phone;
+
+    @Schema(description = "邮箱")
     private String email;
+
+    @Schema(description = "is是否认证")
     private Integer isVerified;
+
+    @Schema(description = "余额")
     private BigDecimal balance;
+
+    @Schema(description = "状态")
     private Integer status;
+
+    @Schema(description = "创建时间")
     private Long createdTime;
+
+    @Schema(description = "头像URL")
     private String avatarUrl;
 
     public String getId() {
@@ -95,4 +116,3 @@ public class AdminUserListItemResponse {
         this.avatarUrl = avatarUrl;
     }
 }
-

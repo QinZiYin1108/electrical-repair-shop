@@ -1,14 +1,21 @@
 {
-  "name": "anxiu-official-website",
+  "name": "suxiupai-official-website",
   "type": "module",
   "version": "1.0.0",
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "format": "prettier --plugin=prettier-plugin-astro --write src/**/*.{astro,css,js,json} *.{js,json,mjs}",
+    "format:check": "prettier --plugin=prettier-plugin-astro --check src/**/*.{astro,css,js,json} *.{js,json,mjs}",
+    "check": "npm run format:check && npm run build"
   },
   "dependencies": {
     "astro": "^5.0.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.7.0",
+    "prettier-plugin-astro": "^0.14.1"
   }
 }

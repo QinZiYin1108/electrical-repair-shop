@@ -40,4 +40,3 @@ export function uploadAnnouncementImage(id, file) {
     data: formData
   });
 }
-

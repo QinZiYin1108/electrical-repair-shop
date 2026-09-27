@@ -2,9 +2,10 @@ package com.example.backend.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.backend.common.ErrorCode;
-import com.example.backend.entity.ProductFavorites;
 import com.example.backend.entity.ProductCategories;
+import com.example.backend.entity.ProductFavorites;
 import com.example.backend.entity.Products;
+import com.example.backend.entity.Stores;
 import com.example.backend.exception.BusinessException;
 import com.example.backend.mapper.ProductFavoritesMapper;
 import com.example.backend.model.review.ReviewItemResponse;
@@ -14,21 +15,18 @@ import com.example.backend.model.user.UserMallProductDetailResponse;
 import com.example.backend.model.user.UserMallProductFavoriteResponse;
 import com.example.backend.model.user.UserMallProductListItemResponse;
 import com.example.backend.model.user.UserMallProductSpecItem;
-import com.example.backend.service.ProductFavoritesService;
 import com.example.backend.security.context.AuthUserContext;
 import com.example.backend.security.model.AccountRole;
 import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.ProductCategoriesService;
+import com.example.backend.service.ProductFavoritesService;
 import com.example.backend.service.ProductsService;
 import com.example.backend.service.ReviewsService;
+import com.example.backend.service.StoresService;
 import com.example.backend.service.UserMallService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -41,32 +39,38 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 public class UserMallServiceImpl implements UserMallService {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final TypeReference<List<String>> STRING_LIST_TYPE = new TypeReference<>() {};
-    private static final TypeReference<List<UserMallProductSpecItem>> SPEC_LIST_TYPE = new TypeReference<>() {};
+    private static final TypeReference<List<UserMallProductSpecItem>> SPEC_LIST_TYPE =
+            new TypeReference<>() {};
 
     private final ProductsService productsService;
     private final ProductCategoriesService productCategoriesService;
     private final ProductFavoritesService productFavoritesService;
     private final ProductFavoritesMapper productFavoritesMapper;
     private final ReviewsService reviewsService;
+    private final StoresService storesService;
 
     public UserMallServiceImpl(
-        ProductsService productsService,
-        ProductCategoriesService productCategoriesService,
-        ProductFavoritesService productFavoritesService,
-        ProductFavoritesMapper productFavoritesMapper,
-        ReviewsService reviewsService
-    ) {
+            ProductsService productsService,
+            ProductCategoriesService productCategoriesService,
+            ProductFavoritesService productFavoritesService,
+            ProductFavoritesMapper productFavoritesMapper,
+            ReviewsService reviewsService,
+            StoresService storesService) {
         this.productsService = productsService;
         this.productCategoriesService = productCategoriesService;
         this.productFavoritesService = productFavoritesService;
         this.productFavoritesMapper = productFavoritesMapper;
         this.reviewsService = reviewsService;
+        this.storesService = storesService;
     }
 
     @Override
@@ -79,9 +83,12 @@ public class UserMallServiceImpl implements UserMallService {
         }
 
         Map<String, ProductCategories> categoryMap = loadCategoryMap();
-        Map<String, Long> productCountMap = products.stream()
-            .filter(item -> StringUtils.hasText(item.getCategoryId()))
-            .collect(Collectors.groupingBy(Products::getCategoryId, Collectors.counting()));
+        Map<String, Long> productCountMap =
+                products.stream()
+                        .filter(item -> StringUtils.hasText(item.getCategoryId()))
+                        .collect(
+                                Collectors.groupingBy(
+                                        Products::getCategoryId, Collectors.counting()));
 
         List<UserMallCategoryResponse> result = new ArrayList<>();
         for (Map.Entry<String, Long> entry : productCountMap.entrySet()) {
@@ -98,31 +105,33 @@ public class UserMallServiceImpl implements UserMallService {
             result.add(item);
         }
 
-        result.sort(Comparator
-            .comparing((UserMallCategoryResponse item) -> categorySortOrder(item.getId(), categoryMap))
-            .thenComparing(item -> defaultText(item.getPathText(), item.getName()))
-        );
+        result.sort(
+                Comparator.comparing(
+                                (UserMallCategoryResponse item) ->
+                                        categorySortOrder(item.getId(), categoryMap))
+                        .thenComparing(item -> defaultText(item.getPathText(), item.getName())));
         return result;
     }
 
     @Override
     public List<UserMallProductListItemResponse> listProducts(
-        Integer productType,
-        String keyword,
-        String categoryId,
-        BigDecimal minPrice,
-        BigDecimal maxPrice,
-        Boolean onlyInStock,
-        Boolean onlyFreeShipping,
-        String marketingTag,
-        String sortBy
-    ) {
+            Integer productType,
+            String keyword,
+            String categoryId,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            Boolean onlyInStock,
+            Boolean onlyFreeShipping,
+            String marketingTag,
+            String sortBy,
+            String storeId) {
         int normalizedProductType = normalizeProductType(productType);
         Map<String, ProductCategories> categoryMap = loadCategoryMap();
         BigDecimal normalizedMinPrice = normalizePrice(minPrice, "最低价格不能小于0");
         BigDecimal normalizedMaxPrice = normalizePrice(maxPrice, "最高价格不能小于0");
-        if (normalizedMinPrice != null && normalizedMaxPrice != null
-            && normalizedMinPrice.compareTo(normalizedMaxPrice) > 0) {
+        if (normalizedMinPrice != null
+                && normalizedMaxPrice != null
+                && normalizedMinPrice.compareTo(normalizedMaxPrice) > 0) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "最低价格不能高于最高价格");
         }
         String normalizedMarketingTag = normalizeMarketingTag(marketingTag);
@@ -132,15 +141,15 @@ public class UserMallServiceImpl implements UserMallService {
 
         String normalizedKeyword = trimToNull(keyword);
         if (StringUtils.hasText(normalizedKeyword)) {
-            wrapper.and(query -> query
-                .like(Products::getName, normalizedKeyword)
-                .or()
-                .like(Products::getBrand, normalizedKeyword)
-                .or()
-                .like(Products::getModel, normalizedKeyword)
-                .or()
-                .like(Products::getProductNo, normalizedKeyword)
-            );
+            wrapper.and(
+                    query ->
+                            query.like(Products::getName, normalizedKeyword)
+                                    .or()
+                                    .like(Products::getBrand, normalizedKeyword)
+                                    .or()
+                                    .like(Products::getModel, normalizedKeyword)
+                                    .or()
+                                    .like(Products::getProductNo, normalizedKeyword));
         }
 
         String normalizedCategoryId = trimToNull(categoryId);
@@ -166,6 +175,11 @@ public class UserMallServiceImpl implements UserMallService {
             wrapper.eq(Products::getIsFreeShipping, 1);
         }
 
+        String normalizedStoreId = trimToNull(storeId);
+        if (StringUtils.hasText(normalizedStoreId)) {
+            wrapper.eq(Products::getStoreId, normalizedStoreId);
+        }
+
         applyMarketingTag(wrapper, normalizedMarketingTag);
         applySort(wrapper, normalizedSortBy);
 
@@ -181,32 +195,42 @@ public class UserMallServiceImpl implements UserMallService {
     @Override
     public List<UserMallFavoriteProductListItemResponse> listFavoriteProducts() {
         LoginUserInfo user = requireCurrentUser();
-        List<ProductFavorites> favorites = productFavoritesMapper.selectActiveByAccountId(user.getAccountId());
+        List<ProductFavorites> favorites =
+                productFavoritesMapper.selectActiveByAccountId(user.getAccountId());
         if (favorites == null || favorites.isEmpty()) {
             return new ArrayList<>();
         }
 
-        List<String> productIds = favorites.stream()
-            .map(ProductFavorites::getProductId)
-            .map(UserMallServiceImpl::trimToNull)
-            .filter(StringUtils::hasText)
-            .distinct()
-            .collect(Collectors.toCollection(ArrayList::new));
+        List<String> productIds =
+                favorites.stream()
+                        .map(ProductFavorites::getProductId)
+                        .map(UserMallServiceImpl::trimToNull)
+                        .filter(StringUtils::hasText)
+                        .distinct()
+                        .collect(Collectors.toCollection(ArrayList::new));
         if (productIds.isEmpty()) {
             return new ArrayList<>();
         }
 
-        List<Products> products = productsService.list(
-            new LambdaQueryWrapper<Products>()
-                .in(Products::getId, productIds)
-                .eq(Products::getStatus, 1)
-        );
+        List<Products> products =
+                productsService.list(
+                        new LambdaQueryWrapper<Products>()
+                                .in(Products::getId, productIds)
+                                .eq(Products::getStatus, 1)
+                                .eq(Products::getIsFrozen, 0)
+                                .eq(Products::getAuditStatus, 2));
         if (products == null || products.isEmpty()) {
             return new ArrayList<>();
         }
 
-        Map<String, Products> productMap = products.stream()
-            .collect(Collectors.toMap(Products::getId, item -> item, (a, b) -> a, LinkedHashMap::new));
+        Map<String, Products> productMap =
+                products.stream()
+                        .collect(
+                                Collectors.toMap(
+                                        Products::getId,
+                                        item -> item,
+                                        (a, b) -> a,
+                                        LinkedHashMap::new));
         Map<String, ProductCategories> categoryMap = loadCategoryMap();
 
         List<UserMallFavoriteProductListItemResponse> result = new ArrayList<>();
@@ -247,7 +271,9 @@ public class UserMallServiceImpl implements UserMallService {
         requireProduct(productId);
 
         boolean shouldFavorite = !Boolean.FALSE.equals(favorite);
-        ProductFavorites existing = productFavoritesMapper.selectAnyByAccountIdAndProductId(user.getAccountId(), productId);
+        ProductFavorites existing =
+                productFavoritesMapper.selectAnyByAccountIdAndProductId(
+                        user.getAccountId(), productId);
         long now = System.currentTimeMillis();
 
         if (shouldFavorite) {
@@ -283,41 +309,53 @@ public class UserMallServiceImpl implements UserMallService {
 
     private List<Products> listActiveProducts(int productType) {
         return productsService.list(
-            baseProductWrapper(productType)
-                .orderByAsc(Products::getSortOrder)
-                .orderByDesc(Products::getUpdatedTime)
-        );
+                baseProductWrapper(productType)
+                        .orderByAsc(Products::getSortOrder)
+                        .orderByDesc(Products::getUpdatedTime));
     }
 
     private LambdaQueryWrapper<Products> baseProductWrapper(int productType) {
         LambdaQueryWrapper<Products> wrapper = new LambdaQueryWrapper<>();
         if (productType == 1) {
-            wrapper.and(query -> query.eq(Products::getProductType, 1).or().isNull(Products::getProductType));
+            wrapper.and(
+                    query ->
+                            query.eq(Products::getProductType, 1)
+                                    .or()
+                                    .isNull(Products::getProductType));
         } else {
             wrapper.eq(Products::getProductType, productType);
         }
         wrapper.eq(Products::getStatus, 1);
+        wrapper.eq(Products::getIsFrozen, 0);
+        wrapper.eq(Products::getAuditStatus, 2);
         return wrapper;
     }
 
     private Map<String, ProductCategories> loadCategoryMap() {
-        List<ProductCategories> categories = productCategoriesService.list(
-            new LambdaQueryWrapper<ProductCategories>()
-                .eq(ProductCategories::getIsActive, 1)
-                .orderByAsc(ProductCategories::getSortOrder)
-                .orderByDesc(ProductCategories::getCreatedTime)
-        );
+        List<ProductCategories> categories =
+                productCategoriesService.list(
+                        new LambdaQueryWrapper<ProductCategories>()
+                                .eq(ProductCategories::getIsActive, 1)
+                                .orderByAsc(ProductCategories::getSortOrder)
+                                .orderByDesc(ProductCategories::getCreatedTime));
         return categories.stream()
-            .collect(Collectors.toMap(ProductCategories::getId, item -> item, (a, b) -> a, LinkedHashMap::new));
+                .collect(
+                        Collectors.toMap(
+                                ProductCategories::getId,
+                                item -> item,
+                                (a, b) -> a,
+                                LinkedHashMap::new));
     }
 
-    private Set<String> collectCategoryIds(String rootId, Map<String, ProductCategories> categoryMap) {
+    private Set<String> collectCategoryIds(
+            String rootId, Map<String, ProductCategories> categoryMap) {
         Set<String> result = new LinkedHashSet<>();
         collectCategoryIds(rootId, categoryMap, result);
         return result;
     }
 
-    private void collectCategoryIds(String rootId, Map<String, ProductCategories> categoryMap, Set<String> result) {
+    private void collectCategoryIds(
+            String rootId, Map<String, ProductCategories> categoryMap, Set<String> result) {
         if (!StringUtils.hasText(rootId) || !result.add(rootId)) {
             return;
         }
@@ -328,7 +366,8 @@ public class UserMallServiceImpl implements UserMallService {
         }
     }
 
-    private UserMallProductListItemResponse toListItem(Products product, Map<String, ProductCategories> categoryMap) {
+    private UserMallProductListItemResponse toListItem(
+            Products product, Map<String, ProductCategories> categoryMap) {
         UserMallProductListItemResponse item = new UserMallProductListItemResponse();
         Integer normalizedProductType = defaultIfNull(product.getProductType(), 1);
         ProductCategories category = categoryMap.get(product.getCategoryId());
@@ -351,11 +390,14 @@ public class UserMallServiceImpl implements UserMallService {
         item.setIsHot(defaultIfNull(product.getIsHot(), 0));
         item.setIsNew(defaultIfNull(product.getIsNew(), 0));
         item.setIsRecommended(defaultIfNull(product.getIsRecommended(), 0));
+        item.setStoreId(product.getStoreId() == null ? "" : product.getStoreId());
         return item;
     }
 
-    private UserMallFavoriteProductListItemResponse toFavoriteListItem(Products product, Map<String, ProductCategories> categoryMap, Long favoriteTime) {
-        UserMallFavoriteProductListItemResponse item = new UserMallFavoriteProductListItemResponse();
+    private UserMallFavoriteProductListItemResponse toFavoriteListItem(
+            Products product, Map<String, ProductCategories> categoryMap, Long favoriteTime) {
+        UserMallFavoriteProductListItemResponse item =
+                new UserMallFavoriteProductListItemResponse();
         Integer normalizedProductType = defaultIfNull(product.getProductType(), 1);
         ProductCategories category = categoryMap.get(product.getCategoryId());
 
@@ -381,7 +423,8 @@ public class UserMallServiceImpl implements UserMallService {
         return item;
     }
 
-    private UserMallProductDetailResponse toDetailItem(Products product, Map<String, ProductCategories> categoryMap, String accountId) {
+    private UserMallProductDetailResponse toDetailItem(
+            Products product, Map<String, ProductCategories> categoryMap, String accountId) {
         UserMallProductDetailResponse item = new UserMallProductDetailResponse();
         Integer normalizedProductType = defaultIfNull(product.getProductType(), 1);
         ProductCategories category = categoryMap.get(product.getCategoryId());
@@ -414,17 +457,29 @@ public class UserMallServiceImpl implements UserMallService {
         item.setReviewCount(reviews.size());
         item.setReviewRating(calculateReviewRating(reviews));
         item.setReviews(reviews);
+        item.setFulfillmentType(product.getFulfillmentType());
+        String sid = trimToNull(product.getStoreId());
+        item.setStoreId(sid == null ? "" : sid);
+        if (StringUtils.hasText(sid)) {
+            Stores store = storesService.getById(sid);
+            item.setStoreName(
+                    store != null && StringUtils.hasText(store.getName()) ? store.getName() : "");
+        } else {
+            item.setStoreName("");
+        }
         return item;
     }
 
     private Products requireProduct(String productId) {
-        Products product = productsService.getOne(
-            new LambdaQueryWrapper<Products>()
-                .eq(Products::getId, productId)
-                .eq(Products::getStatus, 1)
-                .last("limit 1"),
-            false
-        );
+        Products product =
+                productsService.getOne(
+                        new LambdaQueryWrapper<Products>()
+                                .eq(Products::getId, productId)
+                                .eq(Products::getStatus, 1)
+                                .eq(Products::getIsFrozen, 0)
+                                .eq(Products::getAuditStatus, 2)
+                                .last("limit 1"),
+                        false);
         if (product == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "商品不存在或已下架");
         }
@@ -440,7 +495,8 @@ public class UserMallServiceImpl implements UserMallService {
         if (!StringUtils.hasText(accountId) || !StringUtils.hasText(productId)) {
             return false;
         }
-        ProductFavorites favorite = productFavoritesMapper.selectAnyByAccountIdAndProductId(accountId, productId);
+        ProductFavorites favorite =
+                productFavoritesMapper.selectAnyByAccountIdAndProductId(accountId, productId);
         return favorite != null && Objects.equals(favorite.getIsDelete(), 0);
     }
 
@@ -498,9 +554,9 @@ public class UserMallServiceImpl implements UserMallService {
                 return new ArrayList<>();
             }
             return list.stream()
-                .map(this::normalizeSpecItem)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toCollection(ArrayList::new));
+                    .map(this::normalizeSpecItem)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toCollection(ArrayList::new));
         } catch (Exception e) {
             return new ArrayList<>();
         }
@@ -511,10 +567,10 @@ public class UserMallServiceImpl implements UserMallService {
             return new ArrayList<>();
         }
         return values.stream()
-            .map(UserMallServiceImpl::trimToNull)
-            .filter(StringUtils::hasText)
-            .distinct()
-            .collect(Collectors.toCollection(ArrayList::new));
+                .map(UserMallServiceImpl::trimToNull)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     private UserMallProductSpecItem normalizeSpecItem(UserMallProductSpecItem item) {
@@ -532,7 +588,8 @@ public class UserMallServiceImpl implements UserMallService {
         return result;
     }
 
-    private String buildCategoryPath(String categoryId, Map<String, ProductCategories> categoryMap) {
+    private String buildCategoryPath(
+            String categoryId, Map<String, ProductCategories> categoryMap) {
         if (!StringUtils.hasText(categoryId) || categoryMap == null || categoryMap.isEmpty()) {
             return "";
         }
@@ -566,9 +623,12 @@ public class UserMallServiceImpl implements UserMallService {
         return Objects.equals(productType, 2) ? "二手商品" : "普通商品";
     }
 
-    private Integer categorySortOrder(String categoryId, Map<String, ProductCategories> categoryMap) {
+    private Integer categorySortOrder(
+            String categoryId, Map<String, ProductCategories> categoryMap) {
         ProductCategories category = categoryMap.get(categoryId);
-        return category == null ? Integer.MAX_VALUE : defaultIfNull(category.getSortOrder(), Integer.MAX_VALUE);
+        return category == null
+                ? Integer.MAX_VALUE
+                : defaultIfNull(category.getSortOrder(), Integer.MAX_VALUE);
     }
 
     private void applyMarketingTag(LambdaQueryWrapper<Products> wrapper, String marketingTag) {
@@ -589,41 +649,41 @@ public class UserMallServiceImpl implements UserMallService {
     private void applySort(LambdaQueryWrapper<Products> wrapper, String sortBy) {
         if ("priceAsc".equals(sortBy)) {
             wrapper.orderByAsc(Products::getSellingPrice)
-                .orderByDesc(Products::getIsRecommended)
-                .orderByAsc(Products::getSortOrder)
-                .orderByDesc(Products::getUpdatedTime)
-                .orderByDesc(Products::getCreatedTime);
+                    .orderByDesc(Products::getIsRecommended)
+                    .orderByAsc(Products::getSortOrder)
+                    .orderByDesc(Products::getUpdatedTime)
+                    .orderByDesc(Products::getCreatedTime);
             return;
         }
         if ("priceDesc".equals(sortBy)) {
             wrapper.orderByDesc(Products::getSellingPrice)
-                .orderByDesc(Products::getIsRecommended)
-                .orderByAsc(Products::getSortOrder)
-                .orderByDesc(Products::getUpdatedTime)
-                .orderByDesc(Products::getCreatedTime);
+                    .orderByDesc(Products::getIsRecommended)
+                    .orderByAsc(Products::getSortOrder)
+                    .orderByDesc(Products::getUpdatedTime)
+                    .orderByDesc(Products::getCreatedTime);
             return;
         }
         if ("salesDesc".equals(sortBy)) {
             wrapper.orderByDesc(Products::getSalesCount)
-                .orderByDesc(Products::getIsHot)
-                .orderByDesc(Products::getIsRecommended)
-                .orderByAsc(Products::getSortOrder)
-                .orderByDesc(Products::getUpdatedTime);
+                    .orderByDesc(Products::getIsHot)
+                    .orderByDesc(Products::getIsRecommended)
+                    .orderByAsc(Products::getSortOrder)
+                    .orderByDesc(Products::getUpdatedTime);
             return;
         }
         if ("latest".equals(sortBy)) {
             wrapper.orderByDesc(Products::getCreatedTime)
-                .orderByDesc(Products::getUpdatedTime)
-                .orderByDesc(Products::getIsNew)
-                .orderByAsc(Products::getSortOrder);
+                    .orderByDesc(Products::getUpdatedTime)
+                    .orderByDesc(Products::getIsNew)
+                    .orderByAsc(Products::getSortOrder);
             return;
         }
         wrapper.orderByDesc(Products::getIsRecommended)
-            .orderByDesc(Products::getIsHot)
-            .orderByDesc(Products::getIsNew)
-            .orderByAsc(Products::getSortOrder)
-            .orderByDesc(Products::getUpdatedTime)
-            .orderByDesc(Products::getCreatedTime);
+                .orderByDesc(Products::getIsHot)
+                .orderByDesc(Products::getIsNew)
+                .orderByAsc(Products::getSortOrder)
+                .orderByDesc(Products::getUpdatedTime)
+                .orderByDesc(Products::getCreatedTime);
     }
 
     private BigDecimal normalizePrice(BigDecimal price, String message) {
@@ -641,7 +701,9 @@ public class UserMallServiceImpl implements UserMallService {
         if (!StringUtils.hasText(normalized)) {
             return null;
         }
-        if ("recommended".equals(normalized) || "hot".equals(normalized) || "new".equals(normalized)) {
+        if ("recommended".equals(normalized)
+                || "hot".equals(normalized)
+                || "new".equals(normalized)) {
             return normalized;
         }
         throw new BusinessException(ErrorCode.PARAM_ERROR, "商品标签筛选不支持");
@@ -653,9 +715,9 @@ public class UserMallServiceImpl implements UserMallService {
             return "default";
         }
         if ("priceAsc".equals(normalized)
-            || "priceDesc".equals(normalized)
-            || "salesDesc".equals(normalized)
-            || "latest".equals(normalized)) {
+                || "priceDesc".equals(normalized)
+                || "salesDesc".equals(normalized)
+                || "latest".equals(normalized)) {
             return normalized;
         }
         throw new BusinessException(ErrorCode.PARAM_ERROR, "商品排序方式不支持");
@@ -686,8 +748,8 @@ public class UserMallServiceImpl implements UserMallService {
         }
         String trimmed = value.trim();
         if (trimmed.isEmpty()
-            || "undefined".equalsIgnoreCase(trimmed)
-            || "null".equalsIgnoreCase(trimmed)) {
+                || "undefined".equalsIgnoreCase(trimmed)
+                || "null".equalsIgnoreCase(trimmed)) {
             return null;
         }
         return trimmed;

@@ -1,0 +1,79 @@
+<view class="page report-submit-page">
+  <view class="card">
+    <van-cell-group>
+      <van-cell
+        title="举报对象类型"
+        value="{{targetTypeLabel}}"
+        is-link
+        bind:click="onSelectTargetType"
+      />
+      <van-field
+        label="对象ID"
+        value="{{targetId}}"
+        placeholder="请输入要举报的账号/门店/订单/商品ID"
+        bind:input="onTargetIdInput"
+      />
+      <van-field
+        label="字段/节点"
+        value="{{targetField}}"
+        placeholder="选填，如：昵称、商品描述"
+        bind:input="onTargetFieldInput"
+      />
+      <van-cell
+        title="举报原因"
+        value="{{reasonCategoryLabel}}"
+        is-link
+        bind:click="onSelectReasonCategory"
+      />
+      <van-field
+        label="补充说明"
+        type="textarea"
+        value="{{description}}"
+        placeholder="请详细描述举报原因（选填）"
+        maxlength="500"
+        autosize
+        bind:input="onDescriptionInput"
+      />
+    </van-cell-group>
+  </view>
+
+  <view class="card">
+    <view class="section-title">截图证据（选填）</view>
+    <van-uploader
+      file-list="{{evidenceImages}}"
+      max-count="5"
+      upload-text="上传截图"
+      bind:after-read="onUploadEvidence"
+      bind:delete="onUploadEvidence"
+    />
+  </view>
+
+  <view class="submit-area">
+    <van-button
+      type="primary"
+      block
+      round
+      loading="{{submitting}}"
+      disabled="{{submitting}}"
+      bind:click="onSubmit"
+    >
+      {{submitting ? '提交中...' : '提交举报'}}
+    </van-button>
+  </view>
+
+  <van-action-sheet
+    show="{{showTargetType}}"
+    actions="{{targetTypeOptions}}"
+    bind:close="onCloseTargetType"
+    bind:select="onTargetTypeSelect"
+  />
+
+  <van-action-sheet
+    show="{{showReasonCategory}}"
+    actions="{{reasonCategoryOptions}}"
+    bind:close="onCloseReasonCategory"
+    bind:select="onReasonCategorySelect"
+  />
+
+  <van-toast id="van-toast" />
+</view>

@@ -9,7 +9,10 @@ import com.example.backend.model.admin.AdminAnnouncementUpdateRequest;
 import com.example.backend.security.context.AuthUserContext;
 import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.AdminAnnouncementService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,8 +24,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-
+@Tag(name = "管理员端/公告管理")
 @RestController
 @RequestMapping("/admin/system/announcements")
 public class AdminAnnouncementController {
@@ -41,25 +43,29 @@ public class AdminAnnouncementController {
     }
 
     @GetMapping
-    public Result<List<AdminAnnouncementResponse>> list(@RequestParam(value = "channel", required = false) Integer channel) {
+    public Result<List<AdminAnnouncementResponse>> list(
+            @RequestParam(value = "channel", required = false) Integer channel) {
         return Result.success(adminAnnouncementService.listAnnouncements(channel));
     }
 
+    @Operation(summary = "创建")
     @PostMapping("/create")
-    public Result<AdminAnnouncementResponse> create(@Valid @RequestBody AdminAnnouncementCreateRequest request) {
+    public Result<AdminAnnouncementResponse> create(
+            @Valid @RequestBody AdminAnnouncementCreateRequest request) {
         requireSuperAdmin();
         return Result.success(adminAnnouncementService.createAnnouncement(request));
     }
 
+    @Operation(summary = "修改编辑")
     @PostMapping("/{id}/update")
     public Result<AdminAnnouncementResponse> update(
-        @PathVariable("id") String id,
-        @Valid @RequestBody AdminAnnouncementUpdateRequest request
-    ) {
+            @PathVariable("id") String id,
+            @Valid @RequestBody AdminAnnouncementUpdateRequest request) {
         requireSuperAdmin();
         return Result.success(adminAnnouncementService.updateAnnouncement(id, request));
     }
 
+    @Operation(summary = "删除")
     @PostMapping("/{id}/delete")
     public Result<Void> delete(@PathVariable("id") String id) {
         requireSuperAdmin();
@@ -67,8 +73,10 @@ public class AdminAnnouncementController {
         return Result.success();
     }
 
+    @Operation(summary = "上传上传Image")
     @PostMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public Result<String> uploadImage(@PathVariable("id") String id, @RequestPart("file") MultipartFile file) {
+    public Result<String> uploadImage(
+            @PathVariable("id") String id, @RequestPart("file") MultipartFile file) {
         requireSuperAdmin();
         return Result.success(adminAnnouncementService.uploadAnnouncementImage(id, file));
     }

@@ -10,14 +10,15 @@ import lombok.Data;
 @TableName("technician_profiles")
 public class TechnicianProfiles {
 
-    @TableId
-    private String id;
+    @TableId private String id;
 
     private String technicianAccountId;
 
     private String realName;
 
     private String idCard;
+
+    private Boolean isRealNameVerified;
 
     private Integer gender;
 
@@ -35,15 +36,11 @@ public class TechnicianProfiles {
 
     private Integer responseTime;
 
-    private Long locationUpdateTime;
-
     private Long createdTime;
 
     private Long updatedTime;
 
-    @Version
-    private Integer version;
+    @Version private Integer version;
 
-    @TableLogic
-    private Integer isDelete;
+    @TableLogic private Integer isDelete;
 }

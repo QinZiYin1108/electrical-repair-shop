@@ -4,15 +4,16 @@ import com.example.backend.common.Result;
 import com.example.backend.model.worker.WorkerWorkTimeItem;
 import com.example.backend.model.worker.WorkerWorkTimesUpdateRequest;
 import com.example.backend.service.WorkerWorkTimeService;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
+@Tag(name = "师傅端/工作时间")
 @RequestMapping("/worker/work-times")
 public class WorkerWorkTimeController {
 
@@ -28,7 +29,8 @@ public class WorkerWorkTimeController {
     }
 
     @PostMapping
-    public Result<Void> updateCurrentWorkerWorkTimes(@RequestBody WorkerWorkTimesUpdateRequest request) {
+    public Result<Void> updateCurrentWorkerWorkTimes(
+            @RequestBody WorkerWorkTimesUpdateRequest request) {
         workerWorkTimeService.updateCurrentWorkerWorkTimes(request);
         return Result.success();
     }

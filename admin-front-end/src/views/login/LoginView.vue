@@ -4,7 +4,7 @@
       <section class="hero-panel">
         <div class="hero-copy">
           <span class="hero-badge">HOME APPLIANCE SERVICE PLATFORM</span>
-          <h1>安修到家</h1>
+          <h1>速修派</h1>
           <p class="hero-subtitle">家电维修线上预约平台</p>
           <span class="hero-divider"></span>
           <div class="hero-highlights">
@@ -18,7 +18,7 @@
           <div class="login-intro">
             <span class="login-intro-tag">运营后台</span>
             <h2>管理员登录</h2>
-            <p>欢迎登录安修到家后台管理系统</p>
+            <p>欢迎登录速修派后台管理系统</p>
           </div>
 
           <div class="login-tabs">
@@ -50,10 +50,10 @@
                 :rules="passwordRules"
                 class="login-form"
               >
-                <el-form-item prop="email">
+                <el-form-item prop="phone">
                   <el-input
-                    v-model="passwordForm.email"
-                    placeholder="请输入登录邮箱"
+                    v-model="passwordForm.phone"
+                    placeholder="请输入手机号"
                     autocomplete="username"
                   />
                 </el-form-item>
@@ -85,10 +85,10 @@
                 :rules="codeRules"
                 class="login-form"
               >
-                <el-form-item prop="email">
+                <el-form-item prop="phone">
                   <el-input
-                    v-model="codeForm.email"
-                    placeholder="请输入登录邮箱"
+                    v-model="codeForm.phone"
+                    placeholder="请输入手机号"
                     autocomplete="username"
                   />
                 </el-form-item>
@@ -125,7 +125,7 @@
           </transition>
 
           <div class="login-options">
-            <el-checkbox v-model="rememberMe">记住邮箱</el-checkbox>
+            <el-checkbox v-model="rememberMe">记住手机号</el-checkbox>
             <button type="button" class="forgot-password-link" @click="openForgotPassword">
               忘记密码？
             </button>
@@ -145,7 +145,7 @@
 
     <el-dialog v-model="forgotVisible" width="420px" :close-on-click-modal="false">
       <template #title>
-        <span v-if="forgotStep === 1">验证邮箱</span>
+        <span v-if="forgotStep === 1">验证手机号</span>
         <span v-else>重置密码</span>
       </template>
       <div v-if="forgotStep === 1">
@@ -155,8 +155,8 @@
           :rules="forgotVerifyRules"
           label-position="top"
         >
-          <el-form-item label="邮箱" prop="email">
-            <el-input v-model="forgotVerifyForm.email" placeholder="请输入邮箱" />
+          <el-form-item label="手机号" prop="phone">
+            <el-input v-model="forgotVerifyForm.phone" placeholder="请输入手机号" />
           </el-form-item>
           <el-form-item label="验证码" prop="code">
             <div class="verify-code-group">
@@ -214,12 +214,7 @@
           >
             下一步
           </el-button>
-          <el-button
-            v-else
-            type="primary"
-            :loading="forgotSubmitting"
-            @click="handleForgotSubmit"
-          >
+          <el-button v-else type="primary" :loading="forgotSubmitting" @click="handleForgotSubmit">
             确定
           </el-button>
         </span>
@@ -246,7 +241,7 @@ const router = useRouter();
 const adminStore = useAdminStore();
 
 const brandHighlights = ['专业', '高效', '便捷', '安心'];
-const rememberedEmailKey = 'admin-remembered-email';
+const rememberedPhoneKey = 'admin-remembered-phone';
 const loginPageStyle = {
   backgroundImage: [
     'linear-gradient(90deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.03) 36%, rgba(239, 246, 255, 0.12) 100%)',
@@ -266,27 +261,27 @@ const passwordFormRef = ref();
 const codeFormRef = ref();
 
 const passwordForm = reactive({
-  email: '',
+  phone: '',
   password: ''
 });
 
 const codeForm = reactive({
-  email: '',
+  phone: '',
   code: ''
 });
 
 const passwordRules = {
-  email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' }
+  phone: [
+    { required: true, message: '请输入手机号', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确', trigger: 'blur' }
   ],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
 };
 
 const codeRules = {
-  email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' }
+  phone: [
+    { required: true, message: '请输入手机号', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确', trigger: 'blur' }
   ],
   code: [{ required: true, message: '请输入验证码', trigger: 'blur' }]
 };
@@ -301,7 +296,7 @@ const forgotCountdown = ref(0);
 let forgotCountdownTimer = null;
 
 const forgotVerifyForm = reactive({
-  email: '',
+  phone: '',
   code: ''
 });
 
@@ -311,9 +306,9 @@ const forgotResetForm = reactive({
 });
 
 const forgotVerifyRules = {
-  email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' }
+  phone: [
+    { required: true, message: '请输入手机号', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确', trigger: 'blur' }
   ],
   code: [{ required: true, message: '请输入验证码', trigger: 'blur' }]
 };
@@ -323,20 +318,20 @@ const forgotResetRules = {
   confirmPassword: [{ required: true, message: '请再次输入新密码', trigger: 'blur' }]
 };
 
-function applyRememberedEmail(email) {
-  passwordForm.email = email;
-  codeForm.email = email;
+function applyRememberedPhone(phone) {
+  passwordForm.phone = phone;
+  codeForm.phone = phone;
 }
 
-function syncRememberedEmail(email) {
-  if (rememberMe.value && email) {
-    localStorage.setItem(rememberedEmailKey, email);
+function syncRememberedPhone(phone) {
+  if (rememberMe.value && phone) {
+    localStorage.setItem(rememberedPhoneKey, phone);
     return;
   }
-  localStorage.removeItem(rememberedEmailKey);
+  localStorage.removeItem(rememberedPhoneKey);
 }
 
-function handleLoginSuccess(resData, email) {
+function handleLoginSuccess(resData, phone) {
   const token = resData?.token;
   if (token) {
     setToken(token);
@@ -346,13 +341,15 @@ function handleLoginSuccess(resData, email) {
       if (payload.storeId) {
         adminStore.storeId = payload.storeId;
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      /* ignore */
+    }
   }
   if (resData?.adminRole != null) {
     adminStore.setAdminRole(resData.adminRole);
     setAdminRole(resData.adminRole);
   }
-  syncRememberedEmail(email);
+  syncRememberedPhone(phone);
   ElMessage.success('登录成功');
   router.push('/admin/dashboard');
 }
@@ -403,19 +400,19 @@ function openProtocol(type) {
 
 function handlePasswordLogin() {
   if (!ensureAgreed() || !passwordFormRef.value) return;
-  passwordFormRef.value.validate(async valid => {
+  passwordFormRef.value.validate(async (valid) => {
     if (!valid) return;
     submitting.value = true;
     try {
       const res = await adminLoginByPassword({
-        email: passwordForm.email,
+        phone: passwordForm.phone,
         password: passwordForm.password
       });
       if (res.code !== 200) {
         ElMessage.error(res.message || '登录失败');
         return;
       }
-      handleLoginSuccess(res.data, passwordForm.email);
+      handleLoginSuccess(res.data, passwordForm.phone);
     } catch (e) {
       ElMessage.error('登录失败');
     } finally {
@@ -425,21 +422,21 @@ function handlePasswordLogin() {
 }
 
 function handleSendCode() {
-  if (!codeForm.email) {
-    ElMessage.warning('请先输入邮箱');
+  if (!codeForm.phone) {
+    ElMessage.warning('请先输入手机号');
     return;
   }
   if (!ensureAgreed()) {
     return;
   }
   sendingCode.value = true;
-  adminSendLoginCode({ email: codeForm.email })
-    .then(res => {
+  adminSendLoginCode({ phone: codeForm.phone })
+    .then((res) => {
       if (res.code !== 200) {
         ElMessage.error(res.message || '发送验证码失败');
         return;
       }
-      ElMessage.success('验证码已发送，请查收邮箱');
+      ElMessage.success('验证码已发送，请查收短信');
       startCountdown();
     })
     .catch(() => {
@@ -452,19 +449,19 @@ function handleSendCode() {
 
 function handleCodeLogin() {
   if (!ensureAgreed() || !codeFormRef.value) return;
-  codeFormRef.value.validate(async valid => {
+  codeFormRef.value.validate(async (valid) => {
     if (!valid) return;
     submitting.value = true;
     try {
       const res = await adminLoginByCode({
-        email: codeForm.email,
+        phone: codeForm.phone,
         code: codeForm.code
       });
       if (res.code !== 200) {
         ElMessage.error(res.message || '登录失败');
         return;
       }
-      handleLoginSuccess(res.data, codeForm.email);
+      handleLoginSuccess(res.data, codeForm.phone);
     } catch (e) {
       ElMessage.error('登录失败');
     } finally {
@@ -476,7 +473,7 @@ function handleCodeLogin() {
 function openForgotPassword() {
   forgotVisible.value = true;
   forgotStep.value = 1;
-  forgotVerifyForm.email = passwordForm.email || codeForm.email || '';
+  forgotVerifyForm.phone = passwordForm.phone || codeForm.phone || '';
   forgotVerifyForm.code = '';
   forgotResetForm.newPassword = '';
   forgotResetForm.confirmPassword = '';
@@ -487,18 +484,18 @@ function handleForgotCancel() {
 }
 
 function handleForgotSendCode() {
-  if (!forgotVerifyForm.email) {
-    ElMessage.warning('请先输入邮箱');
+  if (!forgotVerifyForm.phone) {
+    ElMessage.warning('请先输入手机号');
     return;
   }
   forgotSendingCode.value = true;
-  adminSendResetCode({ email: forgotVerifyForm.email })
-    .then(res => {
+  adminSendResetCode({ phone: forgotVerifyForm.phone })
+    .then((res) => {
       if (res.code !== 200) {
         ElMessage.error(res.message || '发送验证码失败');
         return;
       }
-      ElMessage.success('验证码已发送，请查收邮箱');
+      ElMessage.success('验证码已发送，请查收短信');
       startForgotCountdown();
     })
     .catch(() => {
@@ -511,7 +508,7 @@ function handleForgotSendCode() {
 
 function handleForgotNext() {
   if (!forgotVerifyFormRef.value) return;
-  forgotVerifyFormRef.value.validate(valid => {
+  forgotVerifyFormRef.value.validate((valid) => {
     if (!valid) return;
     forgotStep.value = 2;
   });
@@ -519,7 +516,7 @@ function handleForgotNext() {
 
 function handleForgotSubmit() {
   if (!forgotResetFormRef.value) return;
-  forgotResetFormRef.value.validate(async valid => {
+  forgotResetFormRef.value.validate(async (valid) => {
     if (!valid) return;
     if (forgotResetForm.newPassword !== forgotResetForm.confirmPassword) {
       ElMessage.error('两次输入的密码不一致');
@@ -528,7 +525,7 @@ function handleForgotSubmit() {
     forgotSubmitting.value = true;
     try {
       const res = await adminResetPassword({
-        email: forgotVerifyForm.email,
+        phone: forgotVerifyForm.phone,
         code: forgotVerifyForm.code,
         newPassword: forgotResetForm.newPassword,
         confirmPassword: forgotResetForm.confirmPassword
@@ -538,9 +535,9 @@ function handleForgotSubmit() {
         return;
       }
       ElMessage.success('重置密码成功，请使用新密码登录');
-      passwordForm.email = forgotVerifyForm.email;
+      passwordForm.phone = forgotVerifyForm.phone;
       passwordForm.password = '';
-      codeForm.email = forgotVerifyForm.email;
+      codeForm.phone = forgotVerifyForm.phone;
       loginMode.value = 'password';
       forgotVisible.value = false;
     } catch (e) {
@@ -552,12 +549,12 @@ function handleForgotSubmit() {
 }
 
 onMounted(() => {
-  const rememberedEmail = localStorage.getItem(rememberedEmailKey);
-  if (!rememberedEmail) {
+  const rememberedPhone = localStorage.getItem(rememberedPhoneKey);
+  if (!rememberedPhone) {
     return;
   }
   rememberMe.value = true;
-  applyRememberedEmail(rememberedEmail);
+  applyRememberedPhone(rememberedPhone);
 });
 
 onBeforeUnmount(() => {
@@ -586,7 +583,12 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.02) 36%, rgba(255, 255, 255, 0.08) 100%),
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.12) 0%,
+      rgba(255, 255, 255, 0.02) 36%,
+      rgba(255, 255, 255, 0.08) 100%
+    ),
     linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.08) 100%);
   pointer-events: none;
 }
@@ -922,7 +924,9 @@ onBeforeUnmount(() => {
 
 .fade-slide-enter-active,
 .fade-slide-leave-active {
-  transition: opacity 0.24s ease, transform 0.24s ease;
+  transition:
+    opacity 0.24s ease,
+    transform 0.24s ease;
 }
 
 .fade-slide-enter-from,

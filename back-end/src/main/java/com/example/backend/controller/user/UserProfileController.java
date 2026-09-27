@@ -4,45 +4,52 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.example.backend.common.ErrorCode;
 import com.example.backend.common.Result;
+import com.example.backend.entity.AccountCancelRecords;
 import com.example.backend.entity.Images;
 import com.example.backend.entity.UserAccounts;
 import com.example.backend.entity.UserProfiles;
 import com.example.backend.exception.BusinessException;
-import com.example.backend.model.user.UserProfileDetailResponse;
-import com.example.backend.model.user.UserProfileUpdateRequest;
 import com.example.backend.model.user.UserAccountCancelApplyRequest;
 import com.example.backend.model.user.UserAccountCancelStatusResponse;
+import com.example.backend.model.user.UserProfileDetailResponse;
+import com.example.backend.model.user.UserProfileUpdateRequest;
 import com.example.backend.security.context.AuthUserContext;
 import com.example.backend.security.model.AccountRole;
 import com.example.backend.security.model.LoginUserInfo;
-import com.example.backend.entity.AccountCancelRecords;
+import com.example.backend.security.token.TokenVersions;
 import com.example.backend.service.AccountCancelRecordsService;
+import com.example.backend.service.ContentCheckLogsService;
+import com.example.backend.service.CreditRecordsService;
+import com.example.backend.service.ImageReviewQueueService;
 import com.example.backend.service.ImagesService;
 import com.example.backend.service.SystemConfigsService;
 import com.example.backend.service.UserAccountsService;
 import com.example.backend.service.UserProfilesService;
+import com.example.backend.service.contentcheck.AliyunGreenClient;
+import com.example.backend.service.contentcheck.CheckResult;
 import com.example.backend.utils.id.SnowflakeIdUtil;
 import com.example.backend.utils.oss.OssUtil;
 import com.example.backend.utils.upload.UploadLimitUtil;
-import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.http.MediaType;
-import org.springframework.web.multipart.MultipartFile;
-
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.UUID;
+import org.springframework.http.MediaType;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+@Tag(name = "用户端/个人信息", description = "查看/修改个人资料、上传头像、注销账号")
 @RestController
 @RequestMapping("/user/profile")
 public class UserProfileController {
@@ -53,6 +60,10 @@ public class UserProfileController {
     private final OssUtil ossUtil;
     private final AccountCancelRecordsService accountCancelRecordsService;
     private final SystemConfigsService systemConfigsService;
+    private final AliyunGreenClient aliyunGreenClient;
+    private final ContentCheckLogsService checkLogsService;
+    private final ImageReviewQueueService imageReviewQueueService;
+    private final CreditRecordsService creditRecordsService;
 
     private static final int STATUS_NORMAL = 1;
     private static final int STATUS_FROZEN = 2;
@@ -62,21 +73,29 @@ public class UserProfileController {
     private static final int DEFAULT_CANCEL_DATA_RETENTION_DAYS = 30;
 
     public UserProfileController(
-        UserAccountsService userAccountsService,
-        UserProfilesService userProfilesService,
-        ImagesService imagesService,
-        OssUtil ossUtil,
-        AccountCancelRecordsService accountCancelRecordsService,
-        SystemConfigsService systemConfigsService
-    ) {
+            UserAccountsService userAccountsService,
+            UserProfilesService userProfilesService,
+            ImagesService imagesService,
+            OssUtil ossUtil,
+            AccountCancelRecordsService accountCancelRecordsService,
+            SystemConfigsService systemConfigsService,
+            AliyunGreenClient aliyunGreenClient,
+            ContentCheckLogsService checkLogsService,
+            ImageReviewQueueService imageReviewQueueService,
+            CreditRecordsService creditRecordsService) {
         this.userAccountsService = userAccountsService;
         this.userProfilesService = userProfilesService;
         this.imagesService = imagesService;
         this.ossUtil = ossUtil;
         this.accountCancelRecordsService = accountCancelRecordsService;
         this.systemConfigsService = systemConfigsService;
+        this.aliyunGreenClient = aliyunGreenClient;
+        this.checkLogsService = checkLogsService;
+        this.imageReviewQueueService = imageReviewQueueService;
+        this.creditRecordsService = creditRecordsService;
     }
 
+    @Operation(summary = "查询Profile")
     @GetMapping("/me")
     public Result<UserProfileDetailResponse> getProfile() {
         LoginUserInfo user = AuthUserContext.get();
@@ -91,22 +110,22 @@ public class UserProfileController {
         if (account == null || account.getIsDelete() != null && account.getIsDelete() != 0) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "用户账号不存在");
         }
-        UserProfiles profile = userProfilesService.getOne(
-            new LambdaQueryWrapper<UserProfiles>()
-                .eq(UserProfiles::getAccountId, accountId)
-                .eq(UserProfiles::getIsDelete, 0),
-            false
-        );
+        UserProfiles profile =
+                userProfilesService.getOne(
+                        new LambdaQueryWrapper<UserProfiles>()
+                                .eq(UserProfiles::getAccountId, accountId)
+                                .eq(UserProfiles::getIsDelete, 0),
+                        false);
         String avatarUrl = null;
-        Images avatarImage = imagesService.getOne(
-            new LambdaQueryWrapper<Images>()
-                .eq(Images::getBusinessType, "AVATAR")
-                .eq(Images::getBusinessId, accountId)
-                .eq(Images::getIsDelete, 0)
-                .orderByDesc(Images::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+        Images avatarImage =
+                imagesService.getOne(
+                        new LambdaQueryWrapper<Images>()
+                                .eq(Images::getBusinessType, "AVATAR")
+                                .eq(Images::getBusinessId, accountId)
+                                .eq(Images::getIsDelete, 0)
+                                .orderByDesc(Images::getCreatedTime)
+                                .last("limit 1"),
+                        false);
         if (avatarImage != null && StringUtils.hasText(avatarImage.getFileUrl())) {
             avatarUrl = avatarImage.getFileUrl();
         }
@@ -117,7 +136,9 @@ public class UserProfileController {
         resp.setEmail(account.getEmail());
         resp.setStatus(account.getStatus());
         resp.setWechatBound(StringUtils.hasText(account.getWxOpenid()));
-        resp.setPasswordSet(StringUtils.hasText(account.getPassword()) && StringUtils.hasText(account.getSalt()));
+        resp.setPasswordSet(
+                StringUtils.hasText(account.getPassword())
+                        && StringUtils.hasText(account.getSalt()));
         if (profile != null) {
             resp.setRealName(profile.getRealName());
             resp.setGender(profile.getGender());
@@ -133,6 +154,7 @@ public class UserProfileController {
         return Result.success(resp);
     }
 
+    @Operation(summary = "查询注销Status")
     @GetMapping("/cancel/status")
     public Result<UserAccountCancelStatusResponse> getCancelStatus() {
         LoginUserInfo user = requireCurrentUser();
@@ -152,8 +174,10 @@ public class UserProfileController {
         return Result.success(buildCancelStatusResponse(account, record, now));
     }
 
+    @Operation(summary = "提交申请注销")
     @PostMapping("/cancel/apply")
-    public Result<UserAccountCancelStatusResponse> applyCancel(@RequestBody(required = false) UserAccountCancelApplyRequest request) {
+    public Result<UserAccountCancelStatusResponse> applyCancel(
+            @RequestBody(required = false) UserAccountCancelApplyRequest request) {
         LoginUserInfo user = requireCurrentUser();
         UserAccounts account = requireAccount(user.getAccountId());
 
@@ -184,6 +208,7 @@ public class UserProfileController {
         long deadline = now + getCancelGraceMillis();
 
         account.setStatus(STATUS_CANCEL_APPLY);
+        account.setTokenVersion(TokenVersions.next(account.getTokenVersion()));
         account.setCancelApplyTime(now);
         account.setCancelTime(deadline);
         account.setUpdatedTime(now);
@@ -205,6 +230,7 @@ public class UserProfileController {
         return Result.success(buildCancelStatusResponse(account, record, now));
     }
 
+    @Operation(summary = "提交撤销注销")
     @PostMapping("/cancel/revoke")
     public Result<UserAccountCancelStatusResponse> revokeCancel() {
         LoginUserInfo user = requireCurrentUser();
@@ -216,6 +242,7 @@ public class UserProfileController {
             // Defensive cleanup: if status says canceling but record missing, reset to normal.
             if (safeInt(account.getStatus()) == STATUS_CANCEL_APPLY) {
                 account.setStatus(STATUS_NORMAL);
+                account.setTokenVersion(TokenVersions.next(account.getTokenVersion()));
                 account.setCancelApplyTime(null);
                 account.setCancelTime(null);
                 account.setUpdatedTime(now);
@@ -230,6 +257,7 @@ public class UserProfileController {
         }
 
         account.setStatus(STATUS_NORMAL);
+        account.setTokenVersion(TokenVersions.next(account.getTokenVersion()));
         account.setCancelApplyTime(null);
         account.setCancelTime(null);
         account.setUpdatedTime(now);
@@ -237,17 +265,17 @@ public class UserProfileController {
 
         // Mark cancel record as deleted (avoid empty SET clause by using wrapper.set).
         accountCancelRecordsService.update(
-            null,
-            new UpdateWrapper<AccountCancelRecords>()
-                .set("is_delete", 1)
-                .eq("account_id", account.getId())
-                .eq("is_delete", 0)
-                .eq("cancel_type", 1)
-        );
+                null,
+                new UpdateWrapper<AccountCancelRecords>()
+                        .set("is_delete", 1)
+                        .eq("account_id", account.getId())
+                        .eq("is_delete", 0)
+                        .eq("cancel_type", 1));
 
         return Result.success(buildCancelStatusResponse(account, null, now));
     }
 
+    @Operation(summary = "修改编辑Profile")
     @PostMapping("/update")
     public Result<Void> updateProfile(@Valid @RequestBody UserProfileUpdateRequest request) {
         LoginUserInfo user = AuthUserContext.get();
@@ -262,7 +290,38 @@ public class UserProfileController {
         if (account == null || account.getIsDelete() != null && account.getIsDelete() != 0) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "用户账号不存在");
         }
+        creditRecordsService.checkCreditLimit(accountId, 1, "修改账号资料");
         long now = System.currentTimeMillis();
+
+        // 文字内容违规检测
+        if (request.getUsername() != null && !request.getUsername().isEmpty()) {
+            CheckResult r = aliyunGreenClient.checkText(request.getUsername());
+            if (r.isBlocked()) {
+                checkLogsService.logCheck(
+                        accountId,
+                        1,
+                        1,
+                        request.getUsername(),
+                        ContentCheckLogsService.RESULT_BLOCK,
+                        r.getLabel(),
+                        r.getSuggestion());
+                throw new BusinessException(
+                        ErrorCode.BUSINESS_ERROR, "昵称包含违规内容：" + r.getLabelDesc() + "，请修改后重新提交");
+            }
+            int logResult =
+                    r.isWatch()
+                            ? ContentCheckLogsService.RESULT_WATCH
+                            : ContentCheckLogsService.RESULT_PASS;
+            checkLogsService.logCheck(
+                    accountId,
+                    1,
+                    1,
+                    request.getUsername(),
+                    logResult,
+                    r.getLabel(),
+                    r.getSuggestion());
+        }
+
         if (request.getUsername() != null) {
             account.setUsername(request.getUsername());
         }
@@ -271,12 +330,12 @@ public class UserProfileController {
         }
         account.setUpdatedTime(now);
         userAccountsService.updateById(account);
-        UserProfiles profile = userProfilesService.getOne(
-            new LambdaQueryWrapper<UserProfiles>()
-                .eq(UserProfiles::getAccountId, accountId)
-                .eq(UserProfiles::getIsDelete, 0),
-            false
-        );
+        UserProfiles profile =
+                userProfilesService.getOne(
+                        new LambdaQueryWrapper<UserProfiles>()
+                                .eq(UserProfiles::getAccountId, accountId)
+                                .eq(UserProfiles::getIsDelete, 0),
+                        false);
         boolean isNew = profile == null;
         if (isNew) {
             profile = new UserProfiles();
@@ -285,7 +344,32 @@ public class UserProfileController {
             profile.setCreatedTime(now);
             profile.setIsDelete(0);
         }
-        if (request.getRealName() != null) {
+        if (request.getRealName() != null && !request.getRealName().isEmpty()) {
+            CheckResult r = aliyunGreenClient.checkText(request.getRealName());
+            if (r.isBlocked()) {
+                checkLogsService.logCheck(
+                        accountId,
+                        1,
+                        1,
+                        request.getRealName(),
+                        ContentCheckLogsService.RESULT_BLOCK,
+                        r.getLabel(),
+                        r.getSuggestion());
+                throw new BusinessException(
+                        ErrorCode.BUSINESS_ERROR, "真实姓名包含违规内容：" + r.getLabelDesc() + "，请修改后重新提交");
+            }
+            int logResult =
+                    r.isWatch()
+                            ? ContentCheckLogsService.RESULT_WATCH
+                            : ContentCheckLogsService.RESULT_PASS;
+            checkLogsService.logCheck(
+                    accountId,
+                    1,
+                    1,
+                    request.getRealName(),
+                    logResult,
+                    r.getLabel(),
+                    r.getSuggestion());
             profile.setRealName(request.getRealName());
         }
         if (request.getGender() != null) {
@@ -318,6 +402,7 @@ public class UserProfileController {
         return Result.success();
     }
 
+    @Operation(summary = "上传上传头像")
     @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Result<String> uploadAvatar(@RequestPart("file") MultipartFile file) {
         LoginUserInfo user = AuthUserContext.get();
@@ -332,6 +417,7 @@ public class UserProfileController {
         }
         UploadLimitUtil.validateImageSize(file);
         String accountId = user.getAccountId();
+        creditRecordsService.checkCreditLimit(accountId, 1, "上传图片");
         String originalFilename = file.getOriginalFilename();
         String ext = "";
         if (originalFilename != null) {
@@ -347,6 +433,15 @@ public class UserProfileController {
         } catch (IOException e) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "读取上传文件失败");
         }
+
+        // 图片违规检测，不通过则删除 OSS 文件并拒绝
+        try {
+            imageReviewQueueService.checkImageOnly(url);
+        } catch (BusinessException e) {
+            ossUtil.delete(objectName);
+            throw e;
+        }
+
         Images image = new Images();
         image.setId("IM" + System.currentTimeMillis());
         image.setOriginalName(originalFilename);
@@ -387,7 +482,8 @@ public class UserProfileController {
         return account;
     }
 
-    private UserAccountCancelStatusResponse buildCancelStatusResponse(UserAccounts account, AccountCancelRecords record, long now) {
+    private UserAccountCancelStatusResponse buildCancelStatusResponse(
+            UserAccounts account, AccountCancelRecords record, long now) {
         UserAccountCancelStatusResponse resp = new UserAccountCancelStatusResponse();
 
         int computedStatus = safeInt(account == null ? null : account.getStatus());
@@ -431,6 +527,7 @@ public class UserProfileController {
             return;
         }
         account.setStatus(STATUS_CANCELED);
+        account.setTokenVersion(TokenVersions.next(account.getTokenVersion()));
         account.setCancelTime(now);
         account.setUpdatedTime(now);
         account.setIsDelete(1);
@@ -438,15 +535,14 @@ public class UserProfileController {
 
         // Mark cancel record as system canceled (keep it as main data).
         accountCancelRecordsService.update(
-            null,
-            new UpdateWrapper<AccountCancelRecords>()
-                .set("cancel_type", 2)
-                .set("cancel_time", now)
-                .set("operator_id", "SYSTEM")
-                .eq("account_id", account.getId())
-                .eq("cancel_type", 1)
-                .eq("is_delete", 0)
-        );
+                null,
+                new UpdateWrapper<AccountCancelRecords>()
+                        .set("cancel_type", 2)
+                        .set("cancel_time", now)
+                        .set("operator_id", "SYSTEM")
+                        .eq("account_id", account.getId())
+                        .eq("cancel_type", 1)
+                        .eq("is_delete", 0));
     }
 
     private AccountCancelRecords findActiveCancelRecord(String accountId) {
@@ -454,14 +550,13 @@ public class UserProfileController {
             return null;
         }
         return accountCancelRecordsService.getOne(
-            new LambdaQueryWrapper<AccountCancelRecords>()
-                .eq(AccountCancelRecords::getAccountId, accountId)
-                .eq(AccountCancelRecords::getCancelType, 1)
-                .eq(AccountCancelRecords::getIsDelete, 0)
-                .orderByDesc(AccountCancelRecords::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+                new LambdaQueryWrapper<AccountCancelRecords>()
+                        .eq(AccountCancelRecords::getAccountId, accountId)
+                        .eq(AccountCancelRecords::getCancelType, 1)
+                        .eq(AccountCancelRecords::getIsDelete, 0)
+                        .orderByDesc(AccountCancelRecords::getCreatedTime)
+                        .last("limit 1"),
+                false);
     }
 
     private String trimToNull(String value) {
@@ -476,7 +571,9 @@ public class UserProfileController {
     }
 
     private long getCancelGraceDays() {
-        Long value = systemConfigsService.getLongConfig("account.cancel_grace_days", DEFAULT_CANCEL_GRACE_DAYS);
+        Long value =
+                systemConfigsService.getLongConfig(
+                        "account.cancel_grace_days", DEFAULT_CANCEL_GRACE_DAYS);
         return value == null || value <= 0L ? DEFAULT_CANCEL_GRACE_DAYS : value;
     }
 
@@ -485,10 +582,9 @@ public class UserProfileController {
     }
 
     private int getCancelDataRetentionDays() {
-        Integer value = systemConfigsService.getIntegerConfig(
-            "account.cancel_data_retention_days",
-            DEFAULT_CANCEL_DATA_RETENTION_DAYS
-        );
+        Integer value =
+                systemConfigsService.getIntegerConfig(
+                        "account.cancel_data_retention_days", DEFAULT_CANCEL_DATA_RETENTION_DAYS);
         return value == null || value <= 0 ? DEFAULT_CANCEL_DATA_RETENTION_DAYS : value;
     }
 }

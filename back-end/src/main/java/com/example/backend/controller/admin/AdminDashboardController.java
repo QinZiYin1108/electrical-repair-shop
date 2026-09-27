@@ -27,11 +27,8 @@ import com.example.backend.service.RepairOrderPaymentsService;
 import com.example.backend.service.RepairOrdersService;
 import com.example.backend.service.TechnicianAccountsService;
 import com.example.backend.service.UserAccountsService;
-import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -41,19 +38,25 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "管理员端/数据仪表盘")
 @RestController
 @RequestMapping("/admin/dashboard")
 public class AdminDashboardController {
 
     private static final ZoneId ZONE_ID = ZoneId.of("Asia/Shanghai");
-    private static final DateTimeFormatter DATE_LABEL_FORMATTER = DateTimeFormatter.ofPattern("MM-dd");
+    private static final DateTimeFormatter DATE_LABEL_FORMATTER =
+            DateTimeFormatter.ofPattern("MM-dd");
     private static final int PRODUCT_ORDER_STATUS_PENDING_PAYMENT = 1;
     private static final int PRODUCT_ORDER_STATUS_PENDING_DELIVERY = 2;
     private static final int PRODUCT_ORDER_STATUS_PENDING_RECEIPT = 3;
@@ -77,15 +80,14 @@ public class AdminDashboardController {
     private final ProductsService productsService;
 
     public AdminDashboardController(
-        UserAccountsService userAccountsService,
-        TechnicianAccountsService technicianAccountsService,
-        RepairOrdersService repairOrdersService,
-        RepairOrderPaymentsService repairOrderPaymentsService,
-        AfterSalesApplicationsService afterSalesApplicationsService,
-        ProductOrdersService productOrdersService,
-        OrderItemsService orderItemsService,
-        ProductsService productsService
-    ) {
+            UserAccountsService userAccountsService,
+            TechnicianAccountsService technicianAccountsService,
+            RepairOrdersService repairOrdersService,
+            RepairOrderPaymentsService repairOrderPaymentsService,
+            AfterSalesApplicationsService afterSalesApplicationsService,
+            ProductOrdersService productOrdersService,
+            OrderItemsService orderItemsService,
+            ProductsService productsService) {
         this.userAccountsService = userAccountsService;
         this.technicianAccountsService = technicianAccountsService;
         this.repairOrdersService = repairOrdersService;
@@ -96,6 +98,7 @@ public class AdminDashboardController {
         this.productsService = productsService;
     }
 
+    @Operation(summary = "查询概览")
     @GetMapping("/overview")
     public Result<AdminDashboardOverviewResponse> getOverview() {
         LoginUserInfo admin = requireAdmin();
@@ -103,65 +106,119 @@ public class AdminDashboardController {
         Set<String> storeTechIds = resolveStoreTechIds(storeId);
         Set<String> storeOrderIds = resolveStoreOrderIds(storeTechIds);
         boolean isStoreMode = storeId != null && StringUtils.hasText(storeId);
-        System.out.println("[Dashboard] adminRole=" + (admin != null ? admin.getAdminRole() : "null")
-            + " isStoreAdmin=" + (admin != null && admin.isStoreAdmin())
-            + " storeId=" + storeId
-            + " storeTechIds.size=" + (storeTechIds != null ? storeTechIds.size() : 0)
-            + " storeOrderIds.size=" + (storeOrderIds != null ? storeOrderIds.size() : 0)
-            + " isStoreMode=" + isStoreMode);
+        System.out.println(
+                "[Dashboard] adminRole="
+                        + (admin != null ? admin.getAdminRole() : "null")
+                        + " isStoreAdmin="
+                        + (admin != null && admin.isStoreAdmin())
+                        + " storeId="
+                        + storeId
+                        + " storeTechIds.size="
+                        + (storeTechIds != null ? storeTechIds.size() : 0)
+                        + " storeOrderIds.size="
+                        + (storeOrderIds != null ? storeOrderIds.size() : 0)
+                        + " isStoreMode="
+                        + isStoreMode);
 
         long now = System.currentTimeMillis();
         long todayStart = startOfDay(now);
         long sevenDaysStart = startOfDay(now, 6);
 
         AdminDashboardOverviewResponse response = new AdminDashboardOverviewResponse();
-        response.setTotalUsers(isStoreMode ? 0L : userAccountsService.count(
-            new LambdaQueryWrapper<com.example.backend.entity.UserAccounts>()
-                .eq(com.example.backend.entity.UserAccounts::getIsDelete, 0)
-        ));
+        response.setTotalUsers(
+                isStoreMode
+                        ? 0L
+                        : userAccountsService.count(
+                                new LambdaQueryWrapper<com.example.backend.entity.UserAccounts>()
+                                        .eq(
+                                                com.example.backend.entity.UserAccounts
+                                                        ::getIsDelete,
+                                                0)));
         // 门店管理员：师傅数只统计本门店
         if (isStoreMode) {
             response.setTotalWorkers(storeTechIds != null ? (long) storeTechIds.size() : 0L);
-            response.setActiveWorkers(storeTechIds != null && !storeTechIds.isEmpty()
-                ? (long) technicianAccountsService.count(new LambdaQueryWrapper<com.example.backend.entity.TechnicianAccounts>()
-                    .in(com.example.backend.entity.TechnicianAccounts::getId, storeTechIds)
-                    .eq(com.example.backend.entity.TechnicianAccounts::getAccountStatus, 1)
-                )
-                : 0L
-            );
+            response.setActiveWorkers(
+                    storeTechIds != null && !storeTechIds.isEmpty()
+                            ? (long)
+                                    technicianAccountsService.count(
+                                            new LambdaQueryWrapper<
+                                                            com.example.backend.entity
+                                                                    .TechnicianAccounts>()
+                                                    .in(
+                                                            com.example.backend.entity
+                                                                            .TechnicianAccounts
+                                                                    ::getId,
+                                                            storeTechIds)
+                                                    .eq(
+                                                            com.example.backend.entity
+                                                                            .TechnicianAccounts
+                                                                    ::getAccountStatus,
+                                                            1))
+                            : 0L);
         } else {
-            response.setTotalWorkers(technicianAccountsService.count(
-                new LambdaQueryWrapper<com.example.backend.entity.TechnicianAccounts>()
-                    .eq(com.example.backend.entity.TechnicianAccounts::getIsDelete, 0)
-            ));
-            response.setActiveWorkers(technicianAccountsService.count(new LambdaQueryWrapper<com.example.backend.entity.TechnicianAccounts>()
-                .eq(com.example.backend.entity.TechnicianAccounts::getIsDelete, 0)
-                .eq(com.example.backend.entity.TechnicianAccounts::getAccountStatus, 1)
-                .in(com.example.backend.entity.TechnicianAccounts::getWorkStatus, 1, 2, 3)
-            ));
+            response.setTotalWorkers(
+                    technicianAccountsService.count(
+                            new LambdaQueryWrapper<com.example.backend.entity.TechnicianAccounts>()
+                                    .eq(
+                                            com.example.backend.entity.TechnicianAccounts
+                                                    ::getIsDelete,
+                                            0)));
+            response.setActiveWorkers(
+                    technicianAccountsService.count(
+                            new LambdaQueryWrapper<com.example.backend.entity.TechnicianAccounts>()
+                                    .eq(
+                                            com.example.backend.entity.TechnicianAccounts
+                                                    ::getIsDelete,
+                                            0)
+                                    .eq(
+                                            com.example.backend.entity.TechnicianAccounts
+                                                    ::getAccountStatus,
+                                            1)
+                                    .in(
+                                            com.example.backend.entity.TechnicianAccounts
+                                                    ::getWorkStatus,
+                                            1,
+                                            2,
+                                            3)));
         }
 
         response.setTotalOrders(repairOrdersService.count(buildOrderWrapper(storeTechIds)));
-        response.setTodayOrders(repairOrdersService.count(buildOrderWrapper(storeTechIds).ge(RepairOrders::getCreatedTime, todayStart)));
-        response.setPendingOrders(repairOrdersService.count(buildOrderWrapper(storeTechIds).in(RepairOrders::getStatus, 1, 2, 3, 4, 5)));
-        response.setTodayCompletedOrders(repairOrdersService.count(buildOrderWrapper(storeTechIds).eq(RepairOrders::getStatus, 6).ge(RepairOrders::getCompletionTime, todayStart)));
+        response.setTodayOrders(
+                repairOrdersService.count(
+                        buildOrderWrapper(storeTechIds)
+                                .ge(RepairOrders::getCreatedTime, todayStart)));
+        response.setPendingOrders(
+                repairOrdersService.count(
+                        buildOrderWrapper(storeTechIds)
+                                .in(RepairOrders::getStatus, 1, 2, 3, 4, 5)));
+        response.setTodayCompletedOrders(
+                repairOrdersService.count(
+                        buildOrderWrapper(storeTechIds)
+                                .eq(RepairOrders::getStatus, 6)
+                                .ge(RepairOrders::getCompletionTime, todayStart)));
 
-        LambdaQueryWrapper<AfterSalesApplications> asWrapper = new LambdaQueryWrapper<AfterSalesApplications>()
-            .eq(AfterSalesApplications::getIsDelete, 0)
-            .in(AfterSalesApplications::getStatus, 1, 2, 4);
+        LambdaQueryWrapper<AfterSalesApplications> asWrapper =
+                new LambdaQueryWrapper<AfterSalesApplications>()
+                        .eq(AfterSalesApplications::getIsDelete, 0)
+                        .in(AfterSalesApplications::getStatus, 1, 2, 4);
         if (isStoreMode && storeOrderIds != null) {
-            asWrapper.in(AfterSalesApplications::getOrderId, storeOrderIds.isEmpty() ? Collections.singleton("-1") : storeOrderIds);
+            asWrapper.in(
+                    AfterSalesApplications::getOrderId,
+                    storeOrderIds.isEmpty() ? Collections.singleton("-1") : storeOrderIds);
         }
         response.setPendingAfterSales(afterSalesApplicationsService.count(asWrapper));
 
-        List<RepairOrderPayments> allPayments = repairOrderPaymentsService.list(buildPaymentWrapper(storeOrderIds));
-        List<RepairOrderPayments> todayPayments = repairOrderPaymentsService.list(
-            buildPaymentWrapper(storeOrderIds).ge(RepairOrderPayments::getPaymentTime, todayStart)
-        );
+        List<RepairOrderPayments> allPayments =
+                repairOrderPaymentsService.list(buildPaymentWrapper(storeOrderIds));
+        List<RepairOrderPayments> todayPayments =
+                repairOrderPaymentsService.list(
+                        buildPaymentWrapper(storeOrderIds)
+                                .ge(RepairOrderPayments::getPaymentTime, todayStart));
 
-        List<RepairOrders> refundedOrders = repairOrdersService.list(
-            buildOrderWrapper(storeTechIds).gt(RepairOrders::getRefundAmount, BigDecimal.ZERO)
-        );
+        List<RepairOrders> refundedOrders =
+                repairOrdersService.list(
+                        buildOrderWrapper(storeTechIds)
+                                .gt(RepairOrders::getRefundAmount, BigDecimal.ZERO));
 
         BigDecimal totalGrossIncome = sumActualAmount(allPayments);
         BigDecimal todayIncome = sumActualAmount(todayPayments);
@@ -176,14 +233,21 @@ public class AdminDashboardController {
         return Result.success(response);
     }
 
+    @Operation(summary = "查询ProductSales")
     @GetMapping("/product-sales")
     public Result<AdminDashboardProductSalesResponse> getProductSales() {
         LoginUserInfo admin = requireAdmin();
         String storeId = (admin != null && admin.isStoreAdmin()) ? admin.getStoreId() : null;
         boolean isStoreMode = storeId != null && StringUtils.hasText(storeId);
-        System.out.println("[Dashboard] product-sales - adminRole=" + (admin != null ? admin.getAdminRole() : "null")
-            + " isStoreAdmin=" + (admin != null && admin.isStoreAdmin())
-            + " storeId=" + storeId + " isStoreMode=" + isStoreMode);
+        System.out.println(
+                "[Dashboard] product-sales - adminRole="
+                        + (admin != null ? admin.getAdminRole() : "null")
+                        + " isStoreAdmin="
+                        + (admin != null && admin.isStoreAdmin())
+                        + " storeId="
+                        + storeId
+                        + " isStoreMode="
+                        + isStoreMode);
 
         long now = System.currentTimeMillis();
         long todayStart = startOfDay(now);
@@ -193,51 +257,65 @@ public class AdminDashboardController {
         Set<String> storeProductIds = resolveStoreProductIds(storeId);
         List<ProductOrders> allOrders;
         if (isStoreMode && storeProductIds != null) {
-            List<OrderItems> storeItems = orderItemsService.list(
-                new LambdaQueryWrapper<OrderItems>()
-                    .in(OrderItems::getProductId, storeProductIds.isEmpty() ? Collections.singleton("-1") : storeProductIds)
-                    .eq(OrderItems::getIsDelete, 0)
-            );
-            Set<String> storeProductOrderIds = storeItems.stream().map(OrderItems::getOrderId).collect(Collectors.toSet());
-            allOrders = storeProductOrderIds.isEmpty() ? Collections.emptyList() : productOrdersService.list(
-                new LambdaQueryWrapper<ProductOrders>()
-                    .eq(ProductOrders::getIsDelete, 0)
-                    .in(ProductOrders::getId, storeProductOrderIds)
-            );
+            List<OrderItems> storeItems =
+                    orderItemsService.list(
+                            new LambdaQueryWrapper<OrderItems>()
+                                    .in(
+                                            OrderItems::getProductId,
+                                            storeProductIds.isEmpty()
+                                                    ? Collections.singleton("-1")
+                                                    : storeProductIds)
+                                    .eq(OrderItems::getIsDelete, 0));
+            Set<String> storeProductOrderIds =
+                    storeItems.stream().map(OrderItems::getOrderId).collect(Collectors.toSet());
+            allOrders =
+                    storeProductOrderIds.isEmpty()
+                            ? Collections.emptyList()
+                            : productOrdersService.list(
+                                    new LambdaQueryWrapper<ProductOrders>()
+                                            .eq(ProductOrders::getIsDelete, 0)
+                                            .in(ProductOrders::getId, storeProductOrderIds));
         } else {
-            allOrders = productOrdersService.list(
-                new LambdaQueryWrapper<ProductOrders>()
-                    .eq(ProductOrders::getIsDelete, 0)
-            );
+            allOrders =
+                    productOrdersService.list(
+                            new LambdaQueryWrapper<ProductOrders>()
+                                    .eq(ProductOrders::getIsDelete, 0));
         }
-        Set<String> paidOrderIds = allOrders.stream()
-            .filter(this::isPaidProductOrder)
-            .map(ProductOrders::getId)
-            .filter(this::hasText)
-            .collect(Collectors.toCollection(LinkedHashSet::new));
+        Set<String> paidOrderIds =
+                allOrders.stream()
+                        .filter(this::isPaidProductOrder)
+                        .map(ProductOrders::getId)
+                        .filter(this::hasText)
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
         Map<String, List<OrderItems>> paidOrderItemMap = listProductOrderItemMap(paidOrderIds);
 
         AdminDashboardProductSalesResponse response = new AdminDashboardProductSalesResponse();
         response.setTotalOrderCount((long) allOrders.size());
-        response.setTotalPaidOrderCount(allOrders.stream().filter(this::isPaidProductOrder).count());
-        response.setTodayPaidOrderCount(allOrders.stream()
-            .filter(this::isPaidProductOrder)
-            .filter(order -> isAfterTime(order.getPaymentTime(), todayStart))
-            .count());
-        response.setPendingDeliveryOrderCount(allOrders.stream().filter(this::isPendingDeliveryOrder).count());
-        response.setRefundedOrderCount(allOrders.stream().filter(this::isRefundedProductOrder).count());
+        response.setTotalPaidOrderCount(
+                allOrders.stream().filter(this::isPaidProductOrder).count());
+        response.setTodayPaidOrderCount(
+                allOrders.stream()
+                        .filter(this::isPaidProductOrder)
+                        .filter(order -> isAfterTime(order.getPaymentTime(), todayStart))
+                        .count());
+        response.setPendingDeliveryOrderCount(
+                allOrders.stream().filter(this::isPendingDeliveryOrder).count());
+        response.setRefundedOrderCount(
+                allOrders.stream().filter(this::isRefundedProductOrder).count());
         response.setTotalSoldQuantity(sumOrderItemQuantity(paidOrderItemMap));
         response.setTotalSalesAmount(sumProductOrderActualAmount(allOrders, 0L));
         response.setTodaySalesAmount(sumProductOrderActualAmount(allOrders, todayStart));
         response.setTotalRefundAmount(sumProductRefundAmount(allOrders));
-        response.setRecentTrend(buildProductSalesTrend(sevenDaysStart, now, allOrders, paidOrderItemMap));
+        response.setRecentTrend(
+                buildProductSalesTrend(sevenDaysStart, now, allOrders, paidOrderItemMap));
         response.setOrderStatusDistribution(buildProductOrderStatusDistribution(allOrders));
         response.setTopProducts(buildProductTopProducts(allOrders, paidOrderItemMap));
         response.setPaymentMethodDistribution(buildProductPaymentDistribution(allOrders));
         return Result.success(response);
     }
 
-    private List<AdminDashboardTrendItemResponse> buildTrend(long startTime, long now, Set<String> storeTechIds, Set<String> storeOrderIds) {
+    private List<AdminDashboardTrendItemResponse> buildTrend(
+            long startTime, long now, Set<String> storeTechIds, Set<String> storeOrderIds) {
         Map<LocalDate, AdminDashboardTrendItemResponse> trendMap = new LinkedHashMap<>();
         LocalDate startDate = Instant.ofEpochMilli(startTime).atZone(ZONE_ID).toLocalDate();
         LocalDate endDate = Instant.ofEpochMilli(now).atZone(ZONE_ID).toLocalDate();
@@ -250,11 +328,14 @@ public class AdminDashboardController {
             trendMap.put(date, item);
         }
 
-        LambdaQueryWrapper<RepairOrders> orderWrapper = new LambdaQueryWrapper<RepairOrders>()
-            .eq(RepairOrders::getIsDelete, 0)
-            .ge(RepairOrders::getCreatedTime, startTime);
+        LambdaQueryWrapper<RepairOrders> orderWrapper =
+                new LambdaQueryWrapper<RepairOrders>()
+                        .eq(RepairOrders::getIsDelete, 0)
+                        .ge(RepairOrders::getCreatedTime, startTime);
         if (storeTechIds != null) {
-            orderWrapper.in(RepairOrders::getTechnicianAccountId, storeTechIds.isEmpty() ? Collections.singleton("-1") : storeTechIds);
+            orderWrapper.in(
+                    RepairOrders::getTechnicianAccountId,
+                    storeTechIds.isEmpty() ? Collections.singleton("-1") : storeTechIds);
         }
         List<RepairOrders> createdOrders = repairOrdersService.list(orderWrapper);
         for (RepairOrders order : createdOrders) {
@@ -265,12 +346,15 @@ public class AdminDashboardController {
             }
         }
 
-        LambdaQueryWrapper<RepairOrders> completedWrapper = new LambdaQueryWrapper<RepairOrders>()
-            .eq(RepairOrders::getIsDelete, 0)
-            .eq(RepairOrders::getStatus, 6)
-            .ge(RepairOrders::getCompletionTime, startTime);
+        LambdaQueryWrapper<RepairOrders> completedWrapper =
+                new LambdaQueryWrapper<RepairOrders>()
+                        .eq(RepairOrders::getIsDelete, 0)
+                        .eq(RepairOrders::getStatus, 6)
+                        .ge(RepairOrders::getCompletionTime, startTime);
         if (storeTechIds != null) {
-            completedWrapper.in(RepairOrders::getTechnicianAccountId, storeTechIds.isEmpty() ? Collections.singleton("-1") : storeTechIds);
+            completedWrapper.in(
+                    RepairOrders::getTechnicianAccountId,
+                    storeTechIds.isEmpty() ? Collections.singleton("-1") : storeTechIds);
         }
         List<RepairOrders> completedOrders = repairOrdersService.list(completedWrapper);
         for (RepairOrders order : completedOrders) {
@@ -281,12 +365,15 @@ public class AdminDashboardController {
             }
         }
 
-        LambdaQueryWrapper<RepairOrderPayments> paymentWrapper = new LambdaQueryWrapper<RepairOrderPayments>()
-            .eq(RepairOrderPayments::getIsDelete, 0)
-            .gt(RepairOrderPayments::getActualAmount, BigDecimal.ZERO)
-            .ge(RepairOrderPayments::getPaymentTime, startTime);
+        LambdaQueryWrapper<RepairOrderPayments> paymentWrapper =
+                new LambdaQueryWrapper<RepairOrderPayments>()
+                        .eq(RepairOrderPayments::getIsDelete, 0)
+                        .gt(RepairOrderPayments::getActualAmount, BigDecimal.ZERO)
+                        .ge(RepairOrderPayments::getPaymentTime, startTime);
         if (storeOrderIds != null) {
-            paymentWrapper.in(RepairOrderPayments::getRepairOrderId, storeOrderIds.isEmpty() ? Collections.singleton("-1") : storeOrderIds);
+            paymentWrapper.in(
+                    RepairOrderPayments::getRepairOrderId,
+                    storeOrderIds.isEmpty() ? Collections.singleton("-1") : storeOrderIds);
         }
         List<RepairOrderPayments> recentPayments = repairOrderPaymentsService.list(paymentWrapper);
         for (RepairOrderPayments payment : recentPayments) {
@@ -300,16 +387,17 @@ public class AdminDashboardController {
     }
 
     private List<AdminDashboardProductSalesTrendItemResponse> buildProductSalesTrend(
-        long startTime,
-        long now,
-        List<ProductOrders> orders,
-        Map<String, List<OrderItems>> orderItemMap
-    ) {
-        Map<LocalDate, AdminDashboardProductSalesTrendItemResponse> trendMap = new LinkedHashMap<>();
+            long startTime,
+            long now,
+            List<ProductOrders> orders,
+            Map<String, List<OrderItems>> orderItemMap) {
+        Map<LocalDate, AdminDashboardProductSalesTrendItemResponse> trendMap =
+                new LinkedHashMap<>();
         LocalDate startDate = Instant.ofEpochMilli(startTime).atZone(ZONE_ID).toLocalDate();
         LocalDate endDate = Instant.ofEpochMilli(now).atZone(ZONE_ID).toLocalDate();
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
-            AdminDashboardProductSalesTrendItemResponse item = new AdminDashboardProductSalesTrendItemResponse();
+            AdminDashboardProductSalesTrendItemResponse item =
+                    new AdminDashboardProductSalesTrendItemResponse();
             item.setDateLabel(date.format(DATE_LABEL_FORMATTER));
             item.setPaidOrderCount(0L);
             item.setSoldQuantity(0L);
@@ -327,24 +415,30 @@ public class AdminDashboardController {
                 continue;
             }
             item.setPaidOrderCount(item.getPaidOrderCount() + 1);
-            item.setSoldQuantity(item.getSoldQuantity() + sumQuantity(orderItemMap.get(order.getId())));
-            item.setSalesAmount(toMoney(item.getSalesAmount().add(safeMoney(order.getActualAmount()))));
+            item.setSoldQuantity(
+                    item.getSoldQuantity() + sumQuantity(orderItemMap.get(order.getId())));
+            item.setSalesAmount(
+                    toMoney(item.getSalesAmount().add(safeMoney(order.getActualAmount()))));
         }
         return new ArrayList<>(trendMap.values());
     }
 
-    private List<AdminDashboardStatusItemResponse> buildStatusDistribution(Set<String> storeTechIds) {
+    private List<AdminDashboardStatusItemResponse> buildStatusDistribution(
+            Set<String> storeTechIds) {
         int[] statuses = {1, 2, 3, 4, 5, 6, 7, 8};
         List<AdminDashboardStatusItemResponse> result = new ArrayList<>();
         for (int status : statuses) {
             AdminDashboardStatusItemResponse item = new AdminDashboardStatusItemResponse();
             item.setStatus(status);
             item.setLabel(resolveOrderStatusText(status));
-            LambdaQueryWrapper<RepairOrders> statusWrapper = new LambdaQueryWrapper<RepairOrders>()
-                .eq(RepairOrders::getIsDelete, 0)
-                .eq(RepairOrders::getStatus, status);
+            LambdaQueryWrapper<RepairOrders> statusWrapper =
+                    new LambdaQueryWrapper<RepairOrders>()
+                            .eq(RepairOrders::getIsDelete, 0)
+                            .eq(RepairOrders::getStatus, status);
             if (storeTechIds != null) {
-                statusWrapper.in(RepairOrders::getTechnicianAccountId, storeTechIds.isEmpty() ? Collections.singleton("-1") : storeTechIds);
+                statusWrapper.in(
+                        RepairOrders::getTechnicianAccountId,
+                        storeTechIds.isEmpty() ? Collections.singleton("-1") : storeTechIds);
             }
             item.setCount(repairOrdersService.count(statusWrapper));
             result.add(item);
@@ -352,7 +446,8 @@ public class AdminDashboardController {
         return result;
     }
 
-    private List<AdminDashboardStatusItemResponse> buildProductOrderStatusDistribution(List<ProductOrders> orders) {
+    private List<AdminDashboardStatusItemResponse> buildProductOrderStatusDistribution(
+            List<ProductOrders> orders) {
         int[] statuses = {
             PRODUCT_ORDER_STATUS_PENDING_PAYMENT,
             PRODUCT_ORDER_STATUS_PENDING_DELIVERY,
@@ -367,16 +462,17 @@ public class AdminDashboardController {
             AdminDashboardStatusItemResponse item = new AdminDashboardStatusItemResponse();
             item.setStatus(status);
             item.setLabel(resolveProductOrderStatusText(status));
-            item.setCount(orders.stream().filter(order -> safeInt(order.getOrderStatus()) == status).count());
+            item.setCount(
+                    orders.stream()
+                            .filter(order -> safeInt(order.getOrderStatus()) == status)
+                            .count());
             result.add(item);
         }
         return result;
     }
 
     private List<AdminDashboardProductTopItemResponse> buildProductTopProducts(
-        List<ProductOrders> orders,
-        Map<String, List<OrderItems>> orderItemMap
-    ) {
+            List<ProductOrders> orders, Map<String, List<OrderItems>> orderItemMap) {
         Map<String, AdminDashboardProductTopItemResponse> productMap = new LinkedHashMap<>();
         Map<String, Set<String>> productOrderIds = new LinkedHashMap<>();
 
@@ -384,22 +480,29 @@ public class AdminDashboardController {
             if (!isPaidProductOrder(order) || !hasText(order.getId())) {
                 continue;
             }
-            List<OrderItems> items = orderItemMap.getOrDefault(order.getId(), Collections.emptyList());
+            List<OrderItems> items =
+                    orderItemMap.getOrDefault(order.getId(), Collections.emptyList());
             for (OrderItems item : items) {
-                String productKey = hasText(item.getProductId()) ? item.getProductId() : item.getProductName();
+                String productKey =
+                        hasText(item.getProductId()) ? item.getProductId() : item.getProductName();
                 if (!hasText(productKey)) {
                     continue;
                 }
-                AdminDashboardProductTopItemResponse product = productMap.computeIfAbsent(productKey, key -> {
-                    AdminDashboardProductTopItemResponse response = new AdminDashboardProductTopItemResponse();
-                    response.setProductId(item.getProductId());
-                    response.setProductName(item.getProductName());
-                    response.setProductImage(item.getProductImage());
-                    response.setQuantity(0L);
-                    response.setSalesAmount(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
-                    response.setOrderCount(0L);
-                    return response;
-                });
+                AdminDashboardProductTopItemResponse product =
+                        productMap.computeIfAbsent(
+                                productKey,
+                                key -> {
+                                    AdminDashboardProductTopItemResponse response =
+                                            new AdminDashboardProductTopItemResponse();
+                                    response.setProductId(item.getProductId());
+                                    response.setProductName(item.getProductName());
+                                    response.setProductImage(item.getProductImage());
+                                    response.setQuantity(0L);
+                                    response.setSalesAmount(
+                                            BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+                                    response.setOrderCount(0L);
+                                    return response;
+                                });
                 if (!hasText(product.getProductName()) && hasText(item.getProductName())) {
                     product.setProductName(item.getProductName());
                 }
@@ -410,51 +513,79 @@ public class AdminDashboardController {
                     product.setProductId(item.getProductId());
                 }
                 product.setQuantity(product.getQuantity() + safeLong(item.getQuantity()));
-                product.setSalesAmount(toMoney(product.getSalesAmount().add(resolveOrderItemAmount(item))));
-                productOrderIds.computeIfAbsent(productKey, key -> new LinkedHashSet<>()).add(order.getId());
+                product.setSalesAmount(
+                        toMoney(product.getSalesAmount().add(resolveOrderItemAmount(item))));
+                productOrderIds
+                        .computeIfAbsent(productKey, key -> new LinkedHashSet<>())
+                        .add(order.getId());
             }
         }
 
         List<AdminDashboardProductTopItemResponse> result = new ArrayList<>(productMap.values());
-        for (Map.Entry<String, AdminDashboardProductTopItemResponse> entry : productMap.entrySet()) {
-            entry.getValue().setOrderCount((long) productOrderIds.getOrDefault(entry.getKey(), Collections.emptySet()).size());
+        for (Map.Entry<String, AdminDashboardProductTopItemResponse> entry :
+                productMap.entrySet()) {
+            entry.getValue()
+                    .setOrderCount(
+                            (long)
+                                    productOrderIds
+                                            .getOrDefault(entry.getKey(), Collections.emptySet())
+                                            .size());
         }
-        result.sort((left, right) -> {
-            int quantityCompare = Long.compare(
-                right == null || right.getQuantity() == null ? 0L : right.getQuantity(),
-                left == null || left.getQuantity() == null ? 0L : left.getQuantity()
-            );
-            if (quantityCompare != 0) {
-                return quantityCompare;
-            }
-            return (right == null || right.getSalesAmount() == null ? BigDecimal.ZERO : right.getSalesAmount())
-                .compareTo(left == null || left.getSalesAmount() == null ? BigDecimal.ZERO : left.getSalesAmount());
-        });
+        result.sort(
+                (left, right) -> {
+                    int quantityCompare =
+                            Long.compare(
+                                    right == null || right.getQuantity() == null
+                                            ? 0L
+                                            : right.getQuantity(),
+                                    left == null || left.getQuantity() == null
+                                            ? 0L
+                                            : left.getQuantity());
+                    if (quantityCompare != 0) {
+                        return quantityCompare;
+                    }
+                    return (right == null || right.getSalesAmount() == null
+                                    ? BigDecimal.ZERO
+                                    : right.getSalesAmount())
+                            .compareTo(
+                                    left == null || left.getSalesAmount() == null
+                                            ? BigDecimal.ZERO
+                                            : left.getSalesAmount());
+                });
         return result.stream().limit(8).collect(Collectors.toCollection(ArrayList::new));
     }
 
-    private List<AdminDashboardProductPaymentItemResponse> buildProductPaymentDistribution(List<ProductOrders> orders) {
+    private List<AdminDashboardProductPaymentItemResponse> buildProductPaymentDistribution(
+            List<ProductOrders> orders) {
         Map<Integer, AdminDashboardProductPaymentItemResponse> paymentMap = new LinkedHashMap<>();
         for (ProductOrders order : orders) {
             if (!isPaidProductOrder(order)) {
                 continue;
             }
             int paymentMethod = safeInt(order.getPaymentMethod());
-            AdminDashboardProductPaymentItemResponse item = paymentMap.computeIfAbsent(paymentMethod, key -> {
-                AdminDashboardProductPaymentItemResponse response = new AdminDashboardProductPaymentItemResponse();
-                response.setPaymentMethod(key);
-                response.setLabel(resolveProductPaymentMethodText(key));
-                response.setCount(0L);
-                response.setAmount(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
-                return response;
-            });
+            AdminDashboardProductPaymentItemResponse item =
+                    paymentMap.computeIfAbsent(
+                            paymentMethod,
+                            key -> {
+                                AdminDashboardProductPaymentItemResponse response =
+                                        new AdminDashboardProductPaymentItemResponse();
+                                response.setPaymentMethod(key);
+                                response.setLabel(resolveProductPaymentMethodText(key));
+                                response.setCount(0L);
+                                response.setAmount(
+                                        BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+                                return response;
+                            });
             item.setCount(item.getCount() + 1);
             item.setAmount(toMoney(item.getAmount().add(safeMoney(order.getActualAmount()))));
         }
-        List<AdminDashboardProductPaymentItemResponse> result = new ArrayList<>(paymentMap.values());
+        List<AdminDashboardProductPaymentItemResponse> result =
+                new ArrayList<>(paymentMap.values());
         result.sort(
-            Comparator.comparing(AdminDashboardProductPaymentItemResponse::getAmount, Comparator.nullsLast(BigDecimal::compareTo)).reversed()
-        );
+                Comparator.comparing(
+                                AdminDashboardProductPaymentItemResponse::getAmount,
+                                Comparator.nullsLast(BigDecimal::compareTo))
+                        .reversed());
         return result;
     }
 
@@ -462,12 +593,16 @@ public class AdminDashboardController {
         if (orderIds == null || orderIds.isEmpty()) {
             return Collections.emptyMap();
         }
-        return orderItemsService.list(
-            new LambdaQueryWrapper<OrderItems>()
-                .in(OrderItems::getOrderId, orderIds)
-                .eq(OrderItems::getIsDelete, 0)
-                .orderByAsc(OrderItems::getCreatedTime)
-        ).stream().collect(Collectors.groupingBy(OrderItems::getOrderId, LinkedHashMap::new, Collectors.toList()));
+        return orderItemsService
+                .list(
+                        new LambdaQueryWrapper<OrderItems>()
+                                .in(OrderItems::getOrderId, orderIds)
+                                .eq(OrderItems::getIsDelete, 0)
+                                .orderByAsc(OrderItems::getCreatedTime))
+                .stream()
+                .collect(
+                        Collectors.groupingBy(
+                                OrderItems::getOrderId, LinkedHashMap::new, Collectors.toList()));
     }
 
     private long sumOrderItemQuantity(Map<String, List<OrderItems>> orderItemMap) {
@@ -544,7 +679,8 @@ public class AdminDashboardController {
     }
 
     private long startOfDay(long timestamp, int minusDays) {
-        LocalDate date = Instant.ofEpochMilli(timestamp).atZone(ZONE_ID).toLocalDate().minusDays(minusDays);
+        LocalDate date =
+                Instant.ofEpochMilli(timestamp).atZone(ZONE_ID).toLocalDate().minusDays(minusDays);
         return date.atStartOfDay(ZONE_ID).toInstant().toEpochMilli();
     }
 
@@ -570,19 +706,23 @@ public class AdminDashboardController {
         if (item.getTotalPrice() != null) {
             return toMoney(item.getTotalPrice());
         }
-        return toMoney(safeMoney(item.getProductPrice()).multiply(BigDecimal.valueOf(safeLong(item.getQuantity()))));
+        return toMoney(
+                safeMoney(item.getProductPrice())
+                        .multiply(BigDecimal.valueOf(safeLong(item.getQuantity()))));
     }
 
     private boolean isPaidProductOrder(ProductOrders order) {
         int paymentStatus = safeInt(order == null ? null : order.getPaymentStatus());
-        return paymentStatus == PRODUCT_PAYMENT_STATUS_PAID || paymentStatus == PRODUCT_PAYMENT_STATUS_REFUNDED;
+        return paymentStatus == PRODUCT_PAYMENT_STATUS_PAID
+                || paymentStatus == PRODUCT_PAYMENT_STATUS_REFUNDED;
     }
 
     private boolean isPendingDeliveryOrder(ProductOrders order) {
         if (order == null) {
             return false;
         }
-        return safeInt(order.getOrderStatus()) == PRODUCT_ORDER_STATUS_PENDING_DELIVERY && safeInt(order.getPaymentStatus()) == PRODUCT_PAYMENT_STATUS_PAID;
+        return safeInt(order.getOrderStatus()) == PRODUCT_ORDER_STATUS_PENDING_DELIVERY
+                && safeInt(order.getPaymentStatus()) == PRODUCT_PAYMENT_STATUS_PAID;
     }
 
     private boolean isRefundedProductOrder(ProductOrders order) {
@@ -590,8 +730,8 @@ public class AdminDashboardController {
             return false;
         }
         return safeInt(order.getOrderStatus()) == PRODUCT_ORDER_STATUS_REFUNDED
-            || safeInt(order.getPaymentStatus()) == PRODUCT_PAYMENT_STATUS_REFUNDED
-            || safeMoney(order.getRefundAmount()).compareTo(BigDecimal.ZERO) > 0;
+                || safeInt(order.getPaymentStatus()) == PRODUCT_PAYMENT_STATUS_REFUNDED
+                || safeMoney(order.getRefundAmount()).compareTo(BigDecimal.ZERO) > 0;
     }
 
     private boolean isAfterTime(Long timestamp, long startTime) {
@@ -647,50 +787,65 @@ public class AdminDashboardController {
     }
 
     private LambdaQueryWrapper<RepairOrders> buildOrderWrapper(Set<String> storeTechIds) {
-        LambdaQueryWrapper<RepairOrders> wrapper = new LambdaQueryWrapper<RepairOrders>()
-            .eq(RepairOrders::getIsDelete, 0);
+        LambdaQueryWrapper<RepairOrders> wrapper =
+                new LambdaQueryWrapper<RepairOrders>().eq(RepairOrders::getIsDelete, 0);
         if (storeTechIds != null) {
-            wrapper.in(RepairOrders::getTechnicianAccountId, storeTechIds.isEmpty() ? Collections.singleton("-1") : storeTechIds);
+            wrapper.in(
+                    RepairOrders::getTechnicianAccountId,
+                    storeTechIds.isEmpty() ? Collections.singleton("-1") : storeTechIds);
         }
         return wrapper;
     }
 
     private LambdaQueryWrapper<RepairOrderPayments> buildPaymentWrapper(Set<String> storeOrderIds) {
-        LambdaQueryWrapper<RepairOrderPayments> wrapper = new LambdaQueryWrapper<RepairOrderPayments>()
-            .eq(RepairOrderPayments::getIsDelete, 0)
-            .gt(RepairOrderPayments::getActualAmount, BigDecimal.ZERO);
+        LambdaQueryWrapper<RepairOrderPayments> wrapper =
+                new LambdaQueryWrapper<RepairOrderPayments>()
+                        .eq(RepairOrderPayments::getIsDelete, 0)
+                        .gt(RepairOrderPayments::getActualAmount, BigDecimal.ZERO);
         if (storeOrderIds != null) {
-            wrapper.in(RepairOrderPayments::getRepairOrderId, storeOrderIds.isEmpty() ? Collections.singleton("-1") : storeOrderIds);
+            wrapper.in(
+                    RepairOrderPayments::getRepairOrderId,
+                    storeOrderIds.isEmpty() ? Collections.singleton("-1") : storeOrderIds);
         }
         return wrapper;
     }
 
     private Set<String> resolveStoreTechIds(String storeId) {
         if (!StringUtils.hasText(storeId)) return null;
-        return technicianAccountsService.list(
-            new LambdaQueryWrapper<com.example.backend.entity.TechnicianAccounts>()
-                .eq(com.example.backend.entity.TechnicianAccounts::getStoreId, storeId)
-                .eq(com.example.backend.entity.TechnicianAccounts::getIsDelete, 0)
-        ).stream().map(com.example.backend.entity.TechnicianAccounts::getId).collect(Collectors.toSet());
+        return technicianAccountsService
+                .list(
+                        new LambdaQueryWrapper<com.example.backend.entity.TechnicianAccounts>()
+                                .eq(
+                                        com.example.backend.entity.TechnicianAccounts::getStoreId,
+                                        storeId)
+                                .eq(com.example.backend.entity.TechnicianAccounts::getIsDelete, 0))
+                .stream()
+                .map(com.example.backend.entity.TechnicianAccounts::getId)
+                .collect(Collectors.toSet());
     }
 
     private Set<String> resolveStoreProductIds(String storeId) {
         if (!StringUtils.hasText(storeId)) return null;
-        List<com.example.backend.entity.Products> products = productsService.list(
-            new LambdaQueryWrapper<com.example.backend.entity.Products>()
-                .eq(com.example.backend.entity.Products::getStoreId, storeId)
-                .eq(com.example.backend.entity.Products::getIsDelete, 0)
-        );
-        return products.stream().map(com.example.backend.entity.Products::getId).collect(Collectors.toSet());
+        List<com.example.backend.entity.Products> products =
+                productsService.list(
+                        new LambdaQueryWrapper<com.example.backend.entity.Products>()
+                                .eq(com.example.backend.entity.Products::getStoreId, storeId)
+                                .eq(com.example.backend.entity.Products::getIsDelete, 0));
+        return products.stream()
+                .map(com.example.backend.entity.Products::getId)
+                .collect(Collectors.toSet());
     }
 
     private Set<String> resolveStoreOrderIds(Set<String> techIds) {
         if (techIds == null || techIds.isEmpty()) return Collections.emptySet();
-        return repairOrdersService.list(
-            new LambdaQueryWrapper<RepairOrders>()
-                .in(RepairOrders::getTechnicianAccountId, techIds)
-                .eq(RepairOrders::getIsDelete, 0)
-        ).stream().map(RepairOrders::getId).collect(Collectors.toSet());
+        return repairOrdersService
+                .list(
+                        new LambdaQueryWrapper<RepairOrders>()
+                                .in(RepairOrders::getTechnicianAccountId, techIds)
+                                .eq(RepairOrders::getIsDelete, 0))
+                .stream()
+                .map(RepairOrders::getId)
+                .collect(Collectors.toSet());
     }
 
     private LoginUserInfo requireAdmin() {

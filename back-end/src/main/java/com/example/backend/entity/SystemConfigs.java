@@ -3,75 +3,45 @@ package com.example.backend.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
-/**
- * 系统配置表
- * @TableName system_configs
- */
-@TableName(value ="system_configs")
+/** 系统配置表 @TableName system_configs */
+@TableName(value = "system_configs")
 @Data
 public class SystemConfigs {
-    /**
-     * 主键，SC+雪花ID
-     */
-    @TableId
-    private String id;
+    /** 主键，SC+雪花ID */
+    @TableId private String id;
 
-    /**
-     * 配置键
-     */
+    /** 配置键 */
     private String configKey;
 
-    /**
-     * 配置值
-     */
+    /** 配置值 */
     private String configValue;
 
-    /**
-     * 配置类型：1-字符串，2-数字，3-布尔值，4-JSON
-     */
+    /** 配置类型：1-字符串，2-数字，3-布尔值，4-JSON */
     private Integer configType;
 
-    /**
-     * 配置描述
-     */
+    /** 配置描述 */
     private String description;
 
-    /**
-     * 配置分组
-     */
+    /** 配置分组 */
     private String groupName;
 
-    /**
-     * 是否系统配置：0-否，1-是
-     */
+    /** 是否系统配置：0-否，1-是 */
     private Integer isSystem;
 
-    /**
-     * 是否加密：0-否，1-是
-     */
+    /** 是否加密：0-否，1-是 */
     private Integer isEncrypted;
 
-    /**
-     * 创建时间戳
-     */
+    /** 创建时间戳 */
     private Long createdTime;
 
-    /**
-     * 更新时间戳
-     */
+    /** 更新时间戳 */
     private Long updatedTime;
 
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
+    /** 乐观锁版本号 */
+    @Version private Integer version;
 
-    /**
-     * 逻辑删除：0-未删除，1-已删除
-     */
-    @TableLogic
-    private Integer isDelete;
+    /** 逻辑删除：0-未删除，1-已删除 */
+    @TableLogic private Integer isDelete;
 
     @Override
     public boolean equals(Object that) {
@@ -86,17 +56,39 @@ public class SystemConfigs {
         }
         SystemConfigs other = (SystemConfigs) that;
         return (this.getId() == null ? other.getId() == null : this.getId().equals(other.getId()))
-            && (this.getConfigKey() == null ? other.getConfigKey() == null : this.getConfigKey().equals(other.getConfigKey()))
-            && (this.getConfigValue() == null ? other.getConfigValue() == null : this.getConfigValue().equals(other.getConfigValue()))
-            && (this.getConfigType() == null ? other.getConfigType() == null : this.getConfigType().equals(other.getConfigType()))
-            && (this.getDescription() == null ? other.getDescription() == null : this.getDescription().equals(other.getDescription()))
-            && (this.getGroupName() == null ? other.getGroupName() == null : this.getGroupName().equals(other.getGroupName()))
-            && (this.getIsSystem() == null ? other.getIsSystem() == null : this.getIsSystem().equals(other.getIsSystem()))
-            && (this.getIsEncrypted() == null ? other.getIsEncrypted() == null : this.getIsEncrypted().equals(other.getIsEncrypted()))
-            && (this.getCreatedTime() == null ? other.getCreatedTime() == null : this.getCreatedTime().equals(other.getCreatedTime()))
-            && (this.getUpdatedTime() == null ? other.getUpdatedTime() == null : this.getUpdatedTime().equals(other.getUpdatedTime()))
-            && (this.getVersion() == null ? other.getVersion() == null : this.getVersion().equals(other.getVersion()))
-            && (this.getIsDelete() == null ? other.getIsDelete() == null : this.getIsDelete().equals(other.getIsDelete()));
+                && (this.getConfigKey() == null
+                        ? other.getConfigKey() == null
+                        : this.getConfigKey().equals(other.getConfigKey()))
+                && (this.getConfigValue() == null
+                        ? other.getConfigValue() == null
+                        : this.getConfigValue().equals(other.getConfigValue()))
+                && (this.getConfigType() == null
+                        ? other.getConfigType() == null
+                        : this.getConfigType().equals(other.getConfigType()))
+                && (this.getDescription() == null
+                        ? other.getDescription() == null
+                        : this.getDescription().equals(other.getDescription()))
+                && (this.getGroupName() == null
+                        ? other.getGroupName() == null
+                        : this.getGroupName().equals(other.getGroupName()))
+                && (this.getIsSystem() == null
+                        ? other.getIsSystem() == null
+                        : this.getIsSystem().equals(other.getIsSystem()))
+                && (this.getIsEncrypted() == null
+                        ? other.getIsEncrypted() == null
+                        : this.getIsEncrypted().equals(other.getIsEncrypted()))
+                && (this.getCreatedTime() == null
+                        ? other.getCreatedTime() == null
+                        : this.getCreatedTime().equals(other.getCreatedTime()))
+                && (this.getUpdatedTime() == null
+                        ? other.getUpdatedTime() == null
+                        : this.getUpdatedTime().equals(other.getUpdatedTime()))
+                && (this.getVersion() == null
+                        ? other.getVersion() == null
+                        : this.getVersion().equals(other.getVersion()))
+                && (this.getIsDelete() == null
+                        ? other.getIsDelete() == null
+                        : this.getIsDelete().equals(other.getIsDelete()));
     }
 
     @Override

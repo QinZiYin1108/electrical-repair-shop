@@ -60,6 +60,17 @@
       </view>
     </view>
 
+    <view wx:if="{{items[0].fulfillmentText}}" class="section-card fulfillment-card">
+      <view class="section-head">
+        <text class="section-title">履约方式</text>
+      </view>
+      <view class="fulfillment-row">
+        <text class="fulfillment-tag">{{items[0].fulfillmentText}}</text>
+        <text wx:if="{{items[0].fulfillmentType === 2}}" class="fulfillment-hint">下单后将安排配送</text>
+        <text wx:else class="fulfillment-hint">下单后请到店自取</text>
+      </view>
+    </view>
+
     <view class="section-card coupon-card" bind:tap="onOpenCouponSheet">
       <view class="section-head">
         <text class="section-title">优惠券</text>

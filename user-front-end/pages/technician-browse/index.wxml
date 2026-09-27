@@ -36,6 +36,9 @@
               <text class="tech-meta-item">{{labels.orderCount}} {{item.orderCount}}</text>
               <text class="tech-meta-item">{{labels.distance}} {{item.distanceText}} km</text>
             </view>
+            <view wx:if="{{item.storeName}}" class="tech-store">
+              <text class="tech-store-text">{{item.storeName}}</text>
+            </view>
             <text class="status-pill status-{{item.workStatusType}}">{{item.workStatusText}}</text>
           </view>
           <view class="icon-actions">

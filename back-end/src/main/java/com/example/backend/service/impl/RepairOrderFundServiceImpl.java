@@ -15,13 +15,14 @@ import com.example.backend.service.RepairOrderFundService;
 import com.example.backend.service.RepairOrdersService;
 import com.example.backend.service.SystemConfigsService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.List;
 
 @Service
 public class RepairOrderFundServiceImpl implements RepairOrderFundService {
@@ -48,11 +49,14 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
     private static final String BT_PLATFORM_ESCROW_IN = "REPAIR_ORDER_ESCROW_IN";
     private static final String BT_PLATFORM_ESCROW_IN_TAIL = "REPAIR_ORDER_ESCROW_IN_TAIL";
     private static final String BT_PLATFORM_ESCROW_OUT_SETTLE = "REPAIR_ORDER_ESCROW_OUT_SETTLE";
-    private static final String BT_PLATFORM_ESCROW_OUT_CANCEL_SETTLE = "REPAIR_ORDER_ESCROW_OUT_CANCEL_SETTLE";
+    private static final String BT_PLATFORM_ESCROW_OUT_CANCEL_SETTLE =
+            "REPAIR_ORDER_ESCROW_OUT_CANCEL_SETTLE";
     private static final String BT_PLATFORM_ESCROW_OUT_REFUND = "REPAIR_ORDER_ESCROW_OUT_REFUND";
     private static final String BT_TECHNICIAN_SETTLEMENT = "REPAIR_ORDER_SETTLEMENT";
-    private static final String BT_TECHNICIAN_SETTLEMENT_PENDING = "REPAIR_ORDER_SETTLEMENT_PENDING";
-    private static final String BT_TECHNICIAN_SETTLEMENT_RELEASE = "REPAIR_ORDER_SETTLEMENT_RELEASE";
+    private static final String BT_TECHNICIAN_SETTLEMENT_PENDING =
+            "REPAIR_ORDER_SETTLEMENT_PENDING";
+    private static final String BT_TECHNICIAN_SETTLEMENT_RELEASE =
+            "REPAIR_ORDER_SETTLEMENT_RELEASE";
     private static final String BT_TECHNICIAN_CANCEL_SETTLEMENT = "REPAIR_ORDER_CANCEL_SETTLEMENT";
     private static final String BT_TECHNICIAN_REFUND_DEDUCT = "REPAIR_ORDER_REFUND_DEDUCT";
     private static final String BT_USER_REFUND = "REPAIR_ORDER_REFUND";
@@ -67,12 +71,11 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
     private final SystemConfigsService systemConfigsService;
 
     public RepairOrderFundServiceImpl(
-        AccountBalancesService accountBalancesService,
-        FundFlowsService fundFlowsService,
-        PaymentRecordsService paymentRecordsService,
-        RepairOrdersService repairOrdersService,
-        SystemConfigsService systemConfigsService
-    ) {
+            AccountBalancesService accountBalancesService,
+            FundFlowsService fundFlowsService,
+            PaymentRecordsService paymentRecordsService,
+            RepairOrdersService repairOrdersService,
+            SystemConfigsService systemConfigsService) {
         this.accountBalancesService = accountBalancesService;
         this.fundFlowsService = fundFlowsService;
         this.paymentRecordsService = paymentRecordsService;
@@ -83,14 +86,13 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void recordOrderPrepay(
-        String userAccountId,
-        String technicianAccountId,
-        String orderId,
-        String orderNo,
-        Integer paymentMethod,
-        BigDecimal amount,
-        long now
-    ) {
+            String userAccountId,
+            String technicianAccountId,
+            String orderId,
+            String orderNo,
+            Integer paymentMethod,
+            BigDecimal amount,
+            long now) {
         BigDecimal normalizedAmount = normalizeAmount(amount);
         if (!StringUtils.hasText(orderId) || normalizedAmount.compareTo(ZERO) <= 0) {
             return;
@@ -103,63 +105,55 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
 
         if (safeInt(paymentMethod) == PAYMENT_METHOD_WALLET) {
             ensureAccountBalance(userAccountId, ACCOUNT_TYPE_USER, now);
-            FundFlows existingUserFlow = fundFlowsService.getOne(
-                new LambdaQueryWrapper<FundFlows>()
-                    .eq(FundFlows::getAccountId, userAccountId)
-                    .eq(FundFlows::getAccountType, ACCOUNT_TYPE_USER)
-                    .eq(FundFlows::getBusinessType, BT_USER_PREPAY)
-                    .eq(FundFlows::getBusinessId, orderId)
-                    .eq(FundFlows::getIsDelete, 0)
-                    .last("limit 1"),
-                false
-            );
+            FundFlows existingUserFlow =
+                    fundFlowsService.getOne(
+                            new LambdaQueryWrapper<FundFlows>()
+                                    .eq(FundFlows::getAccountId, userAccountId)
+                                    .eq(FundFlows::getAccountType, ACCOUNT_TYPE_USER)
+                                    .eq(FundFlows::getBusinessType, BT_USER_PREPAY)
+                                    .eq(FundFlows::getBusinessId, orderId)
+                                    .eq(FundFlows::getIsDelete, 0)
+                                    .last("limit 1"),
+                            false);
             if (existingUserFlow == null) {
                 recordUserWalletExpense(
-                    userAccountId,
-                    orderId,
-                    orderNo,
-                    normalizedAmount,
-                    now,
-                    BT_USER_PREPAY,
-                    "维修订单预付费用（钱包支付）"
-                );
+                        userAccountId,
+                        orderId,
+                        orderNo,
+                        normalizedAmount,
+                        now,
+                        BT_USER_PREPAY,
+                        "维修订单预付费用（钱包支付）");
             }
         }
 
         // Idempotency check: platform escrow inflow
-        FundFlows existingEscrowInFlow = fundFlowsService.getOne(
-            new LambdaQueryWrapper<FundFlows>()
-                .eq(FundFlows::getAccountId, PLATFORM_ACCOUNT_ID)
-                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_PLATFORM)
-                .eq(FundFlows::getBusinessType, BT_PLATFORM_ESCROW_IN)
-                .eq(FundFlows::getBusinessId, orderId)
-                .eq(FundFlows::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        FundFlows existingEscrowInFlow =
+                fundFlowsService.getOne(
+                        new LambdaQueryWrapper<FundFlows>()
+                                .eq(FundFlows::getAccountId, PLATFORM_ACCOUNT_ID)
+                                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_PLATFORM)
+                                .eq(FundFlows::getBusinessType, BT_PLATFORM_ESCROW_IN)
+                                .eq(FundFlows::getBusinessId, orderId)
+                                .eq(FundFlows::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (existingEscrowInFlow == null) {
             escrowPlatformIn(
-                orderId,
-                orderNo,
-                normalizedAmount,
-                now,
-                BT_PLATFORM_ESCROW_IN,
-                "维修订单费用托管入账"
-            );
+                    orderId, orderNo, normalizedAmount, now, BT_PLATFORM_ESCROW_IN, "维修订单费用托管入账");
         }
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void recordOrderTailPay(
-        String userAccountId,
-        String technicianAccountId,
-        String orderId,
-        String orderNo,
-        Integer paymentMethod,
-        BigDecimal amount,
-        long now
-    ) {
+            String userAccountId,
+            String technicianAccountId,
+            String orderId,
+            String orderNo,
+            Integer paymentMethod,
+            BigDecimal amount,
+            long now) {
         BigDecimal normalizedAmount = normalizeAmount(amount);
         if (!StringUtils.hasText(orderId) || normalizedAmount.compareTo(ZERO) <= 0) {
             return;
@@ -172,48 +166,46 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
 
         if (safeInt(paymentMethod) == PAYMENT_METHOD_WALLET) {
             ensureAccountBalance(userAccountId, ACCOUNT_TYPE_USER, now);
-            FundFlows existingUserFlow = fundFlowsService.getOne(
-                new LambdaQueryWrapper<FundFlows>()
-                    .eq(FundFlows::getAccountId, userAccountId)
-                    .eq(FundFlows::getAccountType, ACCOUNT_TYPE_USER)
-                    .eq(FundFlows::getBusinessType, BT_USER_TAIL_PAY)
-                    .eq(FundFlows::getBusinessId, orderId)
-                    .eq(FundFlows::getIsDelete, 0)
-                    .last("limit 1"),
-                false
-            );
+            FundFlows existingUserFlow =
+                    fundFlowsService.getOne(
+                            new LambdaQueryWrapper<FundFlows>()
+                                    .eq(FundFlows::getAccountId, userAccountId)
+                                    .eq(FundFlows::getAccountType, ACCOUNT_TYPE_USER)
+                                    .eq(FundFlows::getBusinessType, BT_USER_TAIL_PAY)
+                                    .eq(FundFlows::getBusinessId, orderId)
+                                    .eq(FundFlows::getIsDelete, 0)
+                                    .last("limit 1"),
+                            false);
             if (existingUserFlow == null) {
                 recordUserWalletExpense(
-                    userAccountId,
+                        userAccountId,
+                        orderId,
+                        orderNo,
+                        normalizedAmount,
+                        now,
+                        BT_USER_TAIL_PAY,
+                        "维修订单尾款支付（钱包支付）");
+            }
+        }
+
+        FundFlows existingEscrowInFlow =
+                fundFlowsService.getOne(
+                        new LambdaQueryWrapper<FundFlows>()
+                                .eq(FundFlows::getAccountId, PLATFORM_ACCOUNT_ID)
+                                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_PLATFORM)
+                                .eq(FundFlows::getBusinessType, BT_PLATFORM_ESCROW_IN_TAIL)
+                                .eq(FundFlows::getBusinessId, orderId)
+                                .eq(FundFlows::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
+        if (existingEscrowInFlow == null) {
+            escrowPlatformIn(
                     orderId,
                     orderNo,
                     normalizedAmount,
                     now,
-                    BT_USER_TAIL_PAY,
-                    "维修订单尾款支付（钱包支付）"
-                );
-            }
-        }
-
-        FundFlows existingEscrowInFlow = fundFlowsService.getOne(
-            new LambdaQueryWrapper<FundFlows>()
-                .eq(FundFlows::getAccountId, PLATFORM_ACCOUNT_ID)
-                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_PLATFORM)
-                .eq(FundFlows::getBusinessType, BT_PLATFORM_ESCROW_IN_TAIL)
-                .eq(FundFlows::getBusinessId, orderId)
-                .eq(FundFlows::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
-        if (existingEscrowInFlow == null) {
-            escrowPlatformIn(
-                orderId,
-                orderNo,
-                normalizedAmount,
-                now,
-                BT_PLATFORM_ESCROW_IN_TAIL,
-                "维修订单尾款托管入账"
-            );
+                    BT_PLATFORM_ESCROW_IN_TAIL,
+                    "维修订单尾款托管入账");
         }
     }
 
@@ -246,16 +238,19 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
         ensureAccountBalance(PLATFORM_ACCOUNT_ID, ACCOUNT_TYPE_PLATFORM, now);
 
         // Idempotency check: settlement flow exists
-        FundFlows existingSettlementFlow = fundFlowsService.getOne(
-            new LambdaQueryWrapper<FundFlows>()
-                .eq(FundFlows::getAccountId, technicianAccountId)
-                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_TECHNICIAN)
-                .in(FundFlows::getBusinessType, BT_TECHNICIAN_SETTLEMENT, BT_TECHNICIAN_SETTLEMENT_PENDING)
-                .eq(FundFlows::getBusinessId, orderId)
-                .eq(FundFlows::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        FundFlows existingSettlementFlow =
+                fundFlowsService.getOne(
+                        new LambdaQueryWrapper<FundFlows>()
+                                .eq(FundFlows::getAccountId, technicianAccountId)
+                                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_TECHNICIAN)
+                                .in(
+                                        FundFlows::getBusinessType,
+                                        BT_TECHNICIAN_SETTLEMENT,
+                                        BT_TECHNICIAN_SETTLEMENT_PENDING)
+                                .eq(FundFlows::getBusinessId, orderId)
+                                .eq(FundFlows::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (existingSettlementFlow != null) {
             return;
         }
@@ -264,12 +259,19 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
         platformEscrowOutSettle(orderId, order.getOrderNo(), amount, now);
 
         // Credit technician available income
-        AccountBalances balance = requireAccountBalance(technicianAccountId, ACCOUNT_TYPE_TECHNICIAN);
+        AccountBalances balance =
+                requireAccountBalance(technicianAccountId, ACCOUNT_TYPE_TECHNICIAN);
         BigDecimal availableBefore = defaultZero(balance.getBalance());
         BigDecimal availableAfter = availableBefore.setScale(2, RoundingMode.HALF_UP);
-        BigDecimal frozenAfter = defaultZero(balance.getFrozenBalance()).add(amount).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal frozenAfter =
+                defaultZero(balance.getFrozenBalance())
+                        .add(amount)
+                        .setScale(2, RoundingMode.HALF_UP);
         balance.setFrozenBalance(frozenAfter);
-        balance.setTotalIncome(defaultZero(balance.getTotalIncome()).add(amount).setScale(2, RoundingMode.HALF_UP));
+        balance.setTotalIncome(
+                defaultZero(balance.getTotalIncome())
+                        .add(amount)
+                        .setScale(2, RoundingMode.HALF_UP));
         balance.setUpdatedTime(now);
 
         if (!accountBalancesService.updateById(balance)) {
@@ -287,7 +289,11 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
         flow.setBusinessType(BT_TECHNICIAN_SETTLEMENT_PENDING);
         flow.setBusinessId(orderId);
         flow.setDescription("维修订单收入已冻结，完成满" + getAfterSalesProtectionDays() + "天后可提现");
-        flow.setRemark("orderNo=" + safe(order.getOrderNo()) + ",frozenBalance=" + frozenAfter.toPlainString());
+        flow.setRemark(
+                "orderNo="
+                        + safe(order.getOrderNo())
+                        + ",frozenBalance="
+                        + frozenAfter.toPlainString());
         flow.setCreatedTime(now);
         flow.setIsDelete(0);
         if (!fundFlowsService.save(flow)) {
@@ -297,22 +303,23 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void releaseEligibleTechnicianFunds(String technicianAccountId, long now) {
+    public int releaseEligibleTechnicianFunds(String technicianAccountId, long now) {
         if (!StringUtils.hasText(technicianAccountId)) {
-            return;
+            return 0;
         }
 
-        List<FundFlows> pendingFlows = fundFlowsService.list(
-            new LambdaQueryWrapper<FundFlows>()
-                .eq(FundFlows::getAccountId, technicianAccountId)
-                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_TECHNICIAN)
-                .eq(FundFlows::getBusinessType, BT_TECHNICIAN_SETTLEMENT_PENDING)
-                .eq(FundFlows::getIsDelete, 0)
-                .orderByAsc(FundFlows::getCreatedTime)
-        );
+        List<FundFlows> pendingFlows =
+                fundFlowsService.list(
+                        new LambdaQueryWrapper<FundFlows>()
+                                .eq(FundFlows::getAccountId, technicianAccountId)
+                                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_TECHNICIAN)
+                                .eq(FundFlows::getBusinessType, BT_TECHNICIAN_SETTLEMENT_PENDING)
+                                .eq(FundFlows::getIsDelete, 0)
+                                .orderByAsc(FundFlows::getCreatedTime));
         if (pendingFlows == null || pendingFlows.isEmpty()) {
-            return;
+            return 0;
         }
+        int released = 0;
 
         ensureAccountBalance(technicianAccountId, ACCOUNT_TYPE_TECHNICIAN, now);
 
@@ -322,30 +329,32 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
                 continue;
             }
 
-            FundFlows existingReleaseFlow = fundFlowsService.getOne(
-                new LambdaQueryWrapper<FundFlows>()
-                    .eq(FundFlows::getAccountId, technicianAccountId)
-                    .eq(FundFlows::getAccountType, ACCOUNT_TYPE_TECHNICIAN)
-                    .eq(FundFlows::getBusinessType, BT_TECHNICIAN_SETTLEMENT_RELEASE)
-                    .eq(FundFlows::getBusinessId, orderId)
-                    .eq(FundFlows::getIsDelete, 0)
-                    .last("limit 1"),
-                false
-            );
+            FundFlows existingReleaseFlow =
+                    fundFlowsService.getOne(
+                            new LambdaQueryWrapper<FundFlows>()
+                                    .eq(FundFlows::getAccountId, technicianAccountId)
+                                    .eq(FundFlows::getAccountType, ACCOUNT_TYPE_TECHNICIAN)
+                                    .eq(
+                                            FundFlows::getBusinessType,
+                                            BT_TECHNICIAN_SETTLEMENT_RELEASE)
+                                    .eq(FundFlows::getBusinessId, orderId)
+                                    .eq(FundFlows::getIsDelete, 0)
+                                    .last("limit 1"),
+                            false);
             if (existingReleaseFlow != null) {
                 continue;
             }
 
-            FundFlows existingDeductFlow = fundFlowsService.getOne(
-                new LambdaQueryWrapper<FundFlows>()
-                    .eq(FundFlows::getAccountId, technicianAccountId)
-                    .eq(FundFlows::getAccountType, ACCOUNT_TYPE_TECHNICIAN)
-                    .eq(FundFlows::getBusinessType, BT_TECHNICIAN_REFUND_DEDUCT)
-                    .eq(FundFlows::getBusinessId, orderId)
-                    .eq(FundFlows::getIsDelete, 0)
-                    .last("limit 1"),
-                false
-            );
+            FundFlows existingDeductFlow =
+                    fundFlowsService.getOne(
+                            new LambdaQueryWrapper<FundFlows>()
+                                    .eq(FundFlows::getAccountId, technicianAccountId)
+                                    .eq(FundFlows::getAccountType, ACCOUNT_TYPE_TECHNICIAN)
+                                    .eq(FundFlows::getBusinessType, BT_TECHNICIAN_REFUND_DEDUCT)
+                                    .eq(FundFlows::getBusinessId, orderId)
+                                    .eq(FundFlows::getIsDelete, 0)
+                                    .last("limit 1"),
+                            false);
             if (existingDeductFlow != null) {
                 continue;
             }
@@ -354,8 +363,10 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
             if (order == null || safeInt(order.getStatus()) != 6) {
                 continue;
             }
-            long completionTime = order.getCompletionTime() == null ? 0L : order.getCompletionTime();
-            if (completionTime <= 0L || now - completionTime < getAfterSalesProtectionPeriodMillis()) {
+            long completionTime =
+                    order.getCompletionTime() == null ? 0L : order.getCompletionTime();
+            if (completionTime <= 0L
+                    || now - completionTime < getAfterSalesProtectionPeriodMillis()) {
                 continue;
             }
 
@@ -364,14 +375,18 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
                 continue;
             }
 
-            AccountBalances balance = requireAccountBalance(technicianAccountId, ACCOUNT_TYPE_TECHNICIAN);
-            BigDecimal availableBefore = defaultZero(balance.getBalance()).setScale(2, RoundingMode.HALF_UP);
-            BigDecimal frozenBefore = defaultZero(balance.getFrozenBalance()).setScale(2, RoundingMode.HALF_UP);
+            AccountBalances balance =
+                    requireAccountBalance(technicianAccountId, ACCOUNT_TYPE_TECHNICIAN);
+            BigDecimal availableBefore =
+                    defaultZero(balance.getBalance()).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal frozenBefore =
+                    defaultZero(balance.getFrozenBalance()).setScale(2, RoundingMode.HALF_UP);
             BigDecimal frozenAfter = frozenBefore.subtract(amount);
             if (frozenAfter.compareTo(ZERO) < 0) {
                 frozenAfter = ZERO.setScale(2, RoundingMode.HALF_UP);
             }
-            BigDecimal availableAfter = availableBefore.add(amount).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal availableAfter =
+                    availableBefore.add(amount).setScale(2, RoundingMode.HALF_UP);
 
             balance.setBalance(availableAfter);
             balance.setFrozenBalance(frozenAfter);
@@ -392,16 +407,45 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
             releaseFlow.setBusinessId(orderId);
             releaseFlow.setDescription("维修订单售后期已结束，收入转为可提现");
             releaseFlow.setRemark(
-                "orderNo=" + safe(order.getOrderNo())
-                    + ",frozenBefore=" + frozenBefore.toPlainString()
-                    + ",frozenAfter=" + frozenAfter.toPlainString()
-            );
+                    "orderNo="
+                            + safe(order.getOrderNo())
+                            + ",frozenBefore="
+                            + frozenBefore.toPlainString()
+                            + ",frozenAfter="
+                            + frozenAfter.toPlainString());
             releaseFlow.setCreatedTime(now);
             releaseFlow.setIsDelete(0);
             if (!fundFlowsService.save(releaseFlow)) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "创建资金流水失败");
             }
+            released++;
         }
+        return released;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int releaseAllEligibleTechnicianFunds(long now) {
+        List<FundFlows> pendingFlows =
+                fundFlowsService.list(
+                        new LambdaQueryWrapper<FundFlows>()
+                                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_TECHNICIAN)
+                                .eq(FundFlows::getBusinessType, BT_TECHNICIAN_SETTLEMENT_PENDING)
+                                .eq(FundFlows::getIsDelete, 0));
+        if (pendingFlows == null || pendingFlows.isEmpty()) {
+            return 0;
+        }
+        Set<String> accountIds = new HashSet<>();
+        for (FundFlows flow : pendingFlows) {
+            if (StringUtils.hasText(flow.getAccountId())) {
+                accountIds.add(flow.getAccountId());
+            }
+        }
+        int released = 0;
+        for (String accountId : accountIds) {
+            released += releaseEligibleTechnicianFunds(accountId, now);
+        }
+        return released;
     }
 
     @Override
@@ -427,29 +471,33 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
         ensureAccountBalance(technicianAccountId, ACCOUNT_TYPE_TECHNICIAN, now);
         ensureAccountBalance(PLATFORM_ACCOUNT_ID, ACCOUNT_TYPE_PLATFORM, now);
 
-        FundFlows existingSettlementFlow = fundFlowsService.getOne(
-            new LambdaQueryWrapper<FundFlows>()
-                .eq(FundFlows::getAccountId, technicianAccountId)
-                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_TECHNICIAN)
-                .eq(FundFlows::getBusinessType, BT_TECHNICIAN_CANCEL_SETTLEMENT)
-                .eq(FundFlows::getBusinessId, orderId)
-                .eq(FundFlows::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        FundFlows existingSettlementFlow =
+                fundFlowsService.getOne(
+                        new LambdaQueryWrapper<FundFlows>()
+                                .eq(FundFlows::getAccountId, technicianAccountId)
+                                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_TECHNICIAN)
+                                .eq(FundFlows::getBusinessType, BT_TECHNICIAN_CANCEL_SETTLEMENT)
+                                .eq(FundFlows::getBusinessId, orderId)
+                                .eq(FundFlows::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (existingSettlementFlow != null) {
             return;
         }
 
         platformEscrowOutCancelSettle(orderId, order.getOrderNo(), normalizedAmount, now);
 
-        AccountBalances balance = requireAccountBalance(technicianAccountId, ACCOUNT_TYPE_TECHNICIAN);
-        BigDecimal availableBefore = defaultZero(balance.getBalance()).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal availableAfter = availableBefore.add(normalizedAmount).setScale(2, RoundingMode.HALF_UP);
+        AccountBalances balance =
+                requireAccountBalance(technicianAccountId, ACCOUNT_TYPE_TECHNICIAN);
+        BigDecimal availableBefore =
+                defaultZero(balance.getBalance()).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal availableAfter =
+                availableBefore.add(normalizedAmount).setScale(2, RoundingMode.HALF_UP);
         balance.setBalance(availableAfter);
         balance.setTotalIncome(
-            defaultZero(balance.getTotalIncome()).add(normalizedAmount).setScale(2, RoundingMode.HALF_UP)
-        );
+                defaultZero(balance.getTotalIncome())
+                        .add(normalizedAmount)
+                        .setScale(2, RoundingMode.HALF_UP));
         balance.setUpdatedTime(now);
 
         if (!accountBalancesService.updateById(balance)) {
@@ -477,7 +525,8 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void refundOnOrderClosed(RepairOrders order, RepairOrderPayments payment, String reason, long now) {
+    public void refundOnOrderClosed(
+            RepairOrders order, RepairOrderPayments payment, String reason, long now) {
         if (order == null || payment == null) {
             return;
         }
@@ -509,16 +558,16 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
         BigDecimal walletRefundAmount = sumWalletPaidAmount(orderId);
         if (walletRefundAmount.compareTo(ZERO) > 0) {
             ensureAccountBalance(userAccountId, ACCOUNT_TYPE_USER, now);
-            FundFlows existingUserRefundFlow = fundFlowsService.getOne(
-                new LambdaQueryWrapper<FundFlows>()
-                    .eq(FundFlows::getAccountId, userAccountId)
-                    .eq(FundFlows::getAccountType, ACCOUNT_TYPE_USER)
-                    .eq(FundFlows::getBusinessType, BT_USER_REFUND)
-                    .eq(FundFlows::getBusinessId, orderId)
-                    .eq(FundFlows::getIsDelete, 0)
-                    .last("limit 1"),
-                false
-            );
+            FundFlows existingUserRefundFlow =
+                    fundFlowsService.getOne(
+                            new LambdaQueryWrapper<FundFlows>()
+                                    .eq(FundFlows::getAccountId, userAccountId)
+                                    .eq(FundFlows::getAccountType, ACCOUNT_TYPE_USER)
+                                    .eq(FundFlows::getBusinessType, BT_USER_REFUND)
+                                    .eq(FundFlows::getBusinessId, orderId)
+                                    .eq(FundFlows::getIsDelete, 0)
+                                    .last("limit 1"),
+                            false);
             if (existingUserRefundFlow == null) {
                 refundToWallet(userAccountId, orderId, order.getOrderNo(), walletRefundAmount, now);
             }
@@ -528,7 +577,8 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
         markPaymentRecordsRefunded(orderId, reason, now);
     }
 
-    private void deductTechnicianIncomeOnRefund(RepairOrders order, BigDecimal amount, String reason, long now) {
+    private void deductTechnicianIncomeOnRefund(
+            RepairOrders order, BigDecimal amount, String reason, long now) {
         if (order == null) {
             return;
         }
@@ -543,52 +593,69 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
             return;
         }
 
-        FundFlows existingDeductFlow = fundFlowsService.getOne(
-            new LambdaQueryWrapper<FundFlows>()
-                .eq(FundFlows::getAccountId, technicianAccountId)
-                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_TECHNICIAN)
-                .eq(FundFlows::getBusinessType, BT_TECHNICIAN_REFUND_DEDUCT)
-                .eq(FundFlows::getBusinessId, orderId)
-                .eq(FundFlows::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        FundFlows existingDeductFlow =
+                fundFlowsService.getOne(
+                        new LambdaQueryWrapper<FundFlows>()
+                                .eq(FundFlows::getAccountId, technicianAccountId)
+                                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_TECHNICIAN)
+                                .eq(FundFlows::getBusinessType, BT_TECHNICIAN_REFUND_DEDUCT)
+                                .eq(FundFlows::getBusinessId, orderId)
+                                .eq(FundFlows::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (existingDeductFlow != null) {
             return;
         }
 
-        FundFlows pendingSettlementFlow = fundFlowsService.getOne(
-            new LambdaQueryWrapper<FundFlows>()
-                .eq(FundFlows::getAccountId, technicianAccountId)
-                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_TECHNICIAN)
-                .in(FundFlows::getBusinessType, BT_TECHNICIAN_SETTLEMENT_PENDING, BT_TECHNICIAN_SETTLEMENT_RELEASE, BT_TECHNICIAN_SETTLEMENT)
-                .eq(FundFlows::getBusinessId, orderId)
-                .eq(FundFlows::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        FundFlows pendingSettlementFlow =
+                fundFlowsService.getOne(
+                        new LambdaQueryWrapper<FundFlows>()
+                                .eq(FundFlows::getAccountId, technicianAccountId)
+                                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_TECHNICIAN)
+                                .in(
+                                        FundFlows::getBusinessType,
+                                        BT_TECHNICIAN_SETTLEMENT_PENDING,
+                                        BT_TECHNICIAN_SETTLEMENT_RELEASE,
+                                        BT_TECHNICIAN_SETTLEMENT)
+                                .eq(FundFlows::getBusinessId, orderId)
+                                .eq(FundFlows::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (pendingSettlementFlow == null) {
             return;
         }
 
         ensureAccountBalance(technicianAccountId, ACCOUNT_TYPE_TECHNICIAN, now);
-        AccountBalances balance = requireAccountBalance(technicianAccountId, ACCOUNT_TYPE_TECHNICIAN);
-        BigDecimal frozenBefore = defaultZero(balance.getFrozenBalance()).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal availableBefore = defaultZero(balance.getBalance()).setScale(2, RoundingMode.HALF_UP);
+        AccountBalances balance =
+                requireAccountBalance(technicianAccountId, ACCOUNT_TYPE_TECHNICIAN);
+        BigDecimal frozenBefore =
+                defaultZero(balance.getFrozenBalance()).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal availableBefore =
+                defaultZero(balance.getBalance()).setScale(2, RoundingMode.HALF_UP);
         BigDecimal frozenDeduction = frozenBefore.min(normalizedAmount);
-        BigDecimal remaining = normalizedAmount.subtract(frozenDeduction).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal availableDeduction = remaining.compareTo(ZERO) > 0 ? availableBefore.min(remaining) : ZERO.setScale(2, RoundingMode.HALF_UP);
-        BigDecimal totalDeduction = frozenDeduction.add(availableDeduction).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal remaining =
+                normalizedAmount.subtract(frozenDeduction).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal availableDeduction =
+                remaining.compareTo(ZERO) > 0
+                        ? availableBefore.min(remaining)
+                        : ZERO.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalDeduction =
+                frozenDeduction.add(availableDeduction).setScale(2, RoundingMode.HALF_UP);
 
         if (totalDeduction.compareTo(normalizedAmount) < 0) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "师傅账户金额不足，无法完成退款扣减");
         }
 
-        BigDecimal frozenAfter = frozenBefore.subtract(frozenDeduction).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal availableAfter = availableBefore.subtract(availableDeduction).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal frozenAfter =
+                frozenBefore.subtract(frozenDeduction).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal availableAfter =
+                availableBefore.subtract(availableDeduction).setScale(2, RoundingMode.HALF_UP);
         balance.setFrozenBalance(frozenAfter);
         balance.setBalance(availableAfter);
-        balance.setTotalExpense(defaultZero(balance.getTotalExpense()).add(totalDeduction).setScale(2, RoundingMode.HALF_UP));
+        balance.setTotalExpense(
+                defaultZero(balance.getTotalExpense())
+                        .add(totalDeduction)
+                        .setScale(2, RoundingMode.HALF_UP));
         balance.setUpdatedTime(now);
         if (!accountBalancesService.updateById(balance)) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "扣减师傅退款金额失败");
@@ -606,11 +673,14 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
         flow.setBusinessId(orderId);
         flow.setDescription("维修订单售后退款，扣减师傅收入");
         flow.setRemark(
-            "orderNo=" + safe(order.getOrderNo())
-                + ",reason=" + safe(reason)
-                + ",frozenDeduction=" + frozenDeduction.toPlainString()
-                + ",availableDeduction=" + availableDeduction.toPlainString()
-        );
+                "orderNo="
+                        + safe(order.getOrderNo())
+                        + ",reason="
+                        + safe(reason)
+                        + ",frozenDeduction="
+                        + frozenDeduction.toPlainString()
+                        + ",availableDeduction="
+                        + availableDeduction.toPlainString());
         flow.setCreatedTime(now);
         flow.setIsDelete(0);
         if (!fundFlowsService.save(flow)) {
@@ -619,23 +689,26 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
     }
 
     private void recordUserWalletExpense(
-        String userAccountId,
-        String orderId,
-        String orderNo,
-        BigDecimal amount,
-        long now,
-        String businessType,
-        String description
-    ) {
+            String userAccountId,
+            String orderId,
+            String orderNo,
+            BigDecimal amount,
+            long now,
+            String businessType,
+            String description) {
         AccountBalances balance = requireAccountBalance(userAccountId, ACCOUNT_TYPE_USER);
-        BigDecimal balanceBefore = defaultZero(balance.getBalance()).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal balanceBefore =
+                defaultZero(balance.getBalance()).setScale(2, RoundingMode.HALF_UP);
         if (balanceBefore.compareTo(amount) < 0) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "钱包余额不足");
         }
         BigDecimal balanceAfter = balanceBefore.subtract(amount).setScale(2, RoundingMode.HALF_UP);
 
         balance.setBalance(balanceAfter);
-        balance.setTotalExpense(defaultZero(balance.getTotalExpense()).add(amount).setScale(2, RoundingMode.HALF_UP));
+        balance.setTotalExpense(
+                defaultZero(balance.getTotalExpense())
+                        .add(amount)
+                        .setScale(2, RoundingMode.HALF_UP));
         balance.setUpdatedTime(now);
         if (!accountBalancesService.updateById(balance)) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新用户资金统计失败");
@@ -660,13 +733,18 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
         }
     }
 
-    private void refundToWallet(String userAccountId, String orderId, String orderNo, BigDecimal amount, long now) {
+    private void refundToWallet(
+            String userAccountId, String orderId, String orderNo, BigDecimal amount, long now) {
         AccountBalances userBalance = requireAccountBalance(userAccountId, ACCOUNT_TYPE_USER);
-        BigDecimal balanceBefore = defaultZero(userBalance.getBalance()).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal balanceBefore =
+                defaultZero(userBalance.getBalance()).setScale(2, RoundingMode.HALF_UP);
         BigDecimal balanceAfter = balanceBefore.add(amount).setScale(2, RoundingMode.HALF_UP);
 
         userBalance.setBalance(balanceAfter);
-        userBalance.setTotalIncome(defaultZero(userBalance.getTotalIncome()).add(amount).setScale(2, RoundingMode.HALF_UP));
+        userBalance.setTotalIncome(
+                defaultZero(userBalance.getTotalIncome())
+                        .add(amount)
+                        .setScale(2, RoundingMode.HALF_UP));
         userBalance.setUpdatedTime(now);
         if (!accountBalancesService.updateById(userBalance)) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新用户资金统计失败");
@@ -695,13 +773,13 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
         if (!StringUtils.hasText(orderId)) {
             return;
         }
-        for (PaymentRecords record : paymentRecordsService.list(
-            new LambdaQueryWrapper<PaymentRecords>()
-                .eq(PaymentRecords::getOrderId, orderId)
-                .eq(PaymentRecords::getOrderType, 1)
-                .eq(PaymentRecords::getIsDelete, 0)
-                .orderByAsc(PaymentRecords::getCreatedTime)
-        )) {
+        for (PaymentRecords record :
+                paymentRecordsService.list(
+                        new LambdaQueryWrapper<PaymentRecords>()
+                                .eq(PaymentRecords::getOrderId, orderId)
+                                .eq(PaymentRecords::getOrderType, 1)
+                                .eq(PaymentRecords::getIsDelete, 0)
+                                .orderByAsc(PaymentRecords::getCreatedTime))) {
             if (safeInt(record.getPaymentStatus()) == PAYMENT_RECORD_STATUS_REFUNDED) {
                 continue;
             }
@@ -717,19 +795,26 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
     }
 
     private void escrowPlatformIn(
-        String orderId,
-        String orderNo,
-        BigDecimal amount,
-        long now,
-        String businessType,
-        String description
-    ) {
-        AccountBalances platform = requireAccountBalance(PLATFORM_ACCOUNT_ID, ACCOUNT_TYPE_PLATFORM);
-        BigDecimal balanceBefore = defaultZero(platform.getBalance()).setScale(2, RoundingMode.HALF_UP);
+            String orderId,
+            String orderNo,
+            BigDecimal amount,
+            long now,
+            String businessType,
+            String description) {
+        AccountBalances platform =
+                requireAccountBalance(PLATFORM_ACCOUNT_ID, ACCOUNT_TYPE_PLATFORM);
+        BigDecimal balanceBefore =
+                defaultZero(platform.getBalance()).setScale(2, RoundingMode.HALF_UP);
         BigDecimal balanceAfter = balanceBefore;
 
-        platform.setFrozenBalance(defaultZero(platform.getFrozenBalance()).add(amount).setScale(2, RoundingMode.HALF_UP));
-        platform.setTotalIncome(defaultZero(platform.getTotalIncome()).add(amount).setScale(2, RoundingMode.HALF_UP));
+        platform.setFrozenBalance(
+                defaultZero(platform.getFrozenBalance())
+                        .add(amount)
+                        .setScale(2, RoundingMode.HALF_UP));
+        platform.setTotalIncome(
+                defaultZero(platform.getTotalIncome())
+                        .add(amount)
+                        .setScale(2, RoundingMode.HALF_UP));
         platform.setUpdatedTime(now);
         if (!accountBalancesService.updateById(platform)) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新平台扫码托管金额失败");
@@ -759,15 +844,16 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
             return ZERO.setScale(2, RoundingMode.HALF_UP);
         }
         BigDecimal total = ZERO.setScale(2, RoundingMode.HALF_UP);
-        for (PaymentRecords record : paymentRecordsService.list(
-            new LambdaQueryWrapper<PaymentRecords>()
-                .eq(PaymentRecords::getOrderId, orderId)
-                .eq(PaymentRecords::getOrderType, 1)
-                .eq(PaymentRecords::getPaymentMethod, PAYMENT_METHOD_WALLET)
-                .eq(PaymentRecords::getIsDelete, 0)
-        )) {
+        for (PaymentRecords record :
+                paymentRecordsService.list(
+                        new LambdaQueryWrapper<PaymentRecords>()
+                                .eq(PaymentRecords::getOrderId, orderId)
+                                .eq(PaymentRecords::getOrderType, 1)
+                                .eq(PaymentRecords::getPaymentMethod, PAYMENT_METHOD_WALLET)
+                                .eq(PaymentRecords::getIsDelete, 0))) {
             int status = safeInt(record.getPaymentStatus());
-            if (status == PAYMENT_RECORD_STATUS_SUCCESS || status == PAYMENT_RECORD_STATUS_REFUNDED) {
+            if (status == PAYMENT_RECORD_STATUS_SUCCESS
+                    || status == PAYMENT_RECORD_STATUS_REFUNDED) {
                 total = total.add(normalizeAmount(record.getPaymentAmount()));
             }
         }
@@ -779,32 +865,34 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
             return null;
         }
         return repairOrdersService.getOne(
-            new LambdaQueryWrapper<RepairOrders>()
-                .eq(RepairOrders::getId, orderId)
-                .eq(RepairOrders::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+                new LambdaQueryWrapper<RepairOrders>()
+                        .eq(RepairOrders::getId, orderId)
+                        .eq(RepairOrders::getIsDelete, 0)
+                        .last("limit 1"),
+                false);
     }
 
-    private void platformEscrowOutSettle(String orderId, String orderNo, BigDecimal amount, long now) {
+    private void platformEscrowOutSettle(
+            String orderId, String orderNo, BigDecimal amount, long now) {
         // idempotency: platform settle-out flow
-        FundFlows existing = fundFlowsService.getOne(
-            new LambdaQueryWrapper<FundFlows>()
-                .eq(FundFlows::getAccountId, PLATFORM_ACCOUNT_ID)
-                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_PLATFORM)
-                .eq(FundFlows::getBusinessType, BT_PLATFORM_ESCROW_OUT_SETTLE)
-                .eq(FundFlows::getBusinessId, orderId)
-                .eq(FundFlows::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        FundFlows existing =
+                fundFlowsService.getOne(
+                        new LambdaQueryWrapper<FundFlows>()
+                                .eq(FundFlows::getAccountId, PLATFORM_ACCOUNT_ID)
+                                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_PLATFORM)
+                                .eq(FundFlows::getBusinessType, BT_PLATFORM_ESCROW_OUT_SETTLE)
+                                .eq(FundFlows::getBusinessId, orderId)
+                                .eq(FundFlows::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (existing != null) {
             return;
         }
 
-        AccountBalances platform = requireAccountBalance(PLATFORM_ACCOUNT_ID, ACCOUNT_TYPE_PLATFORM);
-        BigDecimal balanceBefore = defaultZero(platform.getBalance()).setScale(2, RoundingMode.HALF_UP);
+        AccountBalances platform =
+                requireAccountBalance(PLATFORM_ACCOUNT_ID, ACCOUNT_TYPE_PLATFORM);
+        BigDecimal balanceBefore =
+                defaultZero(platform.getBalance()).setScale(2, RoundingMode.HALF_UP);
         BigDecimal balanceAfter = balanceBefore;
 
         BigDecimal frozenAfter = defaultZero(platform.getFrozenBalance()).subtract(amount);
@@ -812,7 +900,10 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
             frozenAfter = ZERO;
         }
         platform.setFrozenBalance(frozenAfter.setScale(2, RoundingMode.HALF_UP));
-        platform.setTotalExpense(defaultZero(platform.getTotalExpense()).add(amount).setScale(2, RoundingMode.HALF_UP));
+        platform.setTotalExpense(
+                defaultZero(platform.getTotalExpense())
+                        .add(amount)
+                        .setScale(2, RoundingMode.HALF_UP));
         platform.setUpdatedTime(now);
         if (!accountBalancesService.updateById(platform)) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新平台托管金额出账失败");
@@ -837,23 +928,28 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
         }
     }
 
-    private void platformEscrowOutCancelSettle(String orderId, String orderNo, BigDecimal amount, long now) {
-        FundFlows existing = fundFlowsService.getOne(
-            new LambdaQueryWrapper<FundFlows>()
-                .eq(FundFlows::getAccountId, PLATFORM_ACCOUNT_ID)
-                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_PLATFORM)
-                .eq(FundFlows::getBusinessType, BT_PLATFORM_ESCROW_OUT_CANCEL_SETTLE)
-                .eq(FundFlows::getBusinessId, orderId)
-                .eq(FundFlows::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+    private void platformEscrowOutCancelSettle(
+            String orderId, String orderNo, BigDecimal amount, long now) {
+        FundFlows existing =
+                fundFlowsService.getOne(
+                        new LambdaQueryWrapper<FundFlows>()
+                                .eq(FundFlows::getAccountId, PLATFORM_ACCOUNT_ID)
+                                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_PLATFORM)
+                                .eq(
+                                        FundFlows::getBusinessType,
+                                        BT_PLATFORM_ESCROW_OUT_CANCEL_SETTLE)
+                                .eq(FundFlows::getBusinessId, orderId)
+                                .eq(FundFlows::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (existing != null) {
             return;
         }
 
-        AccountBalances platform = requireAccountBalance(PLATFORM_ACCOUNT_ID, ACCOUNT_TYPE_PLATFORM);
-        BigDecimal balanceBefore = defaultZero(platform.getBalance()).setScale(2, RoundingMode.HALF_UP);
+        AccountBalances platform =
+                requireAccountBalance(PLATFORM_ACCOUNT_ID, ACCOUNT_TYPE_PLATFORM);
+        BigDecimal balanceBefore =
+                defaultZero(platform.getBalance()).setScale(2, RoundingMode.HALF_UP);
         BigDecimal balanceAfter = balanceBefore;
 
         BigDecimal frozenAfter = defaultZero(platform.getFrozenBalance()).subtract(amount);
@@ -861,7 +957,10 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
             frozenAfter = ZERO;
         }
         platform.setFrozenBalance(frozenAfter.setScale(2, RoundingMode.HALF_UP));
-        platform.setTotalExpense(defaultZero(platform.getTotalExpense()).add(amount).setScale(2, RoundingMode.HALF_UP));
+        platform.setTotalExpense(
+                defaultZero(platform.getTotalExpense())
+                        .add(amount)
+                        .setScale(2, RoundingMode.HALF_UP));
         platform.setUpdatedTime(now);
         if (!accountBalancesService.updateById(platform)) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "取消后的托管金额结算失败");
@@ -886,24 +985,27 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
         }
     }
 
-    private void platformEscrowOutRefund(String orderId, String orderNo, BigDecimal amount, String reason, long now) {
+    private void platformEscrowOutRefund(
+            String orderId, String orderNo, BigDecimal amount, String reason, long now) {
         // idempotency: platform refund flow
-        FundFlows existing = fundFlowsService.getOne(
-            new LambdaQueryWrapper<FundFlows>()
-                .eq(FundFlows::getAccountId, PLATFORM_ACCOUNT_ID)
-                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_PLATFORM)
-                .eq(FundFlows::getBusinessType, BT_PLATFORM_ESCROW_OUT_REFUND)
-                .eq(FundFlows::getBusinessId, orderId)
-                .eq(FundFlows::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        FundFlows existing =
+                fundFlowsService.getOne(
+                        new LambdaQueryWrapper<FundFlows>()
+                                .eq(FundFlows::getAccountId, PLATFORM_ACCOUNT_ID)
+                                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_PLATFORM)
+                                .eq(FundFlows::getBusinessType, BT_PLATFORM_ESCROW_OUT_REFUND)
+                                .eq(FundFlows::getBusinessId, orderId)
+                                .eq(FundFlows::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (existing != null) {
             return;
         }
 
-        AccountBalances platform = requireAccountBalance(PLATFORM_ACCOUNT_ID, ACCOUNT_TYPE_PLATFORM);
-        BigDecimal balanceBefore = defaultZero(platform.getBalance()).setScale(2, RoundingMode.HALF_UP);
+        AccountBalances platform =
+                requireAccountBalance(PLATFORM_ACCOUNT_ID, ACCOUNT_TYPE_PLATFORM);
+        BigDecimal balanceBefore =
+                defaultZero(platform.getBalance()).setScale(2, RoundingMode.HALF_UP);
         BigDecimal balanceAfter = balanceBefore;
 
         BigDecimal frozenAfter = defaultZero(platform.getFrozenBalance()).subtract(amount);
@@ -911,7 +1013,10 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
             frozenAfter = ZERO;
         }
         platform.setFrozenBalance(frozenAfter.setScale(2, RoundingMode.HALF_UP));
-        platform.setTotalExpense(defaultZero(platform.getTotalExpense()).add(amount).setScale(2, RoundingMode.HALF_UP));
+        platform.setTotalExpense(
+                defaultZero(platform.getTotalExpense())
+                        .add(amount)
+                        .setScale(2, RoundingMode.HALF_UP));
         platform.setUpdatedTime(now);
         if (!accountBalancesService.updateById(platform)) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新平台退款出账失败");
@@ -928,7 +1033,8 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
         flow.setBusinessType(BT_PLATFORM_ESCROW_OUT_REFUND);
         flow.setBusinessId(orderId);
         flow.setDescription("维修订单退款出账（退给用户）");
-        flow.setRemark("orderNo=" + orderNo + (StringUtils.hasText(reason) ? (",reason=" + reason) : ""));
+        flow.setRemark(
+                "orderNo=" + orderNo + (StringUtils.hasText(reason) ? (",reason=" + reason) : ""));
         flow.setCreatedTime(now);
         flow.setIsDelete(0);
         if (!fundFlowsService.save(flow)) {
@@ -937,14 +1043,14 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
     }
 
     private void ensureAccountBalance(String accountId, int accountType, long now) {
-        AccountBalances existing = accountBalancesService.getOne(
-            new LambdaQueryWrapper<AccountBalances>()
-                .eq(AccountBalances::getAccountId, accountId)
-                .eq(AccountBalances::getAccountType, accountType)
-                .eq(AccountBalances::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        AccountBalances existing =
+                accountBalancesService.getOne(
+                        new LambdaQueryWrapper<AccountBalances>()
+                                .eq(AccountBalances::getAccountId, accountId)
+                                .eq(AccountBalances::getAccountType, accountType)
+                                .eq(AccountBalances::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (existing != null) {
             return;
         }
@@ -965,14 +1071,14 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
     }
 
     private AccountBalances requireAccountBalance(String accountId, int accountType) {
-        AccountBalances balance = accountBalancesService.getOne(
-            new LambdaQueryWrapper<AccountBalances>()
-                .eq(AccountBalances::getAccountId, accountId)
-                .eq(AccountBalances::getAccountType, accountType)
-                .eq(AccountBalances::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        AccountBalances balance =
+                accountBalancesService.getOne(
+                        new LambdaQueryWrapper<AccountBalances>()
+                                .eq(AccountBalances::getAccountId, accountId)
+                                .eq(AccountBalances::getAccountType, accountType)
+                                .eq(AccountBalances::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (balance == null) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "账户余额不存在");
         }
@@ -988,7 +1094,9 @@ public class RepairOrderFundServiceImpl implements RepairOrderFundService {
     }
 
     private long getAfterSalesProtectionDays() {
-        Long value = systemConfigsService.getLongConfig("after_sales.valid_days", DEFAULT_AFTER_SALES_PROTECTION_DAYS);
+        Long value =
+                systemConfigsService.getLongConfig(
+                        "after_sales.valid_days", DEFAULT_AFTER_SALES_PROTECTION_DAYS);
         return value == null || value <= 0L ? DEFAULT_AFTER_SALES_PROTECTION_DAYS : value;
     }
 

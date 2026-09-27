@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ProductsServiceImpl extends ServiceImpl<ProductsMapper, Products>
-    implements ProductsService {
+        implements ProductsService {
 
     @Override
     @Transactional
@@ -74,7 +74,3 @@ public class ProductsServiceImpl extends ServiceImpl<ProductsMapper, Products>
         return notFrozen && auditPassed && onShelf;
     }
 }
-
-
-
-

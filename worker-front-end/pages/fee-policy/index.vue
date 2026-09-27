@@ -113,7 +113,10 @@
 </template>
 
 <script>
-import { getWorkerVisitFeePolicies, updateWorkerVisitFeePolicies } from '@/api/workerVisitFeePolicy';
+import {
+  getWorkerVisitFeePolicies,
+  updateWorkerVisitFeePolicies
+} from '@/api/workerVisitFeePolicy';
 
 export default {
   name: 'WorkerVisitFeePolicyPage',
@@ -129,10 +132,7 @@ export default {
         { label: '向上取整', value: 1 },
         { label: '四舍五入', value: 2 }
       ],
-      feePolicies: [
-        this.createDefaultPolicy(1),
-        this.createDefaultPolicy(2)
-      ]
+      feePolicies: [this.createDefaultPolicy(1), this.createDefaultPolicy(2)]
     };
   },
   onShow() {
@@ -156,9 +156,10 @@ export default {
       };
     },
     normalizePolicy(policy, fallbackServiceKind) {
-      const serviceKind = policy && (policy.serviceKind === 1 || policy.serviceKind === 2)
-        ? policy.serviceKind
-        : fallbackServiceKind;
+      const serviceKind =
+        policy && (policy.serviceKind === 1 || policy.serviceKind === 2)
+          ? policy.serviceKind
+          : fallbackServiceKind;
       return {
         id: (policy && policy.id) || '',
         serviceKind,
@@ -179,11 +180,17 @@ export default {
           if (res && res.code === 200 && Array.isArray(res.data)) {
             const policyMap = new Map();
             res.data.forEach((item) => {
-              if (item && (item.serviceKind === 1 || item.serviceKind === 2) && !policyMap.has(item.serviceKind)) {
+              if (
+                item &&
+                (item.serviceKind === 1 || item.serviceKind === 2) &&
+                !policyMap.has(item.serviceKind)
+              ) {
                 policyMap.set(item.serviceKind, item);
               }
             });
-            this.feePolicies = [1, 2].map((kind) => this.normalizePolicy(policyMap.get(kind), kind));
+            this.feePolicies = [1, 2].map((kind) =>
+              this.normalizePolicy(policyMap.get(kind), kind)
+            );
             return;
           }
           uni.showToast({
@@ -214,12 +221,14 @@ export default {
       return value === 2 ? 1 : 0;
     },
     onDistanceCalcChange(index, event) {
-      const selected = this.distanceCalcOptions[Number(event && event.detail ? event.detail.value : 0)];
+      const selected =
+        this.distanceCalcOptions[Number(event && event.detail ? event.detail.value : 0)];
       if (!selected) return;
       this.feePolicies[index].distanceCalcType = selected.value;
     },
     onRoundingRuleChange(index, event) {
-      const selected = this.roundingRuleOptions[Number(event && event.detail ? event.detail.value : 0)];
+      const selected =
+        this.roundingRuleOptions[Number(event && event.detail ? event.detail.value : 0)];
       if (!selected) return;
       this.feePolicies[index].roundingRule = selected.value;
     },
@@ -232,7 +241,8 @@ export default {
         if (!Number.isFinite(minVisitFee) || minVisitFee < 0) return '最低上门费不能小于0';
         if (!Number.isFinite(baseRadiusKm) || baseRadiusKm < 0) return '基础服务半径不能小于0';
         if (!Number.isFinite(extraFeePerKm) || extraFeePerKm < 0) return '超区每公里费用不能小于0';
-        if (maxVisitFee !== null && (!Number.isFinite(maxVisitFee) || maxVisitFee < 0)) return '封顶公里数不能小于0';
+        if (maxVisitFee !== null && (!Number.isFinite(maxVisitFee) || maxVisitFee < 0))
+          return '封顶公里数不能小于0';
       }
       return '';
     },

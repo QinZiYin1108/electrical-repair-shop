@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.backend.mapper.ContentCheckLogsMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.backend.entity.ContentCheckLogs">
+        <id property="id" column="id"/>
+        <result property="accountId" column="account_id"/>
+        <result property="accountType" column="account_type"/>
+        <result property="contentType" column="content_type"/>
+        <result property="content" column="content"/>
+        <result property="checkResult" column="check_result"/>
+        <result property="hitRuleId" column="hit_rule_id"/>
+        <result property="hitKeyword" column="hit_keyword"/>
+        <result property="source" column="source"/>
+        <result property="createdTime" column="created_time"/>
+        <result property="isDelete" column="is_delete"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,account_id,account_type,content_type,content,
+        check_result,hit_rule_id,hit_keyword,source,created_time,is_delete
+    </sql>
+</mapper>

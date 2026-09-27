@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "门店详情",
+  "enablePullDownRefresh": true,
+  "usingComponents": {
+    "van-loading": "@vant/weapp/loading/index",
+    "van-icon": "@vant/weapp/icon/index"
+  }
+}

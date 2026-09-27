@@ -1,9 +1,18 @@
 {
+  "scripts": {
+    "format": "prettier --write \"*.{js,json,vue,scss,html}\" \"api/**/*.js\" \"utils/**/*.js\" \"scripts/**/*.js\" \"pages/**/*.vue\"",
+    "format:check": "prettier --check \"*.{js,json,vue,scss,html}\" \"api/**/*.js\" \"utils/**/*.js\" \"scripts/**/*.js\" \"pages/**/*.vue\"",
+    "validate": "node scripts/validate-project.js",
+    "check": "npm run format:check && npm run validate"
+  },
   "dependencies": {
     "uview-plus": "^3.7.13",
     "vue": "^3.0.0"
   },
   "devDependencies": {
+    "@vue/compiler-sfc": "^3.5.29",
+    "json5": "^2.2.3",
+    "prettier": "^3.7.0",
     "sass": "^1.63.2",
     "sass-loader": "^10.4.1"
   }

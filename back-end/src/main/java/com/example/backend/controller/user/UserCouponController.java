@@ -12,15 +12,10 @@ import com.example.backend.security.model.AccountRole;
 import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.CouponsService;
 import com.example.backend.service.UserCouponsService;
-import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -28,8 +23,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "用户端/优惠券")
 @RequestMapping("/user/coupons")
 public class UserCouponController {
 
@@ -40,30 +41,35 @@ public class UserCouponController {
     private final UserCouponsService userCouponsService;
     private final CouponsService couponsService;
 
-    public UserCouponController(UserCouponsService userCouponsService, CouponsService couponsService) {
+    public UserCouponController(
+            UserCouponsService userCouponsService, CouponsService couponsService) {
         this.userCouponsService = userCouponsService;
         this.couponsService = couponsService;
     }
 
+    @Operation(summary = "查询优惠券列表")
     @GetMapping("/list")
-    public Result<UserCouponModel.ListResponse> listCoupons(@RequestParam(value = "status", required = false) String status) {
+    public Result<UserCouponModel.ListResponse> listCoupons(
+            @RequestParam(value = "status", required = false) String status) {
         LoginUserInfo user = requireCurrentUser();
         long now = System.currentTimeMillis();
         refreshExpiredCoupons(user.getAccountId(), now);
-        List<UserCoupons> userCoupons = userCouponsService.list(
-            buildListQuery(user.getAccountId(), normalizeStatus(status))
-        );
+        List<UserCoupons> userCoupons =
+                userCouponsService.list(
+                        buildListQuery(user.getAccountId(), normalizeStatus(status)));
         UserCouponModel.ListResponse response = new UserCouponModel.ListResponse();
         if (userCoupons.isEmpty()) {
             return Result.success(response);
         }
         Map<String, Coupons> couponMap = loadCouponMap(userCoupons);
         for (UserCoupons userCoupon : userCoupons) {
-            response.getItems().add(toListItem(userCoupon, couponMap.get(userCoupon.getCouponId()), now));
+            response.getItems()
+                    .add(toListItem(userCoupon, couponMap.get(userCoupon.getCouponId()), now));
         }
         return Result.success(response);
     }
 
+    @Operation(summary = "查询详情")
     @GetMapping("/detail")
     public Result<UserCouponModel.DetailResponse> getDetail(@RequestParam("id") String id) {
         LoginUserInfo user = requireCurrentUser();
@@ -72,13 +78,13 @@ public class UserCouponController {
         }
         long now = System.currentTimeMillis();
         refreshExpiredCoupons(user.getAccountId(), now);
-        UserCoupons userCoupon = userCouponsService.getOne(
-            new LambdaQueryWrapper<UserCoupons>()
-                .eq(UserCoupons::getId, id)
-                .eq(UserCoupons::getUserId, user.getAccountId())
-                .last("limit 1"),
-            false
-        );
+        UserCoupons userCoupon =
+                userCouponsService.getOne(
+                        new LambdaQueryWrapper<UserCoupons>()
+                                .eq(UserCoupons::getId, id)
+                                .eq(UserCoupons::getUserId, user.getAccountId())
+                                .last("limit 1"),
+                        false);
         if (userCoupon == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "优惠券不存在");
         }
@@ -87,10 +93,11 @@ public class UserCouponController {
     }
 
     private LambdaQueryWrapper<UserCoupons> buildListQuery(String userId, String status) {
-        LambdaQueryWrapper<UserCoupons> wrapper = new LambdaQueryWrapper<UserCoupons>()
-            .eq(UserCoupons::getUserId, userId)
-            .orderByDesc(UserCoupons::getUpdatedTime)
-            .orderByDesc(UserCoupons::getCreatedTime);
+        LambdaQueryWrapper<UserCoupons> wrapper =
+                new LambdaQueryWrapper<UserCoupons>()
+                        .eq(UserCoupons::getUserId, userId)
+                        .orderByDesc(UserCoupons::getUpdatedTime)
+                        .orderByDesc(UserCoupons::getCreatedTime);
         if ("unused".equals(status)) {
             wrapper.eq(UserCoupons::getStatus, STATUS_UNUSED);
         } else if ("used".equals(status)) {
@@ -102,20 +109,24 @@ public class UserCouponController {
     }
 
     private Map<String, Coupons> loadCouponMap(List<UserCoupons> userCoupons) {
-        Set<String> couponIds = userCoupons.stream()
-            .map(UserCoupons::getCouponId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toCollection(LinkedHashSet::new));
+        Set<String> couponIds =
+                userCoupons.stream()
+                        .map(UserCoupons::getCouponId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
         if (couponIds.isEmpty()) {
             return new LinkedHashMap<>();
         }
-        return couponsService.list(
-            new LambdaQueryWrapper<Coupons>()
-                .in(Coupons::getId, couponIds)
-        ).stream().collect(Collectors.toMap(Coupons::getId, item -> item, (a, b) -> a, LinkedHashMap::new));
+        return couponsService
+                .list(new LambdaQueryWrapper<Coupons>().in(Coupons::getId, couponIds))
+                .stream()
+                .collect(
+                        Collectors.toMap(
+                                Coupons::getId, item -> item, (a, b) -> a, LinkedHashMap::new));
     }
 
-    private UserCouponModel.ListItemResponse toListItem(UserCoupons userCoupon, Coupons coupon, long now) {
+    private UserCouponModel.ListItemResponse toListItem(
+            UserCoupons userCoupon, Coupons coupon, long now) {
         UserCouponModel.DetailResponse detail = toDetail(userCoupon, coupon, now);
         UserCouponModel.ListItemResponse item = new UserCouponModel.ListItemResponse();
         item.setId(detail.getId());
@@ -142,7 +153,8 @@ public class UserCouponController {
         return item;
     }
 
-    private UserCouponModel.DetailResponse toDetail(UserCoupons userCoupon, Coupons coupon, long now) {
+    private UserCouponModel.DetailResponse toDetail(
+            UserCoupons userCoupon, Coupons coupon, long now) {
         UserCouponModel.DetailResponse response = new UserCouponModel.DetailResponse();
         response.setId(userCoupon.getId());
         response.setCouponId(userCoupon.getCouponId());
@@ -167,14 +179,18 @@ public class UserCouponController {
         response.setDiscountValue(coupon.getDiscountValue());
         response.setDiscountText(buildDiscountText(coupon));
         response.setMinAmount(normalizeMoney(coupon.getMinAmount()));
-        response.setMaxDiscount(coupon.getMaxDiscount() == null ? null : normalizeMoney(coupon.getMaxDiscount()));
+        response.setMaxDiscount(
+                coupon.getMaxDiscount() == null ? null : normalizeMoney(coupon.getMaxDiscount()));
         response.setApplicableType(coupon.getApplicableType());
         response.setApplicableTypeText(getApplicableTypeText(coupon.getApplicableType()));
         response.setStartTime(coupon.getStartTime());
         response.setEndTime(coupon.getEndTime());
-        if (!Objects.equals(coupon.getStatus(), 1) && Objects.equals(response.getStatus(), STATUS_UNUSED)) {
+        if (!Objects.equals(coupon.getStatus(), 1)
+                && Objects.equals(response.getStatus(), STATUS_UNUSED)) {
             response.setDisabledReason("当前优惠券已停用");
-        } else if (coupon.getStartTime() != null && coupon.getStartTime() > now && Objects.equals(response.getStatus(), STATUS_UNUSED)) {
+        } else if (coupon.getStartTime() != null
+                && coupon.getStartTime() > now
+                && Objects.equals(response.getStatus(), STATUS_UNUSED)) {
             response.setDisabledReason("当前优惠券尚未生效");
         }
         return response;
@@ -182,13 +198,13 @@ public class UserCouponController {
 
     private void refreshExpiredCoupons(String userId, long now) {
         userCouponsService.update(
-            new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<UserCoupons>()
-                .eq(UserCoupons::getUserId, userId)
-                .eq(UserCoupons::getStatus, STATUS_UNUSED)
-                .lt(UserCoupons::getExpireTime, now)
-                .set(UserCoupons::getStatus, STATUS_EXPIRED)
-                .set(UserCoupons::getUpdatedTime, now)
-        );
+                new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<
+                                UserCoupons>()
+                        .eq(UserCoupons::getUserId, userId)
+                        .eq(UserCoupons::getStatus, STATUS_UNUSED)
+                        .lt(UserCoupons::getExpireTime, now)
+                        .set(UserCoupons::getStatus, STATUS_EXPIRED)
+                        .set(UserCoupons::getUpdatedTime, now));
     }
 
     private Integer defaultStatus(Integer status, Long expireTime, long now) {
@@ -240,7 +256,10 @@ public class UserCouponController {
             return "运费减免";
         }
         if (Objects.equals(coupon.getDiscountType(), 2)) {
-            return (coupon.getDiscountValue() == null ? BigDecimal.TEN : coupon.getDiscountValue()).stripTrailingZeros().toPlainString() + "折";
+            return (coupon.getDiscountValue() == null ? BigDecimal.TEN : coupon.getDiscountValue())
+                            .stripTrailingZeros()
+                            .toPlainString()
+                    + "折";
         }
         return "￥" + normalizeMoney(coupon.getDiscountValue()).toPlainString() + "优惠";
     }

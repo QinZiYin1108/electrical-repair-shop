@@ -11,6 +11,7 @@ import com.example.backend.entity.Images;
 import com.example.backend.entity.OrderItems;
 import com.example.backend.entity.PaymentRecords;
 import com.example.backend.entity.ProductOrders;
+import com.example.backend.entity.Products;
 import com.example.backend.entity.UserAccounts;
 import com.example.backend.entity.Videos;
 import com.example.backend.exception.BusinessException;
@@ -18,31 +19,26 @@ import com.example.backend.model.admin.AdminAfterSalesMediaItemResponse;
 import com.example.backend.model.admin.AdminAfterSalesProcessRequest;
 import com.example.backend.model.admin.AdminProductAfterSalesModel;
 import com.example.backend.model.admin.AdminProductOrderModel;
+import com.example.backend.model.audit.AuditEventCommand;
 import com.example.backend.security.context.AuthUserContext;
 import com.example.backend.security.model.AccountRole;
 import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.AccountBalancesService;
 import com.example.backend.service.AfterSalesApplicationsService;
+import com.example.backend.service.AuditEventsService;
 import com.example.backend.service.FundFlowsService;
 import com.example.backend.service.ImagesService;
-import com.example.backend.entity.Products;
+import com.example.backend.service.InventoryService;
 import com.example.backend.service.OrderItemsService;
 import com.example.backend.service.PaymentRecordsService;
+import com.example.backend.service.PaymentRefundsService;
 import com.example.backend.service.ProductOrdersService;
 import com.example.backend.service.ProductsService;
 import com.example.backend.service.UserAccountsService;
 import com.example.backend.service.VideosService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -53,8 +49,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "管理员端/商品售后")
 @RequestMapping("/admin/product-after-sales/requests")
 public class AdminProductAfterSalesController {
 
@@ -93,22 +99,27 @@ public class AdminProductAfterSalesController {
     private final AccountBalancesService accountBalancesService;
     private final FundFlowsService fundFlowsService;
     private final PaymentRecordsService paymentRecordsService;
+    private final PaymentRefundsService paymentRefundsService;
     private final ImagesService imagesService;
     private final VideosService videosService;
     private final ProductsService productsService;
+    private final InventoryService inventoryService;
+    private final AuditEventsService auditEventsService;
 
     public AdminProductAfterSalesController(
-        AfterSalesApplicationsService afterSalesApplicationsService,
-        ProductOrdersService productOrdersService,
-        OrderItemsService orderItemsService,
-        UserAccountsService userAccountsService,
-        AccountBalancesService accountBalancesService,
-        FundFlowsService fundFlowsService,
-        PaymentRecordsService paymentRecordsService,
-        ImagesService imagesService,
-        VideosService videosService,
-        ProductsService productsService
-    ) {
+            AfterSalesApplicationsService afterSalesApplicationsService,
+            ProductOrdersService productOrdersService,
+            OrderItemsService orderItemsService,
+            UserAccountsService userAccountsService,
+            AccountBalancesService accountBalancesService,
+            FundFlowsService fundFlowsService,
+            PaymentRecordsService paymentRecordsService,
+            PaymentRefundsService paymentRefundsService,
+            ImagesService imagesService,
+            VideosService videosService,
+            ProductsService productsService,
+            InventoryService inventoryService,
+            AuditEventsService auditEventsService) {
         this.afterSalesApplicationsService = afterSalesApplicationsService;
         this.productOrdersService = productOrdersService;
         this.orderItemsService = orderItemsService;
@@ -116,26 +127,29 @@ public class AdminProductAfterSalesController {
         this.accountBalancesService = accountBalancesService;
         this.fundFlowsService = fundFlowsService;
         this.paymentRecordsService = paymentRecordsService;
+        this.paymentRefundsService = paymentRefundsService;
         this.imagesService = imagesService;
         this.videosService = videosService;
         this.productsService = productsService;
+        this.inventoryService = inventoryService;
+        this.auditEventsService = auditEventsService;
     }
 
     @GetMapping
     public Result<Page<AdminProductAfterSalesModel.ListItemResponse>> listRequests(
-        @RequestParam(value = "pageNum", defaultValue = "1") long pageNum,
-        @RequestParam(value = "pageSize", defaultValue = "10") long pageSize,
-        @RequestParam(value = "keyword", required = false) String keyword,
-        @RequestParam(value = "status", required = false) Integer status,
-        @RequestParam(value = "applicationType", required = false) Integer applicationType
-    ) {
+            @RequestParam(value = "pageNum", defaultValue = "1") long pageNum,
+            @RequestParam(value = "pageSize", defaultValue = "10") long pageSize,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "applicationType", required = false) Integer applicationType) {
         LoginUserInfo admin = requireAdmin();
         long currentPage = pageNum <= 0 ? 1 : pageNum;
         long currentSize = pageSize <= 0 ? 10 : pageSize;
 
-        LambdaQueryWrapper<AfterSalesApplications> wrapper = new LambdaQueryWrapper<AfterSalesApplications>()
-            .eq(AfterSalesApplications::getOrderType, ORDER_TYPE_PRODUCT)
-            .eq(AfterSalesApplications::getIsDelete, 0);
+        LambdaQueryWrapper<AfterSalesApplications> wrapper =
+                new LambdaQueryWrapper<AfterSalesApplications>()
+                        .eq(AfterSalesApplications::getOrderType, ORDER_TYPE_PRODUCT)
+                        .eq(AfterSalesApplications::getIsDelete, 0);
 
         // 门店管理员：仅查看本门店商品的售后申请
         applyStoreFilter(admin, wrapper);
@@ -147,26 +161,30 @@ public class AdminProductAfterSalesController {
         }
         applyKeywordFilter(wrapper, keyword);
         wrapper.orderByAsc(AfterSalesApplications::getStatus)
-            .orderByDesc(AfterSalesApplications::getCreatedTime);
+                .orderByDesc(AfterSalesApplications::getCreatedTime);
 
-        Page<AfterSalesApplications> page = afterSalesApplicationsService.page(new Page<>(currentPage, currentSize), wrapper);
-        Page<AdminProductAfterSalesModel.ListItemResponse> responsePage = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
+        Page<AfterSalesApplications> page =
+                afterSalesApplicationsService.page(new Page<>(currentPage, currentSize), wrapper);
+        Page<AdminProductAfterSalesModel.ListItemResponse> responsePage =
+                new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
         responsePage.setRecords(buildListItems(page.getRecords()));
         return Result.success(responsePage);
     }
 
+    @Operation(summary = "查询详情")
     @GetMapping("/{id}")
-    public Result<AdminProductAfterSalesModel.DetailResponse> getDetail(@PathVariable("id") String id) {
+    public Result<AdminProductAfterSalesModel.DetailResponse> getDetail(
+            @PathVariable("id") String id) {
         requireAdmin();
         return Result.success(buildDetailResponse(requireApplication(id)));
     }
 
+    @Operation(summary = "提交process")
     @PostMapping("/{id}/process")
     @Transactional(rollbackFor = Exception.class)
     public Result<AdminProductAfterSalesModel.DetailResponse> process(
-        @PathVariable("id") String id,
-        @RequestBody(required = false) AdminAfterSalesProcessRequest request
-    ) {
+            @PathVariable("id") String id,
+            @RequestBody(required = false) AdminAfterSalesProcessRequest request) {
         LoginUserInfo admin = requireAdmin();
         AfterSalesApplications application = requireApplication(id);
         ProductOrders order = requireOrder(application.getOrderId());
@@ -189,79 +207,147 @@ public class AdminProductAfterSalesController {
         return Result.success(buildDetailResponse(requireApplication(id)));
     }
 
-    private void applyKeywordFilter(LambdaQueryWrapper<AfterSalesApplications> wrapper, String keyword) {
+    private void applyKeywordFilter(
+            LambdaQueryWrapper<AfterSalesApplications> wrapper, String keyword) {
         String normalizedKeyword = trimToNull(keyword);
         if (!StringUtils.hasText(normalizedKeyword)) {
             return;
         }
 
-        Set<String> accountIds = userAccountsService.list(
-            new LambdaQueryWrapper<UserAccounts>()
-                .eq(UserAccounts::getIsDelete, 0)
-                .and(q -> q.like(UserAccounts::getUsername, normalizedKeyword)
-                    .or().like(UserAccounts::getPhone, normalizedKeyword))
-        ).stream().map(UserAccounts::getId).filter(StringUtils::hasText).collect(Collectors.toSet());
+        Set<String> accountIds =
+                userAccountsService
+                        .list(
+                                new LambdaQueryWrapper<UserAccounts>()
+                                        .eq(UserAccounts::getIsDelete, 0)
+                                        .and(
+                                                q ->
+                                                        q.like(
+                                                                        UserAccounts::getUsername,
+                                                                        normalizedKeyword)
+                                                                .or()
+                                                                .like(
+                                                                        UserAccounts::getPhone,
+                                                                        normalizedKeyword)))
+                        .stream()
+                        .map(UserAccounts::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
 
-        Set<String> orderIds = orderItemsService.list(
-            new LambdaQueryWrapper<OrderItems>()
-                .eq(OrderItems::getIsDelete, 0)
-                .and(q -> q.like(OrderItems::getProductName, normalizedKeyword)
-                    .or().like(OrderItems::getProductId, normalizedKeyword))
-        ).stream().map(OrderItems::getOrderId).filter(StringUtils::hasText).collect(Collectors.toSet());
+        Set<String> orderIds =
+                orderItemsService
+                        .list(
+                                new LambdaQueryWrapper<OrderItems>()
+                                        .eq(OrderItems::getIsDelete, 0)
+                                        .and(
+                                                q ->
+                                                        q.like(
+                                                                        OrderItems::getProductName,
+                                                                        normalizedKeyword)
+                                                                .or()
+                                                                .like(
+                                                                        OrderItems::getProductId,
+                                                                        normalizedKeyword)))
+                        .stream()
+                        .map(OrderItems::getOrderId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
 
-        orderIds.addAll(productOrdersService.list(
-            new LambdaQueryWrapper<ProductOrders>()
-                .eq(ProductOrders::getIsDelete, 0)
-                .and(q -> q.like(ProductOrders::getOrderNo, normalizedKeyword)
-                    .or().like(ProductOrders::getDeliveryName, normalizedKeyword)
-                    .or().like(ProductOrders::getDeliveryPhone, normalizedKeyword)
-                    .or().like(ProductOrders::getDeliveryAddress, normalizedKeyword))
-        ).stream().map(ProductOrders::getId).filter(StringUtils::hasText).collect(Collectors.toSet()));
+        orderIds.addAll(
+                productOrdersService
+                        .list(
+                                new LambdaQueryWrapper<ProductOrders>()
+                                        .eq(ProductOrders::getIsDelete, 0)
+                                        .and(
+                                                q ->
+                                                        q.like(
+                                                                        ProductOrders::getOrderNo,
+                                                                        normalizedKeyword)
+                                                                .or()
+                                                                .like(
+                                                                        ProductOrders
+                                                                                ::getDeliveryName,
+                                                                        normalizedKeyword)
+                                                                .or()
+                                                                .like(
+                                                                        ProductOrders
+                                                                                ::getDeliveryPhone,
+                                                                        normalizedKeyword)
+                                                                .or()
+                                                                .like(
+                                                                        ProductOrders
+                                                                                ::getDeliveryAddress,
+                                                                        normalizedKeyword)))
+                        .stream()
+                        .map(ProductOrders::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet()));
 
-        Set<String> matchedApplicationIds = afterSalesApplicationsService.list(
-            new LambdaQueryWrapper<AfterSalesApplications>()
-                .eq(AfterSalesApplications::getOrderType, ORDER_TYPE_PRODUCT)
-                .eq(AfterSalesApplications::getIsDelete, 0)
-                .and(q -> q.like(AfterSalesApplications::getReason, normalizedKeyword)
-                    .or().like(AfterSalesApplications::getDescription, normalizedKeyword))
-        ).stream().map(AfterSalesApplications::getId).filter(StringUtils::hasText).collect(Collectors.toSet());
+        Set<String> matchedApplicationIds =
+                afterSalesApplicationsService
+                        .list(
+                                new LambdaQueryWrapper<AfterSalesApplications>()
+                                        .eq(
+                                                AfterSalesApplications::getOrderType,
+                                                ORDER_TYPE_PRODUCT)
+                                        .eq(AfterSalesApplications::getIsDelete, 0)
+                                        .and(
+                                                q ->
+                                                        q.like(
+                                                                        AfterSalesApplications
+                                                                                ::getReason,
+                                                                        normalizedKeyword)
+                                                                .or()
+                                                                .like(
+                                                                        AfterSalesApplications
+                                                                                ::getDescription,
+                                                                        normalizedKeyword)))
+                        .stream()
+                        .map(AfterSalesApplications::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
 
-        wrapper.and(q -> {
-            q.like(AfterSalesApplications::getOrderId, normalizedKeyword);
-            if (!matchedApplicationIds.isEmpty()) {
-                q.or().in(AfterSalesApplications::getId, matchedApplicationIds);
-            }
-            if (!accountIds.isEmpty()) {
-                q.or().in(AfterSalesApplications::getAccountId, accountIds);
-            }
-            if (!orderIds.isEmpty()) {
-                q.or().in(AfterSalesApplications::getOrderId, orderIds);
-            }
-        });
+        wrapper.and(
+                q -> {
+                    q.like(AfterSalesApplications::getOrderId, normalizedKeyword);
+                    if (!matchedApplicationIds.isEmpty()) {
+                        q.or().in(AfterSalesApplications::getId, matchedApplicationIds);
+                    }
+                    if (!accountIds.isEmpty()) {
+                        q.or().in(AfterSalesApplications::getAccountId, accountIds);
+                    }
+                    if (!orderIds.isEmpty()) {
+                        q.or().in(AfterSalesApplications::getOrderId, orderIds);
+                    }
+                });
     }
 
-    private List<AdminProductAfterSalesModel.ListItemResponse> buildListItems(List<AfterSalesApplications> applications) {
+    private List<AdminProductAfterSalesModel.ListItemResponse> buildListItems(
+            List<AfterSalesApplications> applications) {
         if (applications == null || applications.isEmpty()) {
             return Collections.emptyList();
         }
         Map<String, ProductOrders> orderMap = listOrderMap(applications);
         Map<String, UserAccounts> userMap = listUserMap(applications);
-        Map<String, List<OrderItems>> orderItemMap = listOrderItemMap(orderMap.values().stream().collect(Collectors.toList()));
+        Map<String, List<OrderItems>> orderItemMap =
+                listOrderItemMap(orderMap.values().stream().collect(Collectors.toList()));
         List<AdminProductAfterSalesModel.ListItemResponse> result = new ArrayList<>();
         for (AfterSalesApplications application : applications) {
             ProductOrders order = orderMap.get(application.getOrderId());
-            List<OrderItems> orderItems = orderItemMap.getOrDefault(application.getOrderId(), Collections.emptyList());
+            List<OrderItems> orderItems =
+                    orderItemMap.getOrDefault(application.getOrderId(), Collections.emptyList());
             UserAccounts user = userMap.get(application.getAccountId());
             String productSummary = buildProductSummary(orderItems);
 
-            AdminProductAfterSalesModel.ListItemResponse item = new AdminProductAfterSalesModel.ListItemResponse();
+            AdminProductAfterSalesModel.ListItemResponse item =
+                    new AdminProductAfterSalesModel.ListItemResponse();
             item.setId(application.getId());
             item.setOrderId(application.getOrderId());
             item.setOrderNo(safe(order == null ? null : order.getOrderNo()));
             item.setStatus(application.getStatus());
             item.setStatusText(getAfterSalesStatusText(application.getStatus()));
             item.setApplicationType(application.getApplicationType());
-            item.setApplicationTypeText(getAfterSalesApplicationTypeText(application.getApplicationType()));
+            item.setApplicationTypeText(
+                    getAfterSalesApplicationTypeText(application.getApplicationType()));
             item.setReason(safe(application.getReason()));
             item.setUserId(application.getAccountId());
             item.setUserName(safe(user == null ? null : user.getUsername()));
@@ -275,20 +361,23 @@ public class AdminProductAfterSalesController {
         return result;
     }
 
-    private AdminProductAfterSalesModel.DetailResponse buildDetailResponse(AfterSalesApplications application) {
+    private AdminProductAfterSalesModel.DetailResponse buildDetailResponse(
+            AfterSalesApplications application) {
         ProductOrders order = requireOrder(application.getOrderId());
         List<OrderItems> orderItems = listOrderItems(order.getId());
         UserAccounts user = getUserAccount(application.getAccountId());
         PaymentRecords payment = getLatestPayment(order.getId());
 
-        AdminProductAfterSalesModel.DetailResponse detail = new AdminProductAfterSalesModel.DetailResponse();
+        AdminProductAfterSalesModel.DetailResponse detail =
+                new AdminProductAfterSalesModel.DetailResponse();
         detail.setId(application.getId());
         detail.setOrderId(application.getOrderId());
         detail.setOrderNo(safe(order.getOrderNo()));
         detail.setStatus(application.getStatus());
         detail.setStatusText(getAfterSalesStatusText(application.getStatus()));
         detail.setApplicationType(application.getApplicationType());
-        detail.setApplicationTypeText(getAfterSalesApplicationTypeText(application.getApplicationType()));
+        detail.setApplicationTypeText(
+                getAfterSalesApplicationTypeText(application.getApplicationType()));
         detail.setReason(safe(application.getReason()));
         detail.setDescription(safe(application.getDescription()));
         detail.setRefundAmount(formatMoney(application.getRefundAmount()));
@@ -314,23 +403,27 @@ public class AdminProductAfterSalesController {
         detail.setDeliveryCompany(safe(order.getDeliveryCompany()));
         detail.setDeliveryNo(safe(order.getDeliveryNo()));
         detail.setTotalAmount(formatMoney(order.getTotalAmount()));
-        detail.setPaidAmount(formatMoney(payment == null ? order.getActualAmount() : payment.getPaymentAmount()));
+        detail.setPaidAmount(
+                formatMoney(
+                        payment == null ? order.getActualAmount() : payment.getPaymentAmount()));
         detail.setCanApprove(canApprove(application));
         detail.setCanReject(canReject(application));
         detail.setCanRefund(canRefund(application));
-        detail.setItems(orderItems.stream().map(this::buildOrderItemResponse).collect(Collectors.toCollection(ArrayList::new)));
+        detail.setItems(
+                orderItems.stream()
+                        .map(this::buildOrderItemResponse)
+                        .collect(Collectors.toCollection(ArrayList::new)));
         detail.setEvidenceImages(listAfterSalesImages(application.getId()));
         detail.setEvidenceVideos(listAfterSalesVideos(application.getId()));
         return detail;
     }
 
     private void handleApprove(
-        AfterSalesApplications application,
-        ProductOrders order,
-        LoginUserInfo admin,
-        String adminRemark,
-        long now
-    ) {
+            AfterSalesApplications application,
+            ProductOrders order,
+            LoginUserInfo admin,
+            String adminRemark,
+            long now) {
         if (!canApprove(application)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "当前售后申请暂不可审核通过");
         }
@@ -349,7 +442,8 @@ public class AdminProductAfterSalesController {
         }
     }
 
-    private void handleReject(AfterSalesApplications application, LoginUserInfo admin, String adminRemark, long now) {
+    private void handleReject(
+            AfterSalesApplications application, LoginUserInfo admin, String adminRemark, long now) {
         if (!canReject(application)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "当前售后申请暂不可驳回");
         }
@@ -369,12 +463,11 @@ public class AdminProductAfterSalesController {
     }
 
     private void handleRefund(
-        AfterSalesApplications application,
-        ProductOrders order,
-        LoginUserInfo admin,
-        String adminRemark,
-        long now
-    ) {
+            AfterSalesApplications application,
+            ProductOrders order,
+            LoginUserInfo admin,
+            String adminRemark,
+            long now) {
         if (!canRefund(application)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "当前售后申请暂不可确认退款");
         }
@@ -382,14 +475,15 @@ public class AdminProductAfterSalesController {
     }
 
     private void doRefund(
-        AfterSalesApplications application,
-        ProductOrders order,
-        LoginUserInfo admin,
-        String adminRemark,
-        long now
-    ) {
+            AfterSalesApplications application,
+            ProductOrders order,
+            LoginUserInfo admin,
+            String adminRemark,
+            long now) {
         PaymentRecords payment = getLatestPayment(order.getId());
-        BigDecimal refundAmount = normalizeMoney(payment == null ? order.getActualAmount() : payment.getPaymentAmount());
+        BigDecimal refundAmount =
+                normalizeMoney(
+                        payment == null ? order.getActualAmount() : payment.getPaymentAmount());
         String refundReason = StringUtils.hasText(adminRemark) ? adminRemark : "管理员同意商品售后退款";
         int previousOrderStatus = safeInt(order.getOrderStatus());
 
@@ -397,7 +491,8 @@ public class AdminProductAfterSalesController {
         application.setAdminId(admin.getAccountId());
         application.setAdminRemark(adminRemark);
         application.setRefundAmount(refundAmount);
-        application.setProcessedTime(application.getProcessedTime() == null ? now : application.getProcessedTime());
+        application.setProcessedTime(
+                application.getProcessedTime() == null ? now : application.getProcessedTime());
         application.setCompletedTime(now);
         application.setUpdatedTime(now);
         if (!afterSalesApplicationsService.updateById(application)) {
@@ -413,22 +508,28 @@ public class AdminProductAfterSalesController {
         if (previousOrderStatus == ORDER_STATUS_PENDING_RECEIPT && order.getReceiveTime() == null) {
             order.setReceiveTime(now);
         }
-        if ((previousOrderStatus == ORDER_STATUS_PENDING_REVIEW || previousOrderStatus == ORDER_STATUS_COMPLETED)
-            && order.getCompletionTime() == null) {
+        if ((previousOrderStatus == ORDER_STATUS_PENDING_REVIEW
+                        || previousOrderStatus == ORDER_STATUS_COMPLETED)
+                && order.getCompletionTime() == null) {
             order.setCompletionTime(now);
         }
         if (!productOrdersService.updateById(order)) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新订单状态失败");
         }
 
-        refundToUserBalance(
-            order,
-            refundAmount,
-            payment == null ? order.getPaymentMethod() : payment.getPaymentMethod(),
-            payment == null ? null : payment.getPaymentNo(),
-            payment == null ? null : payment.getThirdPartyNo(),
-            now
-        );
+        Integer payMethod = payment == null ? order.getPaymentMethod() : payment.getPaymentMethod();
+        if (payMethod != null && payMethod != PAYMENT_METHOD_WALLET) {
+            paymentRefundsService.refundOrderChannelPayments(
+                    order.getId(), refundReason, admin.getAccountId());
+        } else {
+            refundToUserBalance(
+                    order,
+                    refundAmount,
+                    payMethod,
+                    payment == null ? null : payment.getPaymentNo(),
+                    payment == null ? null : payment.getThirdPartyNo(),
+                    now);
+        }
 
         if (payment != null) {
             payment.setPaymentStatus(PAYMENT_RECORD_STATUS_REFUNDED);
@@ -440,16 +541,46 @@ public class AdminProductAfterSalesController {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新支付记录失败");
             }
         }
+
+        // 退货退款：商品退回后可售，回补库存；仅退款不回补。
+        if (safeInt(application.getApplicationType()) == AFTER_SALES_TYPE_RETURN_REFUND) {
+            restoreReturnedStock(order.getId(), now);
+        }
+
+        auditEventsService.record(
+                new AuditEventCommand(
+                        "ORDER_REFUND",
+                        "PRODUCT_ORDER",
+                        order.getId(),
+                        String.valueOf(previousOrderStatus),
+                        String.valueOf(order.getOrderStatus()),
+                        null,
+                        refundAmount,
+                        refundReason,
+                        application.getId()));
+    }
+
+    private void restoreReturnedStock(String orderId, long now) {
+        List<OrderItems> items =
+                orderItemsService.list(
+                        new LambdaQueryWrapper<OrderItems>()
+                                .eq(OrderItems::getOrderId, orderId)
+                                .eq(OrderItems::getIsDelete, 0));
+        for (OrderItems item : items) {
+            int quantity = item.getQuantity() == null ? 0 : item.getQuantity();
+            if (quantity > 0) {
+                inventoryService.restoreStock(item.getProductId(), quantity, now);
+            }
+        }
     }
 
     private void refundToUserBalance(
-        ProductOrders order,
-        BigDecimal refundAmount,
-        Integer paymentMethod,
-        String paymentNo,
-        String thirdPartyNo,
-        long now
-    ) {
+            ProductOrders order,
+            BigDecimal refundAmount,
+            Integer paymentMethod,
+            String paymentNo,
+            String thirdPartyNo,
+            long now) {
         if (order == null || !StringUtils.hasText(order.getAccountId())) {
             return;
         }
@@ -458,16 +589,16 @@ public class AdminProductAfterSalesController {
             return;
         }
 
-        FundFlows existingFlow = fundFlowsService.getOne(
-            new LambdaQueryWrapper<FundFlows>()
-                .eq(FundFlows::getAccountId, order.getAccountId())
-                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_USER)
-                .eq(FundFlows::getBusinessType, PRODUCT_ORDER_REFUND_BUSINESS_TYPE)
-                .eq(FundFlows::getBusinessId, order.getId())
-                .eq(FundFlows::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        FundFlows existingFlow =
+                fundFlowsService.getOne(
+                        new LambdaQueryWrapper<FundFlows>()
+                                .eq(FundFlows::getAccountId, order.getAccountId())
+                                .eq(FundFlows::getAccountType, ACCOUNT_TYPE_USER)
+                                .eq(FundFlows::getBusinessType, PRODUCT_ORDER_REFUND_BUSINESS_TYPE)
+                                .eq(FundFlows::getBusinessId, order.getId())
+                                .eq(FundFlows::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (existingFlow != null) {
             return;
         }
@@ -477,7 +608,10 @@ public class AdminProductAfterSalesController {
         BigDecimal balanceAfter = balanceBefore.add(amount).setScale(2, RoundingMode.HALF_UP);
 
         balance.setBalance(balanceAfter);
-        balance.setTotalIncome(normalizeMoney(balance.getTotalIncome()).add(amount).setScale(2, RoundingMode.HALF_UP));
+        balance.setTotalIncome(
+                normalizeMoney(balance.getTotalIncome())
+                        .add(amount)
+                        .setScale(2, RoundingMode.HALF_UP));
         balance.setUpdatedTime(now);
         if (!accountBalancesService.updateById(balance)) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新用户资金统计失败");
@@ -504,14 +638,14 @@ public class AdminProductAfterSalesController {
     }
 
     private AccountBalances ensureUserBalance(String accountId, long now) {
-        AccountBalances balance = accountBalancesService.getOne(
-            new LambdaQueryWrapper<AccountBalances>()
-                .eq(AccountBalances::getAccountId, accountId)
-                .eq(AccountBalances::getAccountType, ACCOUNT_TYPE_USER)
-                .eq(AccountBalances::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        AccountBalances balance =
+                accountBalancesService.getOne(
+                        new LambdaQueryWrapper<AccountBalances>()
+                                .eq(AccountBalances::getAccountId, accountId)
+                                .eq(AccountBalances::getAccountType, ACCOUNT_TYPE_USER)
+                                .eq(AccountBalances::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (balance != null) {
             return balance;
         }
@@ -535,11 +669,7 @@ public class AdminProductAfterSalesController {
     }
 
     private String buildRefundFlowRemark(
-        ProductOrders order,
-        Integer paymentMethod,
-        String paymentNo,
-        String thirdPartyNo
-    ) {
+            ProductOrders order, Integer paymentMethod, String paymentNo, String thirdPartyNo) {
         StringBuilder remark = new StringBuilder();
         remark.append("orderNo=").append(safe(order == null ? null : order.getOrderNo()));
         remark.append(",sourcePaymentMethod=").append(getPaymentMethodText(paymentMethod));
@@ -553,63 +683,86 @@ public class AdminProductAfterSalesController {
     }
 
     private boolean canApprove(AfterSalesApplications application) {
-        return safeInt(application == null ? null : application.getStatus()) == AFTER_SALES_STATUS_PENDING;
+        return safeInt(application == null ? null : application.getStatus())
+                == AFTER_SALES_STATUS_PENDING;
     }
 
     private boolean canReject(AfterSalesApplications application) {
-        return safeInt(application == null ? null : application.getStatus()) == AFTER_SALES_STATUS_PENDING;
+        return safeInt(application == null ? null : application.getStatus())
+                == AFTER_SALES_STATUS_PENDING;
     }
 
     private boolean canRefund(AfterSalesApplications application) {
         return application != null
-            && safeInt(application.getApplicationType()) == AFTER_SALES_TYPE_RETURN_REFUND
-            && safeInt(application.getStatus()) == AFTER_SALES_STATUS_APPROVED;
+                && safeInt(application.getApplicationType()) == AFTER_SALES_TYPE_RETURN_REFUND
+                && safeInt(application.getStatus()) == AFTER_SALES_STATUS_APPROVED;
     }
 
     private Map<String, ProductOrders> listOrderMap(List<AfterSalesApplications> applications) {
-        Set<String> orderIds = applications.stream()
-            .map(AfterSalesApplications::getOrderId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+        Set<String> orderIds =
+                applications.stream()
+                        .map(AfterSalesApplications::getOrderId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (orderIds.isEmpty()) {
             return new HashMap<>();
         }
-        return productOrdersService.list(
-            new LambdaQueryWrapper<ProductOrders>()
-                .in(ProductOrders::getId, orderIds)
-                .eq(ProductOrders::getIsDelete, 0)
-        ).stream().collect(Collectors.toMap(ProductOrders::getId, item -> item, (a, b) -> a, LinkedHashMap::new));
+        return productOrdersService
+                .list(
+                        new LambdaQueryWrapper<ProductOrders>()
+                                .in(ProductOrders::getId, orderIds)
+                                .eq(ProductOrders::getIsDelete, 0))
+                .stream()
+                .collect(
+                        Collectors.toMap(
+                                ProductOrders::getId,
+                                item -> item,
+                                (a, b) -> a,
+                                LinkedHashMap::new));
     }
 
     private Map<String, UserAccounts> listUserMap(List<AfterSalesApplications> applications) {
-        Set<String> userIds = applications.stream()
-            .map(AfterSalesApplications::getAccountId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+        Set<String> userIds =
+                applications.stream()
+                        .map(AfterSalesApplications::getAccountId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (userIds.isEmpty()) {
             return new HashMap<>();
         }
-        return userAccountsService.list(
-            new LambdaQueryWrapper<UserAccounts>()
-                .in(UserAccounts::getId, userIds)
-                .eq(UserAccounts::getIsDelete, 0)
-        ).stream().collect(Collectors.toMap(UserAccounts::getId, item -> item, (a, b) -> a, LinkedHashMap::new));
+        return userAccountsService
+                .list(
+                        new LambdaQueryWrapper<UserAccounts>()
+                                .in(UserAccounts::getId, userIds)
+                                .eq(UserAccounts::getIsDelete, 0))
+                .stream()
+                .collect(
+                        Collectors.toMap(
+                                UserAccounts::getId,
+                                item -> item,
+                                (a, b) -> a,
+                                LinkedHashMap::new));
     }
 
     private Map<String, List<OrderItems>> listOrderItemMap(List<ProductOrders> orders) {
-        Set<String> orderIds = orders.stream()
-            .map(ProductOrders::getId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+        Set<String> orderIds =
+                orders.stream()
+                        .map(ProductOrders::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (orderIds.isEmpty()) {
             return new HashMap<>();
         }
-        return orderItemsService.list(
-            new LambdaQueryWrapper<OrderItems>()
-                .in(OrderItems::getOrderId, orderIds)
-                .eq(OrderItems::getIsDelete, 0)
-                .orderByAsc(OrderItems::getCreatedTime)
-        ).stream().collect(Collectors.groupingBy(OrderItems::getOrderId, LinkedHashMap::new, Collectors.toList()));
+        return orderItemsService
+                .list(
+                        new LambdaQueryWrapper<OrderItems>()
+                                .in(OrderItems::getOrderId, orderIds)
+                                .eq(OrderItems::getIsDelete, 0)
+                                .orderByAsc(OrderItems::getCreatedTime))
+                .stream()
+                .collect(
+                        Collectors.groupingBy(
+                                OrderItems::getOrderId, LinkedHashMap::new, Collectors.toList()));
     }
 
     private List<OrderItems> listOrderItems(String orderId) {
@@ -617,21 +770,20 @@ public class AdminProductAfterSalesController {
             return Collections.emptyList();
         }
         return orderItemsService.list(
-            new LambdaQueryWrapper<OrderItems>()
-                .eq(OrderItems::getOrderId, orderId)
-                .eq(OrderItems::getIsDelete, 0)
-                .orderByAsc(OrderItems::getCreatedTime)
-        );
+                new LambdaQueryWrapper<OrderItems>()
+                        .eq(OrderItems::getOrderId, orderId)
+                        .eq(OrderItems::getIsDelete, 0)
+                        .orderByAsc(OrderItems::getCreatedTime));
     }
 
     private ProductOrders requireOrder(String orderId) {
-        ProductOrders order = productOrdersService.getOne(
-            new LambdaQueryWrapper<ProductOrders>()
-                .eq(ProductOrders::getId, orderId)
-                .eq(ProductOrders::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        ProductOrders order =
+                productOrdersService.getOne(
+                        new LambdaQueryWrapper<ProductOrders>()
+                                .eq(ProductOrders::getId, orderId)
+                                .eq(ProductOrders::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (order == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "商品订单不存在");
         }
@@ -639,14 +791,14 @@ public class AdminProductAfterSalesController {
     }
 
     private AfterSalesApplications requireApplication(String id) {
-        AfterSalesApplications application = afterSalesApplicationsService.getOne(
-            new LambdaQueryWrapper<AfterSalesApplications>()
-                .eq(AfterSalesApplications::getId, id)
-                .eq(AfterSalesApplications::getOrderType, ORDER_TYPE_PRODUCT)
-                .eq(AfterSalesApplications::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        AfterSalesApplications application =
+                afterSalesApplicationsService.getOne(
+                        new LambdaQueryWrapper<AfterSalesApplications>()
+                                .eq(AfterSalesApplications::getId, id)
+                                .eq(AfterSalesApplications::getOrderType, ORDER_TYPE_PRODUCT)
+                                .eq(AfterSalesApplications::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (application == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "商品售后申请不存在");
         }
@@ -665,18 +817,18 @@ public class AdminProductAfterSalesController {
             return null;
         }
         return paymentRecordsService.getOne(
-            new LambdaQueryWrapper<PaymentRecords>()
-                .eq(PaymentRecords::getOrderId, orderId)
-                .eq(PaymentRecords::getOrderType, ORDER_TYPE_PRODUCT)
-                .eq(PaymentRecords::getIsDelete, 0)
-                .orderByDesc(PaymentRecords::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+                new LambdaQueryWrapper<PaymentRecords>()
+                        .eq(PaymentRecords::getOrderId, orderId)
+                        .eq(PaymentRecords::getOrderType, ORDER_TYPE_PRODUCT)
+                        .eq(PaymentRecords::getIsDelete, 0)
+                        .orderByDesc(PaymentRecords::getCreatedTime)
+                        .last("limit 1"),
+                false);
     }
 
     private AdminProductOrderModel.OrderItemResponse buildOrderItemResponse(OrderItems item) {
-        AdminProductOrderModel.OrderItemResponse response = new AdminProductOrderModel.OrderItemResponse();
+        AdminProductOrderModel.OrderItemResponse response =
+                new AdminProductOrderModel.OrderItemResponse();
         response.setId(item.getId());
         response.setProductId(safe(item.getProductId()));
         response.setProductName(safe(item.getProductName()));
@@ -691,26 +843,32 @@ public class AdminProductAfterSalesController {
         if (!StringUtils.hasText(applicationId)) {
             return Collections.emptyList();
         }
-        return imagesService.list(
-            new LambdaQueryWrapper<Images>()
-                .eq(Images::getBusinessType, AFTER_SALES_BUSINESS_TYPE)
-                .eq(Images::getBusinessId, applicationId)
-                .eq(Images::getIsDelete, 0)
-                .orderByAsc(Images::getCreatedTime)
-        ).stream().map(this::buildImageItem).collect(Collectors.toCollection(ArrayList::new));
+        return imagesService
+                .list(
+                        new LambdaQueryWrapper<Images>()
+                                .eq(Images::getBusinessType, AFTER_SALES_BUSINESS_TYPE)
+                                .eq(Images::getBusinessId, applicationId)
+                                .eq(Images::getIsDelete, 0)
+                                .orderByAsc(Images::getCreatedTime))
+                .stream()
+                .map(this::buildImageItem)
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     private List<AdminAfterSalesMediaItemResponse> listAfterSalesVideos(String applicationId) {
         if (!StringUtils.hasText(applicationId)) {
             return Collections.emptyList();
         }
-        return videosService.list(
-            new LambdaQueryWrapper<Videos>()
-                .eq(Videos::getBusinessType, AFTER_SALES_BUSINESS_TYPE)
-                .eq(Videos::getBusinessId, applicationId)
-                .eq(Videos::getIsDelete, 0)
-                .orderByAsc(Videos::getCreatedTime)
-        ).stream().map(this::buildVideoItem).collect(Collectors.toCollection(ArrayList::new));
+        return videosService
+                .list(
+                        new LambdaQueryWrapper<Videos>()
+                                .eq(Videos::getBusinessType, AFTER_SALES_BUSINESS_TYPE)
+                                .eq(Videos::getBusinessId, applicationId)
+                                .eq(Videos::getIsDelete, 0)
+                                .orderByAsc(Videos::getCreatedTime))
+                .stream()
+                .map(this::buildVideoItem)
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     private AdminAfterSalesMediaItemResponse buildImageItem(Images image) {
@@ -718,7 +876,10 @@ public class AdminProductAfterSalesController {
         item.setId(image.getId());
         item.setUrl(safe(image.getFileUrl()));
         item.setThumbnailUrl(safe(image.getFileUrl()));
-        item.setName(StringUtils.hasText(image.getOriginalName()) ? image.getOriginalName() : safe(image.getFileName()));
+        item.setName(
+                StringUtils.hasText(image.getOriginalName())
+                        ? image.getOriginalName()
+                        : safe(image.getFileName()));
         item.setMimeType(safe(image.getMimeType()));
         return item;
     }
@@ -728,39 +889,43 @@ public class AdminProductAfterSalesController {
         item.setId(video.getId());
         item.setUrl(safe(video.getFileUrl()));
         item.setThumbnailUrl(safe(video.getThumbnailUrl()));
-        item.setName(StringUtils.hasText(video.getOriginalName()) ? video.getOriginalName() : safe(video.getFileName()));
+        item.setName(
+                StringUtils.hasText(video.getOriginalName())
+                        ? video.getOriginalName()
+                        : safe(video.getFileName()));
         item.setMimeType(safe(video.getMimeType()));
         item.setDuration(video.getDuration());
         return item;
     }
 
-    /**
-     * 门店管理员过滤：仅查看本门店商品产生的售后申请
-     */
-    private void applyStoreFilter(LoginUserInfo admin, LambdaQueryWrapper<AfterSalesApplications> wrapper) {
+    /** 门店管理员过滤：仅查看本门店商品产生的售后申请 */
+    private void applyStoreFilter(
+            LoginUserInfo admin, LambdaQueryWrapper<AfterSalesApplications> wrapper) {
         if (admin == null || !admin.isStoreAdmin() || !StringUtils.hasText(admin.getStoreId())) {
             return;
         }
-        List<Products> storeProducts = productsService.list(
-            new LambdaQueryWrapper<Products>()
-                .eq(Products::getStoreId, admin.getStoreId())
-                .eq(Products::getIsDelete, 0)
-        );
+        List<Products> storeProducts =
+                productsService.list(
+                        new LambdaQueryWrapper<Products>()
+                                .eq(Products::getStoreId, admin.getStoreId())
+                                .eq(Products::getIsDelete, 0));
         if (storeProducts.isEmpty()) {
             wrapper.eq(AfterSalesApplications::getId, "-1");
             return;
         }
-        Set<String> productIds = storeProducts.stream().map(Products::getId).collect(Collectors.toSet());
-        List<OrderItems> items = orderItemsService.list(
-            new LambdaQueryWrapper<OrderItems>()
-                .in(OrderItems::getProductId, productIds)
-                .eq(OrderItems::getIsDelete, 0)
-        );
+        Set<String> productIds =
+                storeProducts.stream().map(Products::getId).collect(Collectors.toSet());
+        List<OrderItems> items =
+                orderItemsService.list(
+                        new LambdaQueryWrapper<OrderItems>()
+                                .in(OrderItems::getProductId, productIds)
+                                .eq(OrderItems::getIsDelete, 0));
         if (items.isEmpty()) {
             wrapper.eq(AfterSalesApplications::getId, "-1");
             return;
         }
-        Set<String> orderIds = items.stream().map(OrderItems::getOrderId).collect(Collectors.toSet());
+        Set<String> orderIds =
+                items.stream().map(OrderItems::getOrderId).collect(Collectors.toSet());
         wrapper.in(AfterSalesApplications::getOrderId, orderIds);
     }
 
@@ -776,10 +941,11 @@ public class AdminProductAfterSalesController {
     }
 
     private int calculateItemCount(List<OrderItems> orderItems) {
-        return (orderItems == null ? Collections.<OrderItems>emptyList() : orderItems).stream()
-            .map(OrderItems::getQuantity)
-            .filter(item -> item != null && item > 0)
-            .reduce(0, Integer::sum);
+        return (orderItems == null ? Collections.<OrderItems>emptyList() : orderItems)
+                .stream()
+                        .map(OrderItems::getQuantity)
+                        .filter(item -> item != null && item > 0)
+                        .reduce(0, Integer::sum);
     }
 
     private String buildProductSummary(List<OrderItems> orderItems) {

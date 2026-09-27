@@ -1,35 +1,23 @@
 <template>
   <view class="page login-page">
     <view class="page-shell">
-      <image
-        class="city-bg"
-        src="/static/login/worker-login-bg.png"
-        mode="widthFix"
-      />
+      <image class="city-bg" src="/static/login/worker-login-bg.png" mode="widthFix" />
       <view class="hero-glow"></view>
 
       <view class="hero-section">
         <view class="hero-copy">
-          <text class="brand-title">安修到家</text>
+          <text class="brand-title">速修派</text>
           <view class="hero-badge">
             <text class="hero-badge-text">维修师傅端</text>
           </view>
           <text class="hero-desc">专业维修 · 接单自由 · 收入保障</text>
         </view>
-        <image
-          class="hero-worker"
-          src="/static/login/worker-login-hero.png"
-          mode="widthFix"
-        />
+        <image class="hero-worker" src="/static/login/worker-login-hero.png" mode="widthFix" />
       </view>
 
       <view class="login-card">
         <view class="mode-tabs">
-          <view
-            class="mode-tab"
-            :class="{ active: mode === 'code' }"
-            @click="switchMode('code')"
-          >
+          <view class="mode-tab" :class="{ active: mode === 'code' }" @click="switchMode('code')">
             <text class="mode-tab-text">验证码登录</text>
             <view class="mode-tab-indicator"></view>
           </view>
@@ -46,15 +34,15 @@
         <view class="form-stack">
           <view class="field">
             <view class="field-icon">
-              <u-icon name="email" size="22" color="#8F99A8" />
+              <u-icon name="phone" size="22" color="#8F99A8" />
             </view>
             <input
-              v-model="email"
+              v-model="phone"
               class="field-input"
-              type="text"
-              maxlength="60"
+              type="number"
+              maxlength="11"
               confirm-type="next"
-              placeholder="请输入邮箱地址"
+              placeholder="请输入手机号"
               placeholder-class="input-placeholder"
             />
           </view>
@@ -100,11 +88,7 @@
           </view>
         </view>
 
-        <view
-          class="primary-button"
-          :class="{ disabled: submitting }"
-          @click="handleSubmit"
-        >
+        <view class="primary-button" :class="{ disabled: submitting }" @click="handleSubmit">
           <text class="primary-button-text">
             {{ submitting ? '登录中...' : '登录' }}
           </text>
@@ -112,35 +96,18 @@
 
         <view class="agreement-row" @click="toggleAgreement">
           <view class="agreement-box" :class="{ checked: agreed }">
-            <u-icon
-              v-if="agreed"
-              name="checkmark"
-              size="12"
-              color="#FFFFFF"
-            />
+            <u-icon v-if="agreed" name="checkmark" size="12" color="#FFFFFF" />
           </view>
           <view class="agreement-copy">
             <text class="agreement-text">我已阅读并同意</text>
-            <text
-              class="agreement-link"
-              @click.stop="openProtocol('user')"
-            >
-              《用户协议》
-            </text>
+            <text class="agreement-link" @click.stop="openProtocol('user')"> 《用户协议》 </text>
             <text class="agreement-text">和</text>
-            <text
-              class="agreement-link"
-              @click.stop="openProtocol('privacy')"
-            >
-              《隐私政策》
-            </text>
+            <text class="agreement-link" @click.stop="openProtocol('privacy')"> 《隐私政策》 </text>
           </view>
         </view>
 
         <view class="assist-row">
-          <text class="assist-link muted" @click="goResetPassword">
-            忘记密码
-          </text>
+          <text class="assist-link muted" @click="goResetPassword"> 忘记密码 </text>
         </view>
       </view>
 
@@ -152,18 +119,14 @@
 </template>
 
 <script>
-import {
-  workerLoginByPassword,
-  workerSendLoginCode,
-  workerLoginByCode
-} from '@/api/workerAuth';
+import { workerLoginByPassword, workerSendLoginCode, workerLoginByCode } from '@/api/workerAuth';
 
 export default {
   name: 'WorkerLoginPage',
   data() {
     return {
       mode: 'code',
-      email: '',
+      phone: '',
       password: '',
       codeInput: '',
       countdown: 0,
@@ -200,8 +163,8 @@ export default {
       const pad = (value) => String(value).padStart(2, '0');
       return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
     },
-    validateEmail(email) {
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    validatePhone(phone) {
+      return /^1[3-9]\d{9}$/.test(phone);
     },
     ensureAgreed() {
       if (this.agreed) {
@@ -295,17 +258,17 @@ export default {
       if (this.isCodeActionDisabled) {
         return;
       }
-      this.email = (this.email || '').trim();
-      if (!this.email) {
+      this.phone = (this.phone || '').trim();
+      if (!this.phone) {
         uni.showToast({
-          title: '请先输入邮箱地址',
+          title: '请先输入手机号',
           icon: 'none'
         });
         return;
       }
-      if (!this.validateEmail(this.email)) {
+      if (!this.validatePhone(this.phone)) {
         uni.showToast({
-          title: '请输入正确的邮箱地址',
+          title: '请输入正确的手机号',
           icon: 'none'
         });
         return;
@@ -314,7 +277,7 @@ export default {
         return;
       }
       this.sending = true;
-      workerSendLoginCode(this.email)
+      workerSendLoginCode(this.phone)
         .then((res) => {
           if (res && res.code === 200) {
             uni.showToast({
@@ -344,19 +307,19 @@ export default {
         return;
       }
 
-      this.email = (this.email || '').trim();
+      this.phone = (this.phone || '').trim();
       this.codeInput = (this.codeInput || '').trim();
 
-      if (!this.email) {
+      if (!this.phone) {
         uni.showToast({
-          title: '请输入邮箱地址',
+          title: '请输入手机号',
           icon: 'none'
         });
         return;
       }
-      if (!this.validateEmail(this.email)) {
+      if (!this.validatePhone(this.phone)) {
         uni.showToast({
-          title: '请输入正确的邮箱地址',
+          title: '请输入正确的手机号',
           icon: 'none'
         });
         return;
@@ -374,32 +337,34 @@ export default {
           return;
         }
         this.submitting = true;
-        workerLoginByPassword(this.email, this.password, false)
+        workerLoginByPassword(this.phone, this.password, false)
           .then((res) => {
             if (res && res.code === 200 && res.data) {
-              if (this.handleCancelConfirmIfNeeded(res.data, () => {
-                this.submitting = true;
-                workerLoginByPassword(this.email, this.password, true)
-                  .then((res2) => {
-                    if (res2 && res2.code === 200 && res2.data && res2.data.token) {
-                      this.handleLoginSuccess(res2.data);
-                      return;
-                    }
-                    uni.showToast({
-                      title: (res2 && res2.message) || '登录失败',
-                      icon: 'none'
+              if (
+                this.handleCancelConfirmIfNeeded(res.data, () => {
+                  this.submitting = true;
+                  workerLoginByPassword(this.phone, this.password, true)
+                    .then((res2) => {
+                      if (res2 && res2.code === 200 && res2.data && res2.data.token) {
+                        this.handleLoginSuccess(res2.data);
+                        return;
+                      }
+                      uni.showToast({
+                        title: (res2 && res2.message) || '登录失败',
+                        icon: 'none'
+                      });
+                    })
+                    .catch(() => {
+                      uni.showToast({
+                        title: '登录失败',
+                        icon: 'none'
+                      });
+                    })
+                    .finally(() => {
+                      this.submitting = false;
                     });
-                  })
-                  .catch(() => {
-                    uni.showToast({
-                      title: '登录失败',
-                      icon: 'none'
-                    });
-                  })
-                  .finally(() => {
-                    this.submitting = false;
-                  });
-              })) {
+                })
+              ) {
                 return;
               }
               if (res.data.token) {
@@ -433,32 +398,34 @@ export default {
       }
 
       this.submitting = true;
-      workerLoginByCode(this.email, this.codeInput, false)
+      workerLoginByCode(this.phone, this.codeInput, false)
         .then((res) => {
           if (res && res.code === 200 && res.data) {
-            if (this.handleCancelConfirmIfNeeded(res.data, () => {
-              this.submitting = true;
-              workerLoginByCode(this.email, this.codeInput, true)
-                .then((res2) => {
-                  if (res2 && res2.code === 200 && res2.data && res2.data.token) {
-                    this.handleLoginSuccess(res2.data);
-                    return;
-                  }
-                  uni.showToast({
-                    title: (res2 && res2.message) || '登录失败',
-                    icon: 'none'
+            if (
+              this.handleCancelConfirmIfNeeded(res.data, () => {
+                this.submitting = true;
+                workerLoginByCode(this.phone, this.codeInput, true)
+                  .then((res2) => {
+                    if (res2 && res2.code === 200 && res2.data && res2.data.token) {
+                      this.handleLoginSuccess(res2.data);
+                      return;
+                    }
+                    uni.showToast({
+                      title: (res2 && res2.message) || '登录失败',
+                      icon: 'none'
+                    });
+                  })
+                  .catch(() => {
+                    uni.showToast({
+                      title: '登录失败',
+                      icon: 'none'
+                    });
+                  })
+                  .finally(() => {
+                    this.submitting = false;
                   });
-                })
-                .catch(() => {
-                  uni.showToast({
-                    title: '登录失败',
-                    icon: 'none'
-                  });
-                })
-                .finally(() => {
-                  this.submitting = false;
-                });
-            })) {
+              })
+            ) {
               return;
             }
             if (res.data.token) {
@@ -517,7 +484,12 @@ export default {
   width: 320rpx;
   height: 320rpx;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(45, 120, 255, 0.22) 0%, rgba(45, 120, 255, 0.06) 45%, rgba(45, 120, 255, 0) 76%);
+  background: radial-gradient(
+    circle,
+    rgba(45, 120, 255, 0.22) 0%,
+    rgba(45, 120, 255, 0.06) 45%,
+    rgba(45, 120, 255, 0) 76%
+  );
   z-index: 1;
 }
 

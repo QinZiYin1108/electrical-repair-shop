@@ -273,12 +273,12 @@
         <view class="reason-chip-list">
           <view
             wx:for="{{cancelReasonOptions}}"
-            wx:key="*this"
-            class="reason-chip {{selectedCancelReason === item ? 'reason-chip-active' : ''}}"
-            data-reason="{{item}}"
+            wx:key="code"
+            class="reason-chip {{selectedCancelReason === item.code ? 'reason-chip-active' : ''}}"
+            data-reason="{{item.code}}"
             bind:tap="onSelectCancelReason"
           >
-            {{item}}
+            {{item.label}}
           </view>
         </view>
         <view class="pay-section-title pay-method-title">{{texts.descriptionTitle}}</view>

@@ -18,7 +18,12 @@ export function parseResponseBody(data) {
 }
 
 export function extractMessage(payload, fallback = '请求失败，请稍后重试') {
-  if (payload && typeof payload === 'object' && typeof payload.message === 'string' && payload.message.trim()) {
+  if (
+    payload &&
+    typeof payload === 'object' &&
+    typeof payload.message === 'string' &&
+    payload.message.trim()
+  ) {
     return payload.message.trim();
   }
   if (typeof payload === 'string' && payload.trim()) {
@@ -35,6 +40,23 @@ export function createRequestError(message, extra = {}) {
     });
   }
   return error;
+}
+
+function handleAuthError(responseBody) {
+  const app = getApp();
+  uni.removeStorageSync('workerToken');
+  if (app && app.globalData) {
+    app.globalData.workerIsLogin = false;
+    app.globalData.workerInfo = null;
+  }
+  uni.reLaunch({
+    url: '/pages/login/index'
+  });
+  const body = responseBody || {};
+  return createRequestError(body.message || '登录状态已失效，请重新登录', {
+    code: body.code,
+    authError: true
+  });
 }
 
 export function resolveUploadResponse(res, fallback = '上传失败，请稍后重试') {
@@ -64,11 +86,38 @@ export default function request(options) {
         ...(token ? { Authorization: 'Bearer ' + token } : {})
       },
       success(res) {
+        if (res.statusCode === 401) {
+          reject(handleAuthError(parseResponseBody(res.data)));
+          return;
+        }
+
         if (res.statusCode === 200) {
+          const body = parseResponseBody(res.data);
+          const code = body && body.code ? Number(body.code) : 200;
+          if (code === 401) {
+            reject(handleAuthError(body));
+            return;
+          }
+          if (code === 403) {
+            reject(
+              createRequestError(extractMessage(body, '当前账号无权执行此操作'), {
+                body,
+                code,
+                forbidden: true
+              })
+            );
+            return;
+          }
           resolve(res.data);
         } else {
           const body = parseResponseBody(res.data);
-          reject(createRequestError(extractMessage(body), { response: res, body, statusCode: res.statusCode }));
+          reject(
+            createRequestError(extractMessage(body), {
+              response: res,
+              body,
+              statusCode: res.statusCode
+            })
+          );
         }
       },
       fail(err) {

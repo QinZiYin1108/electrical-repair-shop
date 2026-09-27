@@ -60,7 +60,9 @@
                   </div>
                   <div class="orbit orbit-left">
                     <span class="orbit-small-label">完工率</span>
-                    <strong class="orbit-small-value">{{ formatPercent(todayCompletionRate) }}</strong>
+                    <strong class="orbit-small-value">{{
+                      formatPercent(todayCompletionRate)
+                    }}</strong>
                   </div>
                   <div class="orbit orbit-right">
                     <span class="orbit-small-label">售后压力</span>
@@ -82,7 +84,9 @@
                   <div class="health-progress-bar">
                     <span :style="{ width: `${serviceHealthScore}%` }"></span>
                   </div>
-                  <div class="health-progress-text">当前综合健康分由履约率、在岗率、积压率和退款率联合计算。</div>
+                  <div class="health-progress-text">
+                    当前综合健康分由履约率、在岗率、积压率和退款率联合计算。
+                  </div>
                 </div>
 
                 <div class="health-grid">
@@ -121,7 +125,11 @@
                       <GlowChart :option="statusChartOption" height="100%" />
                     </div>
                     <div class="mini-data-list status-data-list">
-                      <div v-for="item in statusPreviewList" :key="item.label" class="mini-data-item">
+                      <div
+                        v-for="item in statusPreviewList"
+                        :key="item.label"
+                        class="mini-data-item"
+                      >
                         <span class="mini-data-dot" :style="{ background: item.color }"></span>
                         <div class="mini-data-main">
                           <strong>{{ item.count }}</strong>
@@ -145,7 +153,11 @@
                       <GlowChart :option="gaugeChartOption" height="100%" />
                     </div>
                     <div class="mini-data-list gauge-data-list">
-                      <div v-for="item in gaugeInsightList" :key="item.label" class="mini-data-item gauge-data-item">
+                      <div
+                        v-for="item in gaugeInsightList"
+                        :key="item.label"
+                        class="mini-data-item gauge-data-item"
+                      >
                         <strong>{{ item.value }}</strong>
                         <span>{{ item.label }}</span>
                       </div>
@@ -172,7 +184,11 @@
                 </div>
 
                 <div class="performance-summary">
-                  <div v-for="item in performanceSummaryCards" :key="item.label" class="summary-chip">
+                  <div
+                    v-for="item in performanceSummaryCards"
+                    :key="item.label"
+                    class="summary-chip"
+                  >
                     <span>{{ item.label }}</span>
                     <strong>{{ item.value }}</strong>
                   </div>
@@ -186,15 +202,21 @@
                     :class="`podium-card-${index + 1}`"
                   >
                     <div class="podium-rank">TOP {{ index + 1 }}</div>
-                    <el-avatar :size="40" :src="worker.avatarUrl">{{ getAvatarInitial(worker) }}</el-avatar>
-                    <div class="podium-name">{{ worker.realName || worker.username || '未命名师傅' }}</div>
+                    <el-avatar :size="40" :src="worker.avatarUrl">{{
+                      getAvatarInitial(worker)
+                    }}</el-avatar>
+                    <div class="podium-name">
+                      {{ worker.realName || worker.username || '未命名师傅' }}
+                    </div>
                     <div class="podium-stats">
                       <span class="podium-meta">完工 {{ worker.completedOrders || 0 }}</span>
                       <span class="podium-meta">¥{{ formatMoney(worker.netIncome) }}</span>
                       <span class="podium-meta">评分 {{ formatScore(worker.rating) }}</span>
                     </div>
                     <div class="podium-power">
-                      <span :style="{ width: `${calcPodiumWidth(worker.completedOrders)}%` }"></span>
+                      <span
+                        :style="{ width: `${calcPodiumWidth(worker.completedOrders)}%` }"
+                      ></span>
                     </div>
                   </div>
                 </div>
@@ -305,19 +327,27 @@
                 <div class="hero-visual">
                   <div class="orbit orbit-main">
                     <span class="orbit-label">累计销售额</span>
-                    <strong class="orbit-value">¥{{ formatMoney(productSales.totalSalesAmount) }}</strong>
+                    <strong class="orbit-value"
+                      >¥{{ formatMoney(productSales.totalSalesAmount) }}</strong
+                    >
                   </div>
                   <div class="orbit orbit-top">
                     <span class="orbit-small-label">累计销量</span>
-                    <strong class="orbit-small-value">{{ productSales.totalSoldQuantity || 0 }}</strong>
+                    <strong class="orbit-small-value">{{
+                      productSales.totalSoldQuantity || 0
+                    }}</strong>
                   </div>
                   <div class="orbit orbit-left">
                     <span class="orbit-small-label">热销贡献</span>
-                    <strong class="orbit-small-value">{{ formatPercent(productTopContribution) }}</strong>
+                    <strong class="orbit-small-value">{{
+                      formatPercent(productTopContribution)
+                    }}</strong>
                   </div>
                   <div class="orbit orbit-right">
                     <span class="orbit-small-label">退款占比</span>
-                    <strong class="orbit-small-value">{{ formatPercent(productRefundRate) }}</strong>
+                    <strong class="orbit-small-value">{{
+                      formatPercent(productRefundRate)
+                    }}</strong>
                   </div>
                 </div>
               </article>
@@ -336,7 +366,11 @@
                       <GlowChart :option="productStatusChartOption" height="100%" />
                     </div>
                     <div class="mini-data-list status-data-list">
-                      <div v-for="item in productStatusPreviewList" :key="item.label" class="mini-data-item">
+                      <div
+                        v-for="item in productStatusPreviewList"
+                        :key="item.label"
+                        class="mini-data-item"
+                      >
                         <span class="mini-data-dot" :style="{ background: item.color }"></span>
                         <div class="mini-data-main">
                           <strong>{{ item.count }}</strong>
@@ -404,7 +438,12 @@
                     class="product-ranking-item"
                   >
                     <div class="product-ranking-rank">TOP {{ index + 1 }}</div>
-                    <el-avatar :size="42" shape="square" :src="item.productImage" class="product-ranking-avatar">
+                    <el-avatar
+                      :size="42"
+                      shape="square"
+                      :src="item.productImage"
+                      class="product-ranking-avatar"
+                    >
                       {{ getProductInitial(item) }}
                     </el-avatar>
                     <div class="product-ranking-main">
@@ -448,7 +487,10 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { ArrowLeftBold, ArrowRightBold } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import GlowChart from '../../components/charts/GlowChart.vue';
-import { fetchAdminDashboardOverview, fetchAdminDashboardProductSales } from '../../api/adminDashboard';
+import {
+  fetchAdminDashboardOverview,
+  fetchAdminDashboardProductSales
+} from '../../api/adminDashboard';
 import { fetchAdminWorkerPerformance } from '../../api/adminWorkers';
 
 const loading = ref(false);
@@ -495,7 +537,16 @@ const productSales = reactive({
 
 const topWorkers = ref([]);
 let autoRefreshTimer = null;
-const statusPalette = ['#62d7ff', '#5b88ff', '#5fdeb1', '#ffc56c', '#ff8d68', '#8b7dff', '#f471ba', '#ff6195'];
+const statusPalette = [
+  '#62d7ff',
+  '#5b88ff',
+  '#5fdeb1',
+  '#ffc56c',
+  '#ff8d68',
+  '#8b7dff',
+  '#f471ba',
+  '#ff6195'
+];
 const paymentPalette = ['#6bd9ff', '#7e8dff', '#ffc56c', '#63dfb2', '#ff8f79'];
 const trackStyle = computed(() => ({
   width: `${screens.length * 100}%`,
@@ -506,7 +557,9 @@ const slideStyle = computed(() => ({
 }));
 
 const trendList = computed(() => (Array.isArray(overview.recentTrend) ? overview.recentTrend : []));
-const statusList = computed(() => (Array.isArray(overview.orderStatusDistribution) ? overview.orderStatusDistribution : []));
+const statusList = computed(() =>
+  Array.isArray(overview.orderStatusDistribution) ? overview.orderStatusDistribution : []
+);
 const statusChipList = computed(() => statusList.value.slice(0, 6));
 const statusPreviewList = computed(() =>
   statusList.value.map((item, index) => ({
@@ -517,7 +570,9 @@ const statusPreviewList = computed(() =>
 
 const activeWorkerRate = computed(() => toPercent(overview.activeWorkers, overview.totalWorkers));
 const pendingOrderRate = computed(() => toPercent(overview.pendingOrders, overview.totalOrders));
-const todayCompletionRate = computed(() => toPercent(overview.todayCompletedOrders, overview.todayOrders));
+const todayCompletionRate = computed(() =>
+  toPercent(overview.todayCompletedOrders, overview.todayOrders)
+);
 const refundRate = computed(() => toPercent(overview.totalRefundAmount, overview.totalGrossIncome));
 
 const serviceHealthScore = computed(() => {
@@ -585,16 +640,25 @@ const healthCards = computed(() => [
 
 const topThreeWorkers = computed(() => topWorkers.value.slice(0, 3));
 const performanceSummaryCards = computed(() => {
-  const totalNetIncome = topWorkers.value.reduce((sum, item) => sum + Number(item.netIncome || 0), 0);
-  const totalCompleted = topWorkers.value.reduce((sum, item) => sum + Number(item.completedOrders || 0), 0);
+  const totalNetIncome = topWorkers.value.reduce(
+    (sum, item) => sum + Number(item.netIncome || 0),
+    0
+  );
+  const totalCompleted = topWorkers.value.reduce(
+    (sum, item) => sum + Number(item.completedOrders || 0),
+    0
+  );
   const avgRating = topWorkers.value.length
-    ? topWorkers.value.reduce((sum, item) => sum + Number(item.rating || 0), 0) / topWorkers.value.length
+    ? topWorkers.value.reduce((sum, item) => sum + Number(item.rating || 0), 0) /
+      topWorkers.value.length
     : 0;
 
   return [
     {
       label: '战力冠军',
-      value: topWorkers.value[0] ? topWorkers.value[0].realName || topWorkers.value[0].username || '暂无' : '暂无'
+      value: topWorkers.value[0]
+        ? topWorkers.value[0].realName || topWorkers.value[0].username || '暂无'
+        : '暂无'
     },
     {
       label: 'TOP5净收入',
@@ -649,17 +713,25 @@ const gaugeInsightList = computed(() => [
   }
 ]);
 
-const incomeSeries = computed(() => trendList.value.map(item => Number(item.income || 0)));
-const orderSeries = computed(() => trendList.value.map(item => Number(item.orderCount || 0)));
-const completedSeries = computed(() => trendList.value.map(item => Number(item.completedCount || 0)));
+const incomeSeries = computed(() => trendList.value.map((item) => Number(item.income || 0)));
+const orderSeries = computed(() => trendList.value.map((item) => Number(item.orderCount || 0)));
+const completedSeries = computed(() =>
+  trendList.value.map((item) => Number(item.completedCount || 0))
+);
 
-const productTrendList = computed(() => (Array.isArray(productSales.recentTrend) ? productSales.recentTrend : []));
+const productTrendList = computed(() =>
+  Array.isArray(productSales.recentTrend) ? productSales.recentTrend : []
+);
 const productStatusList = computed(() =>
   Array.isArray(productSales.orderStatusDistribution) ? productSales.orderStatusDistribution : []
 );
-const productTopList = computed(() => (Array.isArray(productSales.topProducts) ? productSales.topProducts : []));
+const productTopList = computed(() =>
+  Array.isArray(productSales.topProducts) ? productSales.topProducts : []
+);
 const productPaymentList = computed(() =>
-  Array.isArray(productSales.paymentMethodDistribution) ? productSales.paymentMethodDistribution : []
+  Array.isArray(productSales.paymentMethodDistribution)
+    ? productSales.paymentMethodDistribution
+    : []
 );
 const productStatusPreviewList = computed(() =>
   productStatusList.value.map((item, index) => ({
@@ -674,15 +746,29 @@ const productPaymentPreviewList = computed(() =>
   }))
 );
 const topSellingProducts = computed(() => productTopList.value.slice(0, 5));
-const productQuantitySeries = computed(() => productTrendList.value.map(item => Number(item.soldQuantity || 0)));
-const productPaidOrderSeries = computed(() => productTrendList.value.map(item => Number(item.paidOrderCount || 0)));
-const productAmountSeries = computed(() => productTrendList.value.map(item => Number(item.salesAmount || 0)));
-const productPendingRate = computed(() =>
-  toPercent(productSales.pendingDeliveryOrderCount, productSales.totalPaidOrderCount || productSales.totalOrderCount)
+const productQuantitySeries = computed(() =>
+  productTrendList.value.map((item) => Number(item.soldQuantity || 0))
 );
-const productRefundRate = computed(() => toPercent(productSales.refundedOrderCount, productSales.totalOrderCount));
+const productPaidOrderSeries = computed(() =>
+  productTrendList.value.map((item) => Number(item.paidOrderCount || 0))
+);
+const productAmountSeries = computed(() =>
+  productTrendList.value.map((item) => Number(item.salesAmount || 0))
+);
+const productPendingRate = computed(() =>
+  toPercent(
+    productSales.pendingDeliveryOrderCount,
+    productSales.totalPaidOrderCount || productSales.totalOrderCount
+  )
+);
+const productRefundRate = computed(() =>
+  toPercent(productSales.refundedOrderCount, productSales.totalOrderCount)
+);
 const productTopContribution = computed(() => {
-  const topQuantity = topSellingProducts.value.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+  const topQuantity = topSellingProducts.value.reduce(
+    (sum, item) => sum + Number(item.quantity || 0),
+    0
+  );
   return toPercent(topQuantity, productSales.totalSoldQuantity || 1);
 });
 const productSalesScore = computed(() => {
@@ -690,7 +776,9 @@ const productSalesScore = computed(() => {
   const refundHealth = normalizePercent(100 - Number(productRefundRate.value || 0));
   const momentum = normalizePercent(calcProductSalesMomentum());
   const contribution = normalizePercent(productTopContribution.value);
-  return normalizePercent(shipmentHealth * 0.34 + refundHealth * 0.3 + momentum * 0.24 + contribution * 0.12);
+  return normalizePercent(
+    shipmentHealth * 0.34 + refundHealth * 0.3 + momentum * 0.24 + contribution * 0.12
+  );
 });
 
 const productHeroCards = computed(() => [
@@ -746,7 +834,7 @@ const trendChartOption = computed(() => {
     grid: { top: 38, left: 8, right: 10, bottom: 8, containLabel: true },
     xAxis: {
       type: 'category',
-      data: trendList.value.map(item => item.dateLabel),
+      data: trendList.value.map((item) => item.dateLabel),
       axisLine: { lineStyle: { color: 'rgba(166, 185, 207, 0.5)' } },
       axisLabel: { color: '#8ca0ba', fontSize: 11 }
     },
@@ -763,7 +851,7 @@ const trendChartOption = computed(() => {
         axisLabel: {
           color: '#8ca0ba',
           fontSize: 11,
-          formatter: value => `¥${value}`
+          formatter: (value) => `¥${value}`
         }
       }
     ],
@@ -973,7 +1061,9 @@ const radarChartOption = computed(() => ({
             normalizePercent(activeWorkerRate.value),
             normalizePercent(100 - Number(pendingOrderRate.value || 0)),
             normalizePercent(100 - Number(refundRate.value || 0)),
-            normalizePercent(100 - toPercent(overview.pendingAfterSales, overview.totalOrders || 1)),
+            normalizePercent(
+              100 - toPercent(overview.pendingAfterSales, overview.totalOrders || 1)
+            ),
             normalizePercent(calcIncomeMomentum())
           ]
         }
@@ -1004,7 +1094,7 @@ const workerRankChartOption = computed(() => {
     grid: { top: 38, left: 12, right: 12, bottom: 10, containLabel: true },
     xAxis: {
       type: 'category',
-      data: topWorkers.value.map(item => item.realName || item.username || '未命名'),
+      data: topWorkers.value.map((item) => item.realName || item.username || '未命名'),
       axisLine: { lineStyle: { color: 'rgba(166, 185, 207, 0.5)' } },
       axisLabel: { color: '#8ca0ba', fontSize: 11 }
     },
@@ -1018,7 +1108,7 @@ const workerRankChartOption = computed(() => {
       {
         type: 'value',
         name: '净收入',
-        axisLabel: { color: '#8ca0ba', fontSize: 11, formatter: value => `¥${value}` }
+        axisLabel: { color: '#8ca0ba', fontSize: 11, formatter: (value) => `¥${value}` }
       }
     ],
     series: [
@@ -1026,7 +1116,7 @@ const workerRankChartOption = computed(() => {
         name: '完工单',
         type: 'bar',
         barWidth: 18,
-        data: topWorkers.value.map(item => Number(item.completedOrders || 0)),
+        data: topWorkers.value.map((item) => Number(item.completedOrders || 0)),
         itemStyle: {
           borderRadius: [8, 8, 0, 0],
           color: {
@@ -1048,7 +1138,7 @@ const workerRankChartOption = computed(() => {
         yAxisIndex: 1,
         smooth: true,
         symbolSize: 7,
-        data: topWorkers.value.map(item => Number(item.netIncome || 0)),
+        data: topWorkers.value.map((item) => Number(item.netIncome || 0)),
         lineStyle: { width: 3, color: '#ffc66b' },
         itemStyle: { color: '#ffc66b' },
         areaStyle: {
@@ -1091,7 +1181,7 @@ const productSalesTrendChartOption = computed(() => {
     grid: { top: 38, left: 10, right: 12, bottom: 10, containLabel: true },
     xAxis: {
       type: 'category',
-      data: productTrendList.value.map(item => item.dateLabel),
+      data: productTrendList.value.map((item) => item.dateLabel),
       axisLine: { lineStyle: { color: 'rgba(166, 185, 207, 0.5)' } },
       axisLabel: { color: '#8ca0ba', fontSize: 11 }
     },
@@ -1105,7 +1195,7 @@ const productSalesTrendChartOption = computed(() => {
       {
         type: 'value',
         name: '成交额',
-        axisLabel: { color: '#8ca0ba', fontSize: 11, formatter: value => `¥${value}` }
+        axisLabel: { color: '#8ca0ba', fontSize: 11, formatter: (value) => `¥${value}` }
       }
     ],
     series: [
@@ -1192,7 +1282,7 @@ const productStatusChartOption = computed(() => {
         label: { show: false },
         labelLine: { show: false },
         emphasis: { scale: true, scaleSize: 8 },
-        data: productStatusPreviewList.value.map(item => ({
+        data: productStatusPreviewList.value.map((item) => ({
           name: item.label,
           value: item.count,
           itemStyle: { color: item.color }
@@ -1229,7 +1319,7 @@ const productPaymentChartOption = computed(() => {
         },
         label: { show: false },
         labelLine: { show: false },
-        data: productPaymentPreviewList.value.map(item => ({
+        data: productPaymentPreviewList.value.map((item) => ({
           name: item.label,
           value: item.amount,
           itemStyle: { color: item.color }
@@ -1318,7 +1408,10 @@ function getAvatarInitial(worker) {
 }
 
 function calcPodiumWidth(value) {
-  const maxCompleted = Math.max(...topThreeWorkers.value.map(item => Number(item.completedOrders || 0)), 1);
+  const maxCompleted = Math.max(
+    ...topThreeWorkers.value.map((item) => Number(item.completedOrders || 0)),
+    1
+  );
   return Math.max(24, Math.min(100, (Number(value || 0) / maxCompleted) * 100));
 }
 
@@ -1328,7 +1421,10 @@ function getProductInitial(product) {
 }
 
 function calcProductRankWidth(value) {
-  const maxQuantity = Math.max(...topSellingProducts.value.map(item => Number(item.quantity || 0)), 1);
+  const maxQuantity = Math.max(
+    ...topSellingProducts.value.map((item) => Number(item.quantity || 0)),
+    1
+  );
   return Math.max(24, Math.min(100, (Number(value || 0) / maxQuantity) * 100));
 }
 
@@ -1371,7 +1467,9 @@ function applyOverview(data) {
   overview.totalNetIncome = Number(data.totalNetIncome || 0);
   overview.todayIncome = Number(data.todayIncome || 0);
   overview.recentTrend = Array.isArray(data.recentTrend) ? data.recentTrend : [];
-  overview.orderStatusDistribution = Array.isArray(data.orderStatusDistribution) ? data.orderStatusDistribution : [];
+  overview.orderStatusDistribution = Array.isArray(data.orderStatusDistribution)
+    ? data.orderStatusDistribution
+    : [];
 }
 
 function applyProductSales(data) {
@@ -1385,9 +1483,13 @@ function applyProductSales(data) {
   productSales.todaySalesAmount = Number(data.todaySalesAmount || 0);
   productSales.totalRefundAmount = Number(data.totalRefundAmount || 0);
   productSales.recentTrend = Array.isArray(data.recentTrend) ? data.recentTrend : [];
-  productSales.orderStatusDistribution = Array.isArray(data.orderStatusDistribution) ? data.orderStatusDistribution : [];
+  productSales.orderStatusDistribution = Array.isArray(data.orderStatusDistribution)
+    ? data.orderStatusDistribution
+    : [];
   productSales.topProducts = Array.isArray(data.topProducts) ? data.topProducts : [];
-  productSales.paymentMethodDistribution = Array.isArray(data.paymentMethodDistribution) ? data.paymentMethodDistribution : [];
+  productSales.paymentMethodDistribution = Array.isArray(data.paymentMethodDistribution)
+    ? data.paymentMethodDistribution
+    : [];
 }
 
 async function loadData() {
@@ -1658,10 +1760,18 @@ onBeforeUnmount(() => {
   font-size: 17px;
 }
 
-.hero-metric.is-blue .metric-icon { background: linear-gradient(135deg, #4e90ff, #69daff); }
-.hero-metric.is-green .metric-icon { background: linear-gradient(135deg, #2ebd85, #76e2b8); }
-.hero-metric.is-gold .metric-icon { background: linear-gradient(135deg, #ff9d43, #ffd36d); }
-.hero-metric.is-cyan .metric-icon { background: linear-gradient(135deg, #3ec3d9, #78f0e3); }
+.hero-metric.is-blue .metric-icon {
+  background: linear-gradient(135deg, #4e90ff, #69daff);
+}
+.hero-metric.is-green .metric-icon {
+  background: linear-gradient(135deg, #2ebd85, #76e2b8);
+}
+.hero-metric.is-gold .metric-icon {
+  background: linear-gradient(135deg, #ff9d43, #ffd36d);
+}
+.hero-metric.is-cyan .metric-icon {
+  background: linear-gradient(135deg, #3ec3d9, #78f0e3);
+}
 
 .metric-main {
   min-width: 0;
@@ -2355,7 +2465,11 @@ onBeforeUnmount(() => {
   cursor: pointer;
   opacity: 0.2;
   backdrop-filter: blur(4px);
-  transition: transform 0.25s ease, background 0.25s ease, opacity 0.25s ease, box-shadow 0.25s ease;
+  transition:
+    transform 0.25s ease,
+    background 0.25s ease,
+    opacity 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .edge-switch:hover {

@@ -12,15 +12,14 @@ import com.example.backend.model.admin.AdminSystemSettingsResponse;
 import com.example.backend.model.admin.AdminSystemSettingsUpdateRequest;
 import com.example.backend.service.AdminSystemSettingsService;
 import com.example.backend.service.SystemConfigsService;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
 public class AdminSystemSettingsServiceImpl implements AdminSystemSettingsService {
@@ -34,19 +33,25 @@ public class AdminSystemSettingsServiceImpl implements AdminSystemSettingsServic
     @Override
     public AdminSystemSettingsResponse getSettings() {
         List<SystemConfigDefinition> definitions = SystemConfigRegistry.getDefinitions();
-        Map<String, SystemConfigs> configMap = systemConfigsService.getConfigMap(
-            definitions.stream().map(SystemConfigDefinition::getKey).collect(Collectors.toList())
-        );
+        Map<String, SystemConfigs> configMap =
+                systemConfigsService.getConfigMap(
+                        definitions.stream()
+                                .map(SystemConfigDefinition::getKey)
+                                .collect(Collectors.toList()));
 
         Map<String, AdminSystemSettingGroupResponse> groupMap = new LinkedHashMap<>();
         for (SystemConfigDefinition definition : definitions) {
-            AdminSystemSettingGroupResponse group = groupMap.computeIfAbsent(definition.getGroupName(), key -> {
-                AdminSystemSettingGroupResponse response = new AdminSystemSettingGroupResponse();
-                response.setGroupName(definition.getGroupName());
-                response.setGroupLabel(definition.getGroupLabel());
-                response.setItems(new ArrayList<>());
-                return response;
-            });
+            AdminSystemSettingGroupResponse group =
+                    groupMap.computeIfAbsent(
+                            definition.getGroupName(),
+                            key -> {
+                                AdminSystemSettingGroupResponse response =
+                                        new AdminSystemSettingGroupResponse();
+                                response.setGroupName(definition.getGroupName());
+                                response.setGroupLabel(definition.getGroupLabel());
+                                response.setItems(new ArrayList<>());
+                                return response;
+                            });
             group.getItems().add(toItemResponse(definition, configMap.get(definition.getKey())));
         }
 
@@ -76,14 +81,17 @@ public class AdminSystemSettingsServiceImpl implements AdminSystemSettingsServic
 
     private Map<String, String> buildMergedValues(List<AdminSystemSettingUpdateItemRequest> items) {
         List<SystemConfigDefinition> definitions = SystemConfigRegistry.getDefinitions();
-        Map<String, SystemConfigs> configMap = systemConfigsService.getConfigMap(
-            definitions.stream().map(SystemConfigDefinition::getKey).collect(Collectors.toList())
-        );
+        Map<String, SystemConfigs> configMap =
+                systemConfigsService.getConfigMap(
+                        definitions.stream()
+                                .map(SystemConfigDefinition::getKey)
+                                .collect(Collectors.toList()));
 
         Map<String, String> merged = new LinkedHashMap<>();
         for (SystemConfigDefinition definition : definitions) {
             SystemConfigs config = configMap.get(definition.getKey());
-            String currentValue = config == null ? definition.getDefaultValue() : config.getConfigValue();
+            String currentValue =
+                    config == null ? definition.getDefaultValue() : config.getConfigValue();
             merged.put(definition.getKey(), normalizeValue(definition, currentValue));
         }
 
@@ -99,15 +107,25 @@ public class AdminSystemSettingsServiceImpl implements AdminSystemSettingsServic
     }
 
     private void validateMergedValues(Map<String, String> mergedValues) {
-        int defaultDays = parseRequiredPositiveInt(mergedValues.get(SystemConfigRegistry.ORDER_APPOINTMENT_DEFAULT_DAYS), "默认预约天数");
-        int maxDays = parseRequiredPositiveInt(mergedValues.get(SystemConfigRegistry.ORDER_APPOINTMENT_MAX_DAYS), "最大预约天数");
+        int defaultDays =
+                parseRequiredPositiveInt(
+                        mergedValues.get(SystemConfigRegistry.ORDER_APPOINTMENT_DEFAULT_DAYS),
+                        "默认预约天数");
+        int maxDays =
+                parseRequiredPositiveInt(
+                        mergedValues.get(SystemConfigRegistry.ORDER_APPOINTMENT_MAX_DAYS),
+                        "最大预约天数");
         if (defaultDays > maxDays) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "默认预约天数不能大于最大预约天数");
         }
     }
 
-    private AdminSystemSettingItemResponse toItemResponse(SystemConfigDefinition definition, SystemConfigs config) {
-        String currentValue = config == null ? definition.getDefaultValue() : normalizeValue(definition, config.getConfigValue());
+    private AdminSystemSettingItemResponse toItemResponse(
+            SystemConfigDefinition definition, SystemConfigs config) {
+        String currentValue =
+                config == null
+                        ? definition.getDefaultValue()
+                        : normalizeValue(definition, config.getConfigValue());
         AdminSystemSettingItemResponse response = new AdminSystemSettingItemResponse();
         response.setConfigKey(definition.getKey());
         response.setLabel(definition.getLabel());
@@ -118,7 +136,8 @@ public class AdminSystemSettingsServiceImpl implements AdminSystemSettingsServic
         response.setUnit(definition.getUnit());
         response.setMinValue(definition.getMinValue());
         response.setMaxValue(definition.getMaxValue());
-        response.setUsingDefault(config == null || Objects.equals(currentValue, definition.getDefaultValue()));
+        response.setUsingDefault(
+                config == null || Objects.equals(currentValue, definition.getDefaultValue()));
         return response;
     }
 
@@ -138,10 +157,14 @@ public class AdminSystemSettingsServiceImpl implements AdminSystemSettingsServic
                 throw new BusinessException(ErrorCode.PARAM_ERROR, definition.getLabel() + "必须为数字");
             }
             if (definition.getMinValue() != null && parsed < definition.getMinValue()) {
-                throw new BusinessException(ErrorCode.PARAM_ERROR, definition.getLabel() + "不能小于" + definition.getMinValue());
+                throw new BusinessException(
+                        ErrorCode.PARAM_ERROR,
+                        definition.getLabel() + "不能小于" + definition.getMinValue());
             }
             if (definition.getMaxValue() != null && parsed > definition.getMaxValue()) {
-                throw new BusinessException(ErrorCode.PARAM_ERROR, definition.getLabel() + "不能大于" + definition.getMaxValue());
+                throw new BusinessException(
+                        ErrorCode.PARAM_ERROR,
+                        definition.getLabel() + "不能大于" + definition.getMaxValue());
             }
             return String.valueOf(parsed);
         }

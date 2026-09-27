@@ -81,14 +81,16 @@ function renderTable(lines) {
 
   const bodyLines = lines.slice(2);
   const thead = `<tr>${headerCells.map((cell) => `<th style="padding: 10px 12px; border: 1px solid #d8e3ee; background: #f5f8fb; text-align: left; color: #173247;">${parseInline(cell)}</th>`).join('')}</tr>`;
-  const tbody = bodyLines.map((line) => {
-    const cells = line
-      .trim()
-      .replace(/^\||\|$/g, '')
-      .split('|')
-      .map((item) => item.trim());
-    return `<tr>${headerCells.map((_, index) => `<td style="padding: 10px 12px; border: 1px solid #d8e3ee; color: #243c4e; vertical-align: top;">${parseInline(cells[index] || '')}</td>`).join('')}</tr>`;
-  }).join('');
+  const tbody = bodyLines
+    .map((line) => {
+      const cells = line
+        .trim()
+        .replace(/^\||\|$/g, '')
+        .split('|')
+        .map((item) => item.trim());
+      return `<tr>${headerCells.map((_, index) => `<td style="padding: 10px 12px; border: 1px solid #d8e3ee; color: #243c4e; vertical-align: top;">${parseInline(cells[index] || '')}</td>`).join('')}</tr>`;
+    })
+    .join('');
 
   return `<div style="margin: 0 0 16px; overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; font-size: 14px; line-height: 1.8;"><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
 }

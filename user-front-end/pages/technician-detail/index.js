@@ -19,6 +19,7 @@ const LABELS = {
   certificates: "证书",
   education: "学历",
   location: "服务地址",
+  store: "所属门店",
   intro: "个人介绍",
   reviewTitle: "用户评价",
   reviewEmpty: "暂时还没有评价",

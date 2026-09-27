@@ -5,8 +5,10 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.backend.common.ErrorCode;
 import com.example.backend.common.Result;
 import com.example.backend.entity.Images;
-import com.example.backend.entity.UserAddresses;
+import com.example.backend.entity.OperationLogs;
+import com.example.backend.entity.SystemMessages;
 import com.example.backend.entity.UserAccounts;
+import com.example.backend.entity.UserAddresses;
 import com.example.backend.entity.UserProfiles;
 import com.example.backend.exception.BusinessException;
 import com.example.backend.model.admin.AdminUserAddressItemResponse;
@@ -18,19 +20,32 @@ import com.example.backend.model.admin.AdminUserUpdateRequest;
 import com.example.backend.security.context.AuthUserContext;
 import com.example.backend.security.model.AccountRole;
 import com.example.backend.security.model.LoginUserInfo;
-import com.example.backend.entity.OperationLogs;
-import com.example.backend.entity.SystemMessages;
+import com.example.backend.security.token.TokenVersions;
+import com.example.backend.service.ImagesService;
 import com.example.backend.service.OperationLogsService;
 import com.example.backend.service.SystemMessagesService;
-import com.example.backend.service.ImagesService;
-import com.example.backend.service.UserAddressesService;
 import com.example.backend.service.UserAccountsService;
+import com.example.backend.service.UserAddressesService;
 import com.example.backend.service.UserProfilesService;
 import com.example.backend.utils.PasswordUtil;
 import com.example.backend.utils.id.SnowflakeIdUtil;
 import com.example.backend.utils.oss.OssUtil;
 import com.example.backend.utils.upload.UploadLimitUtil;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,20 +58,8 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.awt.image.BufferedImage;
-import java.math.BigDecimal;
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 @RestController
+@Tag(name = "管理员端/用户管理", description = "用户列表、详情、禁用启用、注销处理")
 @RequestMapping("/admin/users")
 public class AdminUserManageController {
 
@@ -69,14 +72,13 @@ public class AdminUserManageController {
     private final SystemMessagesService systemMessagesService;
 
     public AdminUserManageController(
-        UserAccountsService userAccountsService,
-        UserProfilesService userProfilesService,
-        ImagesService imagesService,
-        UserAddressesService userAddressesService,
-        OssUtil ossUtil,
-        OperationLogsService operationLogsService,
-        SystemMessagesService systemMessagesService
-    ) {
+            UserAccountsService userAccountsService,
+            UserProfilesService userProfilesService,
+            ImagesService imagesService,
+            UserAddressesService userAddressesService,
+            OssUtil ossUtil,
+            OperationLogsService operationLogsService,
+            SystemMessagesService systemMessagesService) {
         this.userAccountsService = userAccountsService;
         this.userProfilesService = userProfilesService;
         this.imagesService = imagesService;
@@ -88,10 +90,9 @@ public class AdminUserManageController {
 
     @GetMapping
     public Result<Page<AdminUserListItemResponse>> listUsers(
-        @RequestParam(value = "pageNum", defaultValue = "1") long pageNum,
-        @RequestParam(value = "pageSize", defaultValue = "10") long pageSize,
-        @RequestParam(value = "keyword", required = false) String keyword
-    ) {
+            @RequestParam(value = "pageNum", defaultValue = "1") long pageNum,
+            @RequestParam(value = "pageSize", defaultValue = "10") long pageSize,
+            @RequestParam(value = "keyword", required = false) String keyword) {
         LoginUserInfo user = AuthUserContext.get();
         if (user == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "未登录");
@@ -105,13 +106,17 @@ public class AdminUserManageController {
         if (pageSize <= 0) {
             pageSize = 10;
         }
-        LambdaQueryWrapper<UserAccounts> wrapper = new LambdaQueryWrapper<UserAccounts>()
-            .eq(UserAccounts::getIsDelete, 0);
+        LambdaQueryWrapper<UserAccounts> wrapper =
+                new LambdaQueryWrapper<UserAccounts>().eq(UserAccounts::getIsDelete, 0);
         if (StringUtils.hasText(keyword)) {
             String kw = keyword.trim();
-            wrapper.and(w -> w.like(UserAccounts::getUsername, kw)
-                .or().like(UserAccounts::getPhone, kw)
-                .or().like(UserAccounts::getEmail, kw));
+            wrapper.and(
+                    w ->
+                            w.like(UserAccounts::getUsername, kw)
+                                    .or()
+                                    .like(UserAccounts::getPhone, kw)
+                                    .or()
+                                    .like(UserAccounts::getEmail, kw));
         }
         wrapper.orderByDesc(UserAccounts::getCreatedTime);
         Page<UserAccounts> page = userAccountsService.page(new Page<>(pageNum, pageSize), wrapper);
@@ -124,27 +129,28 @@ public class AdminUserManageController {
             }
             Map<String, UserProfiles> profileMap = new HashMap<>();
             if (!accountIds.isEmpty()) {
-                List<UserProfiles> profiles = userProfilesService.list(
-                    new LambdaQueryWrapper<UserProfiles>()
-                        .in(UserProfiles::getAccountId, accountIds)
-                        .eq(UserProfiles::getIsDelete, 0)
-                );
+                List<UserProfiles> profiles =
+                        userProfilesService.list(
+                                new LambdaQueryWrapper<UserProfiles>()
+                                        .in(UserProfiles::getAccountId, accountIds)
+                                        .eq(UserProfiles::getIsDelete, 0));
                 for (UserProfiles profile : profiles) {
                     profileMap.put(profile.getAccountId(), profile);
                 }
             }
             Map<String, String> avatarMap = new HashMap<>();
             if (!accountIds.isEmpty()) {
-                List<Images> images = imagesService.list(
-                    new LambdaQueryWrapper<Images>()
-                        .eq(Images::getBusinessType, "AVATAR")
-                        .in(Images::getBusinessId, accountIds)
-                        .eq(Images::getIsDelete, 0)
-                        .orderByDesc(Images::getCreatedTime)
-                );
+                List<Images> images =
+                        imagesService.list(
+                                new LambdaQueryWrapper<Images>()
+                                        .eq(Images::getBusinessType, "AVATAR")
+                                        .in(Images::getBusinessId, accountIds)
+                                        .eq(Images::getIsDelete, 0)
+                                        .orderByDesc(Images::getCreatedTime));
                 for (Images image : images) {
                     String businessId = image.getBusinessId();
-                    if (!avatarMap.containsKey(businessId) && StringUtils.hasText(image.getFileUrl())) {
+                    if (!avatarMap.containsKey(businessId)
+                            && StringUtils.hasText(image.getFileUrl())) {
                         avatarMap.put(businessId, image.getFileUrl());
                     }
                 }
@@ -170,11 +176,13 @@ public class AdminUserManageController {
                 items.add(item);
             }
         }
-        Page<AdminUserListItemResponse> resultPage = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
+        Page<AdminUserListItemResponse> resultPage =
+                new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
         resultPage.setRecords(items);
         return Result.success(resultPage);
     }
 
+    @Operation(summary = "查询User详情")
     @GetMapping("/{id}")
     public Result<AdminUserDetailResponse> getUserDetail(@PathVariable("id") String id) {
         LoginUserInfo user = AuthUserContext.get();
@@ -191,22 +199,22 @@ public class AdminUserManageController {
         if (account == null || account.getIsDelete() != null && account.getIsDelete() != 0) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "用户账号不存在");
         }
-        UserProfiles profile = userProfilesService.getOne(
-            new LambdaQueryWrapper<UserProfiles>()
-                .eq(UserProfiles::getAccountId, id)
-                .eq(UserProfiles::getIsDelete, 0),
-            false
-        );
+        UserProfiles profile =
+                userProfilesService.getOne(
+                        new LambdaQueryWrapper<UserProfiles>()
+                                .eq(UserProfiles::getAccountId, id)
+                                .eq(UserProfiles::getIsDelete, 0),
+                        false);
         String avatarUrl = null;
-        Images avatarImage = imagesService.getOne(
-            new LambdaQueryWrapper<Images>()
-                .eq(Images::getBusinessType, "AVATAR")
-                .eq(Images::getBusinessId, id)
-                .eq(Images::getIsDelete, 0)
-                .orderByDesc(Images::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+        Images avatarImage =
+                imagesService.getOne(
+                        new LambdaQueryWrapper<Images>()
+                                .eq(Images::getBusinessType, "AVATAR")
+                                .eq(Images::getBusinessId, id)
+                                .eq(Images::getIsDelete, 0)
+                                .orderByDesc(Images::getCreatedTime)
+                                .last("limit 1"),
+                        false);
         if (avatarImage != null && StringUtils.hasText(avatarImage.getFileUrl())) {
             avatarUrl = avatarImage.getFileUrl();
         }
@@ -234,8 +242,10 @@ public class AdminUserManageController {
         return Result.success(resp);
     }
 
+    @Operation(summary = "查询User地址列表")
     @GetMapping("/{id}/addresses")
-    public Result<List<AdminUserAddressItemResponse>> listUserAddresses(@PathVariable("id") String id) {
+    public Result<List<AdminUserAddressItemResponse>> listUserAddresses(
+            @PathVariable("id") String id) {
         LoginUserInfo user = AuthUserContext.get();
         if (user == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "未登录");
@@ -250,14 +260,14 @@ public class AdminUserManageController {
         if (account == null || account.getIsDelete() != null && account.getIsDelete() != 0) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "用户不存在");
         }
-        List<UserAddresses> addresses = userAddressesService.list(
-            new LambdaQueryWrapper<UserAddresses>()
-                .eq(UserAddresses::getAccountId, id)
-                .eq(UserAddresses::getIsDelete, 0)
-                .orderByDesc(UserAddresses::getIsDefault)
-                .orderByDesc(UserAddresses::getUpdatedTime)
-                .orderByDesc(UserAddresses::getCreatedTime)
-        );
+        List<UserAddresses> addresses =
+                userAddressesService.list(
+                        new LambdaQueryWrapper<UserAddresses>()
+                                .eq(UserAddresses::getAccountId, id)
+                                .eq(UserAddresses::getIsDelete, 0)
+                                .orderByDesc(UserAddresses::getIsDefault)
+                                .orderByDesc(UserAddresses::getUpdatedTime)
+                                .orderByDesc(UserAddresses::getCreatedTime));
         List<AdminUserAddressItemResponse> items = new ArrayList<>();
         for (UserAddresses address : addresses) {
             items.add(buildUserAddressItem(address));
@@ -265,11 +275,10 @@ public class AdminUserManageController {
         return Result.success(items);
     }
 
+    @Operation(summary = "创建setUserDefaultAddress")
     @PostMapping("/{id}/addresses/{addressId}/set-default")
     public Result<Void> setUserDefaultAddress(
-        @PathVariable("id") String id,
-        @PathVariable("addressId") String addressId
-    ) {
+            @PathVariable("id") String id, @PathVariable("addressId") String addressId) {
         LoginUserInfo user = AuthUserContext.get();
         if (user == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "未登录");
@@ -327,11 +336,10 @@ public class AdminUserManageController {
         return Result.success();
     }
 
+    @Operation(summary = "创建删除UserAddress")
     @PostMapping("/{id}/addresses/{addressId}/delete")
     public Result<Void> deleteUserAddress(
-        @PathVariable("id") String id,
-        @PathVariable("addressId") String addressId
-    ) {
+            @PathVariable("id") String id, @PathVariable("addressId") String addressId) {
         LoginUserInfo user = AuthUserContext.get();
         if (user == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "未登录");
@@ -389,12 +397,12 @@ public class AdminUserManageController {
         return Result.success();
     }
 
+    @Operation(summary = "创建编辑UserAddress")
     @PostMapping("/{id}/addresses/{addressId}/update")
     public Result<Void> updateUserAddress(
-        @PathVariable("id") String id,
-        @PathVariable("addressId") String addressId,
-        @Valid @RequestBody AdminUserAddressUpdateRequest request
-    ) {
+            @PathVariable("id") String id,
+            @PathVariable("addressId") String addressId,
+            @Valid @RequestBody AdminUserAddressUpdateRequest request) {
         LoginUserInfo user = AuthUserContext.get();
         if (user == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "未登录");
@@ -452,11 +460,10 @@ public class AdminUserManageController {
         return Result.success();
     }
 
+    @Operation(summary = "修改编辑User")
     @PostMapping("/{id}/update")
     public Result<Void> updateUser(
-        @PathVariable("id") String id,
-        @Valid @RequestBody AdminUserUpdateRequest request
-    ) {
+            @PathVariable("id") String id, @Valid @RequestBody AdminUserUpdateRequest request) {
         LoginUserInfo user = AuthUserContext.get();
         if (user == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "未登录");
@@ -478,12 +485,12 @@ public class AdminUserManageController {
         account.setPhone(request.getPhone());
         account.setUpdatedTime(now);
         userAccountsService.updateById(account);
-        UserProfiles profile = userProfilesService.getOne(
-            new LambdaQueryWrapper<UserProfiles>()
-                .eq(UserProfiles::getAccountId, id)
-                .eq(UserProfiles::getIsDelete, 0),
-            false
-        );
+        UserProfiles profile =
+                userProfilesService.getOne(
+                        new LambdaQueryWrapper<UserProfiles>()
+                                .eq(UserProfiles::getAccountId, id)
+                                .eq(UserProfiles::getIsDelete, 0),
+                        false);
         boolean isNew = profile == null;
         if (isNew) {
             profile = new UserProfiles();
@@ -511,7 +518,16 @@ public class AdminUserManageController {
         log.setModuleName("ADMIN_USER");
         log.setRequestMethod("POST");
         log.setRequestUrl("/admin/users/" + id + "/update");
-        log.setRequestParams("{\"oldUsername\":\"" + oldUsername + "\",\"newUsername\":\"" + request.getUsername() + "\",\"oldPhone\":\"" + oldPhone + "\",\"newPhone\":\"" + request.getPhone() + "\"}");
+        log.setRequestParams(
+                "{\"oldUsername\":\""
+                        + oldUsername
+                        + "\",\"newUsername\":\""
+                        + request.getUsername()
+                        + "\",\"oldPhone\":\""
+                        + oldPhone
+                        + "\",\"newPhone\":\""
+                        + request.getPhone()
+                        + "\"}");
         log.setStatus(1);
         log.setCreatedTime(now);
         log.setIpAddress("");
@@ -537,6 +553,7 @@ public class AdminUserManageController {
         return Result.success();
     }
 
+    @Operation(summary = "提交initUser密码")
     @PostMapping("/{id}/password/init")
     public Result<Void> initUserPassword(@PathVariable("id") String id) {
         LoginUserInfo user = AuthUserContext.get();
@@ -544,18 +561,23 @@ public class AdminUserManageController {
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "\u672a\u767b\u5f55");
         }
         if (user.getRole() != AccountRole.ADMIN) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "\u65e0\u6743\u8bbf\u95ee\u7ba1\u7406\u5458\u63a5\u53e3");
+            throw new BusinessException(
+                    ErrorCode.FORBIDDEN, "\u65e0\u6743\u8bbf\u95ee\u7ba1\u7406\u5458\u63a5\u53e3");
         }
         if (!StringUtils.hasText(id)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "\u7528\u6237ID\u4e0d\u80fd\u4e3a\u7a7a");
+            throw new BusinessException(
+                    ErrorCode.PARAM_ERROR, "\u7528\u6237ID\u4e0d\u80fd\u4e3a\u7a7a");
         }
 
         UserAccounts account = userAccountsService.getById(id);
         if (account == null || account.getIsDelete() != null && account.getIsDelete() != 0) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "\u7528\u6237\u8d26\u53f7\u4e0d\u5b58\u5728");
+            throw new BusinessException(
+                    ErrorCode.BUSINESS_ERROR, "\u7528\u6237\u8d26\u53f7\u4e0d\u5b58\u5728");
         }
         if (!StringUtils.hasText(account.getEmail())) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "\u7528\u6237\u672a\u7ed1\u5b9a\u90ae\u7bb1\uff0c\u65e0\u6cd5\u521d\u59cb\u5316\u5bc6\u7801");
+            throw new BusinessException(
+                    ErrorCode.BUSINESS_ERROR,
+                    "\u7528\u6237\u672a\u7ed1\u5b9a\u90ae\u7bb1\uff0c\u65e0\u6cd5\u521d\u59cb\u5316\u5bc6\u7801");
         }
 
         long now = System.currentTimeMillis();
@@ -563,10 +585,12 @@ public class AdminUserManageController {
         String password = "123456";
         account.setSalt(salt);
         account.setPassword(PasswordUtil.hashPassword(password, salt));
+        account.setTokenVersion(TokenVersions.next(account.getTokenVersion()));
         account.setUpdatedTime(now);
         boolean updated = userAccountsService.updateById(account);
         if (!updated) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "\u521d\u59cb\u5316\u5bc6\u7801\u5931\u8d25");
+            throw new BusinessException(
+                    ErrorCode.SYSTEM_ERROR, "\u521d\u59cb\u5316\u5bc6\u7801\u5931\u8d25");
         }
 
         OperationLogs log = new OperationLogs();
@@ -575,11 +599,13 @@ public class AdminUserManageController {
         log.setOperatorType(3);
         log.setOperatorName(user.getAccountId());
         log.setOperationType("UPDATE");
-        log.setOperationDesc("\u7ba1\u7406\u5458\u521d\u59cb\u5316\u7528\u6237\u767b\u5f55\u5bc6\u7801");
+        log.setOperationDesc(
+                "\u7ba1\u7406\u5458\u521d\u59cb\u5316\u7528\u6237\u767b\u5f55\u5bc6\u7801");
         log.setModuleName("ADMIN_USER");
         log.setRequestMethod("POST");
         log.setRequestUrl("/admin/users/" + id + "/password/init");
-        log.setRequestParams("{\"email\":\"" + account.getEmail() + "\",\"passwordInitialized\":true}");
+        log.setRequestParams(
+                "{\"email\":\"" + account.getEmail() + "\",\"passwordInitialized\":true}");
         log.setStatus(1);
         log.setCreatedTime(now);
         log.setIpAddress("");
@@ -592,7 +618,8 @@ public class AdminUserManageController {
         message.setReceiverId(id);
         message.setReceiverType(1);
         message.setTitle("\u767b\u5f55\u5bc6\u7801\u5df2\u88ab\u7ba1\u7406\u5458\u91cd\u7f6e");
-        message.setContent("\u60a8\u7684\u767b\u5f55\u5bc6\u7801\u5df2\u88ab\u7ba1\u7406\u5458\u91cd\u7f6e\uff0c\u5982\u975e\u672c\u4eba\u64cd\u4f5c\u8bf7\u5c3d\u5feb\u8054\u7cfb\u5e73\u53f0\u5ba2\u670d\u3002");
+        message.setContent(
+                "\u60a8\u7684\u767b\u5f55\u5bc6\u7801\u5df2\u88ab\u7ba1\u7406\u5458\u91cd\u7f6e\uff0c\u5982\u975e\u672c\u4eba\u64cd\u4f5c\u8bf7\u5c3d\u5feb\u8054\u7cfb\u5e73\u53f0\u5ba2\u670d\u3002");
         message.setMessageType(3);
         message.setBusinessType("ADMIN_USER_PASSWORD_INIT");
         message.setBusinessId(id);
@@ -606,11 +633,10 @@ public class AdminUserManageController {
         return Result.success();
     }
 
+    @Operation(summary = "上传上传User头像")
     @PostMapping(value = "/{id}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Result<String> uploadUserAvatar(
-        @PathVariable("id") String id,
-        @RequestPart("file") MultipartFile file
-    ) {
+            @PathVariable("id") String id, @RequestPart("file") MultipartFile file) {
         LoginUserInfo user = AuthUserContext.get();
         if (user == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "未登录");
@@ -739,9 +765,9 @@ public class AdminUserManageController {
 
     private String buildFullAddress(UserAddresses address) {
         return safe(address.getProvince())
-            + safe(address.getCity())
-            + safe(address.getDistrict())
-            + safe(address.getStreet());
+                + safe(address.getCity())
+                + safe(address.getDistrict())
+                + safe(address.getStreet());
     }
 
     private String toPlainString(BigDecimal value) {
@@ -755,11 +781,11 @@ public class AdminUserManageController {
         return value == null ? "" : value;
     }
 
+    @Operation(summary = "修改编辑UserStatus")
     @PostMapping("/{id}/status")
     public Result<Void> updateUserStatus(
-        @PathVariable("id") String id,
-        @Valid @RequestBody AdminUserStatusUpdateRequest request
-    ) {
+            @PathVariable("id") String id,
+            @Valid @RequestBody AdminUserStatusUpdateRequest request) {
         LoginUserInfo user = AuthUserContext.get();
         if (user == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "未登录");
@@ -786,6 +812,7 @@ public class AdminUserManageController {
             return Result.success();
         }
         account.setStatus(targetStatus);
+        account.setTokenVersion(TokenVersions.next(account.getTokenVersion()));
         long now = System.currentTimeMillis();
         account.setUpdatedTime(now);
         userAccountsService.updateById(account);
@@ -799,7 +826,8 @@ public class AdminUserManageController {
         log.setModuleName("ADMIN_USER");
         log.setRequestMethod("POST");
         log.setRequestUrl("/admin/users/" + id + "/status");
-        log.setRequestParams("{\"oldStatus\":" + currentStatus + ",\"newStatus\":" + targetStatus + "}");
+        log.setRequestParams(
+                "{\"oldStatus\":" + currentStatus + ",\"newStatus\":" + targetStatus + "}");
         log.setStatus(1);
         log.setCreatedTime(now);
         log.setIpAddress("");

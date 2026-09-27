@@ -55,11 +55,13 @@ export function uploadWorkerChatMedia(filePath, mediaType) {
         mediaType: mediaType || ''
       },
       header: {
-        ...(token ? { Authorization: 'Bearer ' + token } : {} )
+        ...(token ? { Authorization: 'Bearer ' + token } : {})
       },
       success(res) {
         try {
-          resolve(resolveUploadResponse(res, mediaType === 'video' ? '视频上传失败' : '图片上传失败'));
+          resolve(
+            resolveUploadResponse(res, mediaType === 'video' ? '视频上传失败' : '图片上传失败')
+          );
         } catch (error) {
           reject(error);
         }

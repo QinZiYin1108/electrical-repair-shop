@@ -8,10 +8,8 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 @SpringBootTest
 class BackEndApplicationTests {
 
-    @MockBean
-    private SystemConfigBootstrap systemConfigBootstrap;
+    @MockBean private SystemConfigBootstrap systemConfigBootstrap;
 
     @Test
-    void contextLoads() {
-    }
+    void contextLoads() {}
 }

@@ -107,6 +107,14 @@
   background: linear-gradient(135deg, #22c55e 0%, #14b8a6 100%);
 }
 
+.badge-pickup {
+  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+}
+
+.badge-delivery {
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+}
+
 .media-index {
   position: absolute;
   right: 18rpx;

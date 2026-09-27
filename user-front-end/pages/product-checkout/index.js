@@ -2,16 +2,40 @@ const router = require('../../utils/router');
 const { fetchMallProductDetail } = require('../../api/userMall');
 const { fetchMallCart, submitMallOrder, fetchAvailableMallCoupons } = require('../../api/userMallOrder');
 const userAddressApi = require('../../api/userAddress');
+const {
+  createOrderPaymentIntent,
+  getOrderPaymentStatus
+} = require('../../api/userPayments');
+
+const PAYMENT_METHOD_WECHAT = 1;
 
 const PAYMENT_METHODS = [
   { id: 5, name: '钱包支付', desc: '优先使用钱包余额完成本次订单支付。', accent: 'wallet' },
-  { id: 1, name: '微信支付', desc: '提交订单后使用微信完成支付。', accent: 'wechat' },
-  { id: 2, name: '支付宝支付', desc: '提交订单后使用支付宝完成支付。', accent: 'alipay' }
+  { id: 1, name: '微信支付', desc: '提交订单后使用微信完成支付。', accent: 'wechat' }
 ];
 
 function formatPrice(value) {
   const amount = Number(value || 0);
   return Number.isNaN(amount) ? '0.00' : amount.toFixed(2);
+}
+
+function requestWechatPayment(parameters) {
+  const params = parameters || {};
+  return new Promise((resolve, reject) => {
+    wx.requestPayment({
+      timeStamp: String(params.timeStamp || ''),
+      nonceStr: params.nonceStr || '',
+      package: params.package || '',
+      signType: params.signType || 'RSA',
+      paySign: params.paySign || '',
+      success: resolve,
+      fail: reject
+    });
+  });
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function normalizeAddressList(list) {
@@ -167,7 +191,9 @@ Page({
             stockQuantity: Number(item.stockQuantity || 0),
             sellingPrice: Number(item.sellingPrice || 0),
             sellingPriceText: formatPrice(item.sellingPrice),
-            lineAmountText: formatPrice(item.lineAmount)
+            lineAmountText: formatPrice(item.lineAmount),
+            fulfillmentType: item.fulfillmentType,
+            fulfillmentText: item.fulfillmentType === 1 ? '自取' : item.fulfillmentType === 2 ? '送货上门' : ''
           }));
         this.setData({ items });
         this.recalculateSummary();
@@ -204,7 +230,9 @@ Page({
               stockQuantity: Number(data.stockQuantity || 0),
               sellingPrice,
               sellingPriceText: formatPrice(sellingPrice),
-              lineAmountText: formatPrice(sellingPrice * quantity)
+              lineAmountText: formatPrice(sellingPrice * quantity),
+              fulfillmentType: data.fulfillmentType,
+              fulfillmentText: data.fulfillmentType === 1 ? '自取' : data.fulfillmentType === 2 ? '送货上门' : ''
             };
           });
         this.setData({ items });
@@ -396,6 +424,38 @@ Page({
     this.loadAvailableCoupons();
   },
 
+  async payOrderByWechat(orderId) {
+    try {
+      const resp = await createOrderPaymentIntent({ orderId, provider: PAYMENT_METHOD_WECHAT });
+      if (!resp || resp.code !== 200 || !resp.data) {
+        wx.showToast({ title: (resp && resp.message) || '发起支付失败', icon: 'none' });
+        return false;
+      }
+      const intent = resp.data;
+      if (!intent.paymentNo || !intent.invokeParameters) {
+        wx.showToast({ title: '支付参数不完整', icon: 'none' });
+        return false;
+      }
+      await requestWechatPayment(intent.invokeParameters);
+      return await this.waitForPaymentSuccess(intent.paymentNo);
+    } catch (e) {
+      return false;
+    }
+  },
+
+  async waitForPaymentSuccess(paymentNo) {
+    for (let index = 0; index < 5; index += 1) {
+      if (index > 0) {
+        await delay(1000);
+      }
+      const resp = await getOrderPaymentStatus(paymentNo);
+      const status = resp && resp.code === 200 && resp.data ? Number(resp.data.status) : 0;
+      if (status === 3) return true;
+      if (status === 4 || status === 6) return false;
+    }
+    return false;
+  },
+
   onSubmitOrder() {
     if (this.data.submitting) {
       return;
@@ -421,12 +481,23 @@ Page({
     }
     this.setData({ submitting: true });
     submitMallOrder(payload)
-      .then((res) => {
+      .then(async (res) => {
         if (!res || res.code !== 200 || !res.data) {
           wx.showToast({ title: (res && res.message) || '提交订单失败', icon: 'none' });
           return;
         }
         wx.removeStorageSync('mallCheckoutPayload');
+        const needExternalPay =
+          Number(this.data.selectedPaymentMethod) === PAYMENT_METHOD_WECHAT &&
+          Number(res.data.actualAmount || 0) > 0;
+        if (needExternalPay) {
+          const paid = await this.payOrderByWechat(res.data.orderId);
+          if (!paid) {
+            wx.showToast({ title: '支付未完成，可在订单详情继续支付', icon: 'none' });
+            wx.redirectTo({ url: `/pages/product-order-detail/index?orderId=${res.data.orderId}` });
+            return;
+          }
+        }
         const discountLine = Number(res.data.discountAmount || 0) > 0
           ? `\n优惠抵扣：￥${formatPrice(res.data.discountAmount)}${res.data.couponName ? `（${res.data.couponName}）` : ''}`
           : '';

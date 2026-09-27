@@ -17,25 +17,25 @@ import com.example.backend.service.AdminProfilesService;
 import com.example.backend.service.ImagesService;
 import com.example.backend.utils.oss.OssUtil;
 import com.example.backend.utils.upload.UploadLimitUtil;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.UUID;
+import javax.imageio.ImageIO;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
 import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.UUID;
-
-import javax.imageio.ImageIO;
-
 @RestController
+@Tag(name = "管理员端/个人信息")
 @RequestMapping("/admin/profile")
 public class AdminProfileController {
 
@@ -45,17 +45,17 @@ public class AdminProfileController {
     private final OssUtil ossUtil;
 
     public AdminProfileController(
-        AdminAccountsService adminAccountsService,
-        AdminProfilesService adminProfilesService,
-        ImagesService imagesService,
-        OssUtil ossUtil
-    ) {
+            AdminAccountsService adminAccountsService,
+            AdminProfilesService adminProfilesService,
+            ImagesService imagesService,
+            OssUtil ossUtil) {
         this.adminAccountsService = adminAccountsService;
         this.adminProfilesService = adminProfilesService;
         this.imagesService = imagesService;
         this.ossUtil = ossUtil;
     }
 
+    @Operation(summary = "查询Profile")
     @GetMapping("/me")
     public Result<AdminProfileDetailResponse> getProfile() {
         LoginUserInfo user = AuthUserContext.get();
@@ -70,22 +70,22 @@ public class AdminProfileController {
         if (admin == null) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "管理员账号不存在");
         }
-        AdminProfiles profile = adminProfilesService.getOne(
-            new LambdaQueryWrapper<AdminProfiles>()
-                .eq(AdminProfiles::getAccountId, accountId)
-                .eq(AdminProfiles::getIsDelete, 0),
-            false
-        );
+        AdminProfiles profile =
+                adminProfilesService.getOne(
+                        new LambdaQueryWrapper<AdminProfiles>()
+                                .eq(AdminProfiles::getAccountId, accountId)
+                                .eq(AdminProfiles::getIsDelete, 0),
+                        false);
         String avatarUrl = null;
-        Images avatarImage = imagesService.getOne(
-            new LambdaQueryWrapper<Images>()
-                .eq(Images::getBusinessType, "AVATAR")
-                .eq(Images::getBusinessId, accountId)
-                .eq(Images::getIsDelete, 0)
-                .orderByDesc(Images::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+        Images avatarImage =
+                imagesService.getOne(
+                        new LambdaQueryWrapper<Images>()
+                                .eq(Images::getBusinessType, "AVATAR")
+                                .eq(Images::getBusinessId, accountId)
+                                .eq(Images::getIsDelete, 0)
+                                .orderByDesc(Images::getCreatedTime)
+                                .last("limit 1"),
+                        false);
         if (avatarImage != null) {
             avatarUrl = avatarImage.getFileUrl();
         }
@@ -106,6 +106,7 @@ public class AdminProfileController {
         return Result.success(resp);
     }
 
+    @Operation(summary = "修改编辑Profile")
     @PostMapping("/update")
     public Result<Void> updateProfile(@Valid @RequestBody AdminProfileUpdateRequest request) {
         LoginUserInfo user = AuthUserContext.get();
@@ -126,12 +127,12 @@ public class AdminProfileController {
         admin.setUpdatedTime(now);
         adminAccountsService.updateById(admin);
 
-        AdminProfiles profile = adminProfilesService.getOne(
-            new LambdaQueryWrapper<AdminProfiles>()
-                .eq(AdminProfiles::getAccountId, accountId)
-                .eq(AdminProfiles::getIsDelete, 0),
-            false
-        );
+        AdminProfiles profile =
+                adminProfilesService.getOne(
+                        new LambdaQueryWrapper<AdminProfiles>()
+                                .eq(AdminProfiles::getAccountId, accountId)
+                                .eq(AdminProfiles::getIsDelete, 0),
+                        false);
         boolean isNew = profile == null;
         if (isNew) {
             profile = new AdminProfiles();
@@ -152,6 +153,7 @@ public class AdminProfileController {
         return Result.success();
     }
 
+    @Operation(summary = "上传上传头像")
     @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Result<String> uploadAvatar(@RequestPart("file") MultipartFile file) {
         LoginUserInfo user = AuthUserContext.get();

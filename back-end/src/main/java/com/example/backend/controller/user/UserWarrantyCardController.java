@@ -14,7 +14,17 @@ import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.WarrantyCardUsageRecordsService;
 import com.example.backend.service.WarrantyCardsService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Objects;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,20 +33,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
-
 @RestController
+@Tag(name = "用户端/保修卡")
 @RequestMapping("/user/warranty-cards")
 public class UserWarrantyCardController {
 
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final DateTimeFormatter DATE_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final int STATUS_ACTIVE = 1;
     private static final int STATUS_EXPIRED = 2;
     private static final int USAGE_STATUS_PENDING = 1;
@@ -47,25 +50,29 @@ public class UserWarrantyCardController {
     private final WarrantyCardUsageRecordsService usageRecordsService;
 
     public UserWarrantyCardController(
-        WarrantyCardsService warrantyCardsService,
-        WarrantyCardUsageRecordsService usageRecordsService
-    ) {
+            WarrantyCardsService warrantyCardsService,
+            WarrantyCardUsageRecordsService usageRecordsService) {
         this.warrantyCardsService = warrantyCardsService;
         this.usageRecordsService = usageRecordsService;
     }
 
+    @Operation(summary = "查询Cards")
     @GetMapping("/list")
-    public Result<UserWarrantyCardModel.ListResponse> listCards(@RequestParam(value = "status", required = false) String status) {
+    public Result<UserWarrantyCardModel.ListResponse> listCards(
+            @RequestParam(value = "status", required = false) String status) {
         LoginUserInfo user = requireCurrentUser();
         refreshExpiredCards();
         UserWarrantyCardModel.ListResponse response = new UserWarrantyCardModel.ListResponse();
-        List<WarrantyCards> list = warrantyCardsService.list(buildListQuery(user.getAccountId(), normalizeStatus(status)));
+        List<WarrantyCards> list =
+                warrantyCardsService.list(
+                        buildListQuery(user.getAccountId(), normalizeStatus(status)));
         for (WarrantyCards card : list) {
             response.getItems().add(toListItem(card));
         }
         return Result.success(response);
     }
 
+    @Operation(summary = "查询详情")
     @GetMapping("/detail")
     public Result<UserWarrantyCardModel.DetailResponse> getDetail(@RequestParam("id") String id) {
         LoginUserInfo user = requireCurrentUser();
@@ -73,21 +80,23 @@ public class UserWarrantyCardController {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "保修卡ID不能为空");
         }
         refreshExpiredCards();
-        WarrantyCards card = warrantyCardsService.getOne(
-            new LambdaQueryWrapper<WarrantyCards>()
-                .eq(WarrantyCards::getId, id)
-                .eq(WarrantyCards::getUserId, user.getAccountId())
-                .last("limit 1"),
-            false
-        );
+        WarrantyCards card =
+                warrantyCardsService.getOne(
+                        new LambdaQueryWrapper<WarrantyCards>()
+                                .eq(WarrantyCards::getId, id)
+                                .eq(WarrantyCards::getUserId, user.getAccountId())
+                                .last("limit 1"),
+                        false);
         if (card == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "保修卡不存在");
         }
         return Result.success(toDetail(card));
     }
 
+    @Operation(summary = "提交申请Usage")
     @PostMapping("/usage/apply")
-    public Result<Void> applyUsage(@Valid @RequestBody UserWarrantyCardModel.ApplyUsageRequest request) {
+    public Result<Void> applyUsage(
+            @Valid @RequestBody UserWarrantyCardModel.ApplyUsageRequest request) {
         LoginUserInfo user = requireCurrentUser();
         refreshExpiredCards();
         WarrantyCards card = requireUserCard(user.getAccountId(), request.getWarrantyCardId());
@@ -136,10 +145,11 @@ public class UserWarrantyCardController {
     }
 
     private LambdaQueryWrapper<WarrantyCards> buildListQuery(String userId, String status) {
-        LambdaQueryWrapper<WarrantyCards> wrapper = new LambdaQueryWrapper<WarrantyCards>()
-            .eq(WarrantyCards::getUserId, userId)
-            .orderByDesc(WarrantyCards::getUpdatedTime)
-            .orderByDesc(WarrantyCards::getCreatedTime);
+        LambdaQueryWrapper<WarrantyCards> wrapper =
+                new LambdaQueryWrapper<WarrantyCards>()
+                        .eq(WarrantyCards::getUserId, userId)
+                        .orderByDesc(WarrantyCards::getUpdatedTime)
+                        .orderByDesc(WarrantyCards::getCreatedTime);
         if ("active".equals(status)) {
             wrapper.eq(WarrantyCards::getWarrantyStatus, STATUS_ACTIVE);
         } else if ("expired".equals(status)) {
@@ -151,12 +161,11 @@ public class UserWarrantyCardController {
     private void refreshExpiredCards() {
         Date today = Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
         warrantyCardsService.update(
-            new LambdaUpdateWrapper<WarrantyCards>()
-                .eq(WarrantyCards::getWarrantyStatus, STATUS_ACTIVE)
-                .lt(WarrantyCards::getWarrantyEndDate, today)
-                .set(WarrantyCards::getWarrantyStatus, STATUS_EXPIRED)
-                .set(WarrantyCards::getUpdatedTime, System.currentTimeMillis())
-        );
+                new LambdaUpdateWrapper<WarrantyCards>()
+                        .eq(WarrantyCards::getWarrantyStatus, STATUS_ACTIVE)
+                        .lt(WarrantyCards::getWarrantyEndDate, today)
+                        .set(WarrantyCards::getWarrantyStatus, STATUS_EXPIRED)
+                        .set(WarrantyCards::getUpdatedTime, System.currentTimeMillis()));
     }
 
     private UserWarrantyCardModel.ListItemResponse toListItem(WarrantyCards card) {
@@ -201,7 +210,8 @@ public class UserWarrantyCardController {
         response.setLastRepairDate(formatDate(card.getLastRepairDate()));
         response.setRemainingDays(calculateRemainingDays(card.getWarrantyEndDate()));
         response.setPendingUsageCount(pendingUsageCount);
-        response.setCanApplyUsage(Objects.equals(card.getWarrantyStatus(), STATUS_ACTIVE) && pendingUsageCount == 0);
+        response.setCanApplyUsage(
+                Objects.equals(card.getWarrantyStatus(), STATUS_ACTIVE) && pendingUsageCount == 0);
         response.setUsageRecords(buildUsageRecords(card.getId()));
         return response;
     }
@@ -210,13 +220,13 @@ public class UserWarrantyCardController {
         if (!StringUtils.hasText(warrantyCardId)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "保修卡ID不能为空");
         }
-        WarrantyCards card = warrantyCardsService.getOne(
-            new LambdaQueryWrapper<WarrantyCards>()
-                .eq(WarrantyCards::getId, warrantyCardId)
-                .eq(WarrantyCards::getUserId, userId)
-                .last("limit 1"),
-            false
-        );
+        WarrantyCards card =
+                warrantyCardsService.getOne(
+                        new LambdaQueryWrapper<WarrantyCards>()
+                                .eq(WarrantyCards::getId, warrantyCardId)
+                                .eq(WarrantyCards::getUserId, userId)
+                                .last("limit 1"),
+                        false);
         if (card == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "保修卡不存在");
         }
@@ -224,22 +234,24 @@ public class UserWarrantyCardController {
     }
 
     private int countPendingUsage(String warrantyCardId) {
-        return Math.toIntExact(usageRecordsService.count(
-            new LambdaQueryWrapper<WarrantyCardUsageRecords>()
-                .eq(WarrantyCardUsageRecords::getWarrantyCardId, warrantyCardId)
-                .eq(WarrantyCardUsageRecords::getStatus, USAGE_STATUS_PENDING)
-        ));
+        return Math.toIntExact(
+                usageRecordsService.count(
+                        new LambdaQueryWrapper<WarrantyCardUsageRecords>()
+                                .eq(WarrantyCardUsageRecords::getWarrantyCardId, warrantyCardId)
+                                .eq(WarrantyCardUsageRecords::getStatus, USAGE_STATUS_PENDING)));
     }
 
-    private List<UserWarrantyCardModel.UsageRecordResponse> buildUsageRecords(String warrantyCardId) {
-        List<WarrantyCardUsageRecords> records = usageRecordsService.list(
-            new LambdaQueryWrapper<WarrantyCardUsageRecords>()
-                .eq(WarrantyCardUsageRecords::getWarrantyCardId, warrantyCardId)
-                .orderByDesc(WarrantyCardUsageRecords::getCreatedTime)
-        );
+    private List<UserWarrantyCardModel.UsageRecordResponse> buildUsageRecords(
+            String warrantyCardId) {
+        List<WarrantyCardUsageRecords> records =
+                usageRecordsService.list(
+                        new LambdaQueryWrapper<WarrantyCardUsageRecords>()
+                                .eq(WarrantyCardUsageRecords::getWarrantyCardId, warrantyCardId)
+                                .orderByDesc(WarrantyCardUsageRecords::getCreatedTime));
         List<UserWarrantyCardModel.UsageRecordResponse> result = new ArrayList<>();
         for (WarrantyCardUsageRecords record : records) {
-            UserWarrantyCardModel.UsageRecordResponse item = new UserWarrantyCardModel.UsageRecordResponse();
+            UserWarrantyCardModel.UsageRecordResponse item =
+                    new UserWarrantyCardModel.UsageRecordResponse();
             item.setId(record.getId());
             item.setIssueDescription(record.getIssueDescription());
             item.setContactName(record.getContactName());
@@ -268,7 +280,10 @@ public class UserWarrantyCardController {
         if (value == null) {
             return "";
         }
-        return value.toInstant().atZone(ZoneId.systemDefault()).toLocalDate().format(DATE_FORMATTER);
+        return value.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+                .format(DATE_FORMATTER);
     }
 
     private String getTypeText(Integer type) {

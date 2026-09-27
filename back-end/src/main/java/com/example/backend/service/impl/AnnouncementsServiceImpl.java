@@ -8,6 +8,4 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class AnnouncementsServiceImpl extends ServiceImpl<AnnouncementsMapper, Announcements>
-    implements AnnouncementsService {
-}
-
+        implements AnnouncementsService {}

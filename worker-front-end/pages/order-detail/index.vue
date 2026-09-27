@@ -54,7 +54,10 @@
           </view>
         </view>
 
-        <view class="section-card" :class="{ 'section-card-collapsed': isSectionCollapsed('overview') }">
+        <view
+          class="section-card"
+          :class="{ 'section-card-collapsed': isSectionCollapsed('overview') }"
+        >
           <view class="section-headline" @click="toggleSection('overview')">
             <view class="section-title-wrap">
               <view class="section-icon section-icon-overview">
@@ -66,23 +69,30 @@
               </view>
             </view>
             <view class="section-toggle">
-              <text class="section-toggle-text">{{ isSectionCollapsed('overview') ? '展开' : '收起' }}</text>
-              <u-icon :name="isSectionCollapsed('overview') ? 'arrow-down' : 'arrow-up'" size="14" color="#64748b" />
+              <text class="section-toggle-text">{{
+                isSectionCollapsed('overview') ? '展开' : '收起'
+              }}</text>
+              <u-icon
+                :name="isSectionCollapsed('overview') ? 'arrow-down' : 'arrow-up'"
+                size="14"
+                color="#64748b"
+              />
             </view>
           </view>
           <view v-show="!isSectionCollapsed('overview')">
-            <view
-              v-for="item in detail.summaryRows"
-              :key="item.label"
-              class="info-row"
-            >
+            <view v-for="item in detail.summaryRows" :key="item.label" class="info-row">
               <text class="info-label">{{ item.label }}</text>
-              <text class="info-value" :class="{ 'info-value-strong': item.strong }">{{ item.value }}</text>
+              <text class="info-value" :class="{ 'info-value-strong': item.strong }">{{
+                item.value
+              }}</text>
             </view>
           </view>
         </view>
 
-        <view class="section-card" :class="{ 'section-card-collapsed': isSectionCollapsed('fault') }">
+        <view
+          class="section-card"
+          :class="{ 'section-card-collapsed': isSectionCollapsed('fault') }"
+        >
           <view class="section-headline" @click="toggleSection('fault')">
             <view class="section-title-wrap">
               <view class="section-icon section-icon-fault">
@@ -94,10 +104,18 @@
               </view>
             </view>
             <view class="section-actions">
-              <text v-if="detail.faultList.length" class="section-tag">{{ detail.faultList.length }} 条</text>
+              <text v-if="detail.faultList.length" class="section-tag"
+                >{{ detail.faultList.length }} 条</text
+              >
               <view class="section-toggle">
-                <text class="section-toggle-text">{{ isSectionCollapsed('fault') ? '展开' : '收起' }}</text>
-                <u-icon :name="isSectionCollapsed('fault') ? 'arrow-down' : 'arrow-up'" size="14" color="#64748b" />
+                <text class="section-toggle-text">{{
+                  isSectionCollapsed('fault') ? '展开' : '收起'
+                }}</text>
+                <u-icon
+                  :name="isSectionCollapsed('fault') ? 'arrow-down' : 'arrow-up'"
+                  size="14"
+                  color="#64748b"
+                />
               </view>
             </view>
           </view>
@@ -171,16 +189,23 @@
                     </view>
                   </view>
                   <view class="video-meta">
-                    <text v-if="video.durationText" class="video-duration">{{ video.durationText }}</text>
+                    <text v-if="video.durationText" class="video-duration">{{
+                      video.durationText
+                    }}</text>
                   </view>
                 </view>
               </view>
             </view>
           </view>
-          <text v-show="!isSectionCollapsed('fault') && !detail.faultList.length" class="empty-text">暂无故障详情</text>
+          <text v-show="!isSectionCollapsed('fault') && !detail.faultList.length" class="empty-text"
+            >暂无故障详情</text
+          >
         </view>
 
-        <view class="section-card" :class="{ 'section-card-collapsed': isSectionCollapsed('inspection') }">
+        <view
+          class="section-card"
+          :class="{ 'section-card-collapsed': isSectionCollapsed('inspection') }"
+        >
           <view class="section-headline" @click="toggleSection('inspection')">
             <view class="section-title-wrap">
               <view class="section-icon section-icon-inspection">
@@ -192,8 +217,14 @@
               </view>
             </view>
             <view class="section-toggle">
-              <text class="section-toggle-text">{{ isSectionCollapsed('inspection') ? '展开' : '收起' }}</text>
-              <u-icon :name="isSectionCollapsed('inspection') ? 'arrow-down' : 'arrow-up'" size="14" color="#64748b" />
+              <text class="section-toggle-text">{{
+                isSectionCollapsed('inspection') ? '展开' : '收起'
+              }}</text>
+              <u-icon
+                :name="isSectionCollapsed('inspection') ? 'arrow-down' : 'arrow-up'"
+                size="14"
+                color="#64748b"
+              />
             </view>
           </view>
           <view v-show="!isSectionCollapsed('inspection')">
@@ -255,13 +286,20 @@
                   </view>
                 </view>
                 <view class="video-meta">
-                  <text v-if="video.durationText" class="video-duration">{{ video.durationText }}</text>
+                  <text v-if="video.durationText" class="video-duration">{{
+                    video.durationText
+                  }}</text>
                 </view>
               </view>
             </view>
 
             <text
-              v-if="!detail.inspectionImages.length && !detail.inspectionVideos.length && !detail.inspectionDiagnosis && !detail.repairPlan"
+              v-if="
+                !detail.inspectionImages.length &&
+                !detail.inspectionVideos.length &&
+                !detail.inspectionDiagnosis &&
+                !detail.repairPlan
+              "
               class="empty-text"
             >
               暂无检查结果
@@ -281,23 +319,30 @@
               </view>
             </view>
             <view class="section-toggle">
-              <text class="section-toggle-text">{{ isSectionCollapsed('fee') ? '展开' : '收起' }}</text>
-              <u-icon :name="isSectionCollapsed('fee') ? 'arrow-down' : 'arrow-up'" size="14" color="#64748b" />
+              <text class="section-toggle-text">{{
+                isSectionCollapsed('fee') ? '展开' : '收起'
+              }}</text>
+              <u-icon
+                :name="isSectionCollapsed('fee') ? 'arrow-down' : 'arrow-up'"
+                size="14"
+                color="#64748b"
+              />
             </view>
           </view>
           <view v-show="!isSectionCollapsed('fee')">
-            <view
-              v-for="item in detail.feeRows"
-              :key="item.label"
-              class="info-row"
-            >
+            <view v-for="item in detail.feeRows" :key="item.label" class="info-row">
               <text class="info-label">{{ item.label }}</text>
-              <text class="info-value" :class="{ 'info-value-strong': item.strong }">{{ item.value }}</text>
+              <text class="info-value" :class="{ 'info-value-strong': item.strong }">{{
+                item.value
+              }}</text>
             </view>
           </view>
         </view>
 
-        <view class="section-card" :class="{ 'section-card-collapsed': isSectionCollapsed('progress') }">
+        <view
+          class="section-card"
+          :class="{ 'section-card-collapsed': isSectionCollapsed('progress') }"
+        >
           <view class="section-headline" @click="toggleSection('progress')">
             <view class="section-title-wrap">
               <view class="section-icon section-icon-progress">
@@ -309,19 +354,23 @@
               </view>
             </view>
             <view class="section-actions">
-              <text v-if="detail.progressList.length" class="section-tag">{{ detail.progressList.length }} 条</text>
+              <text v-if="detail.progressList.length" class="section-tag"
+                >{{ detail.progressList.length }} 条</text
+              >
               <view class="section-toggle">
-                <text class="section-toggle-text">{{ isSectionCollapsed('progress') ? '展开' : '收起' }}</text>
-                <u-icon :name="isSectionCollapsed('progress') ? 'arrow-down' : 'arrow-up'" size="14" color="#64748b" />
+                <text class="section-toggle-text">{{
+                  isSectionCollapsed('progress') ? '展开' : '收起'
+                }}</text>
+                <u-icon
+                  :name="isSectionCollapsed('progress') ? 'arrow-down' : 'arrow-up'"
+                  size="14"
+                  color="#64748b"
+                />
               </view>
             </view>
           </view>
           <view v-show="!isSectionCollapsed('progress') && detail.progressList.length">
-            <view
-              v-for="item in detail.progressList"
-              :key="item.id"
-              class="progress-item"
-            >
+            <view v-for="item in detail.progressList" :key="item.id" class="progress-item">
               <view class="progress-dot" />
               <view class="progress-main">
                 <view class="progress-head">
@@ -329,11 +378,17 @@
                   <text class="progress-time">{{ item.createdTimeText }}</text>
                 </view>
                 <text v-if="item.description" class="progress-desc">{{ item.description }}</text>
-                <text v-if="item.operatorName" class="progress-operator">{{ item.operatorName }}</text>
+                <text v-if="item.operatorName" class="progress-operator">{{
+                  item.operatorName
+                }}</text>
               </view>
             </view>
           </view>
-          <text v-show="!isSectionCollapsed('progress') && !detail.progressList.length" class="empty-text">暂无进度记录</text>
+          <text
+            v-show="!isSectionCollapsed('progress') && !detail.progressList.length"
+            class="empty-text"
+            >暂无进度记录</text
+          >
         </view>
       </view>
     </scroll-view>
@@ -419,24 +474,28 @@
               </view>
             </view>
             <view class="fee-note">
-              <text class="fee-note-text">{{ isFeeEditMode ? '仅可调整服务费和材料费，用户支付后不可再修改。' : '上门费、路程费、加班费等费用由系统自动带入，师傅无需手动填写。' }}</text>
+              <text class="fee-note-text">{{
+                isFeeEditMode
+                  ? '仅可调整服务费和材料费，用户支付后不可再修改。'
+                  : '上门费、路程费、加班费等费用由系统自动带入，师傅无需手动填写。'
+              }}</text>
             </view>
             <view class="auto-fee-card">
               <view class="auto-fee-head">
                 <text class="auto-fee-title">系统自动计算项</text>
-                <text class="auto-fee-subtitle">{{ isFeeEditMode ? '保存后会同步更新待支付金额' : '提交后会自动汇总为待支付金额' }}</text>
+                <text class="auto-fee-subtitle">{{
+                  isFeeEditMode ? '保存后会同步更新待支付金额' : '提交后会自动汇总为待支付金额'
+                }}</text>
               </view>
-              <view
-                v-for="item in inspectionAutoFeeRows"
-                :key="item.label"
-                class="auto-fee-row"
-              >
+              <view v-for="item in inspectionAutoFeeRows" :key="item.label" class="auto-fee-row">
                 <text class="auto-fee-label">{{ item.label }}</text>
                 <text class="auto-fee-value">{{ item.value }}</text>
               </view>
               <view class="auto-fee-row auto-fee-row-strong">
                 <text class="auto-fee-label auto-fee-label-strong">待支付合计预览</text>
-                <text class="auto-fee-value auto-fee-value-strong">￥{{ inspectionPreviewTotalText }}</text>
+                <text class="auto-fee-value auto-fee-value-strong"
+                  >￥{{ inspectionPreviewTotalText }}</text
+                >
               </view>
             </view>
           </view>
@@ -498,18 +557,16 @@
                 </view>
               </view>
               <view class="video-meta">
-                <text v-if="inspectionForm.video.durationText" class="video-duration">{{ inspectionForm.video.durationText }}</text>
+                <text v-if="inspectionForm.video.durationText" class="video-duration">{{
+                  inspectionForm.video.durationText
+                }}</text>
               </view>
               <view class="video-actions">
                 <text class="video-action-link" @click="removeInspectionVideo">删除视频</text>
                 <text class="video-action-link" @click="chooseInspectionVideo">重新上传</text>
               </view>
             </view>
-            <view
-              v-else
-              class="upload-video-card"
-              @click="chooseInspectionVideo"
-            >
+            <view v-else class="upload-video-card" @click="chooseInspectionVideo">
               <u-icon :name="uploadingVideo ? 'reload' : 'video'" size="22" color="#64748b" />
               <text class="upload-add-text">{{ uploadingVideo ? '选择中' : '选择视频' }}</text>
             </view>
@@ -557,13 +614,10 @@
           object-fit="contain"
         />
         <view class="video-preview-footer">
-          <text v-if="previewVideoItem && previewVideoItem.durationText" class="video-duration">{{ previewVideoItem.durationText }}</text>
-          <u-button
-            text="关闭"
-            shape="circle"
-            :plain="true"
-            @click="closeVideoPreview"
-          />
+          <text v-if="previewVideoItem && previewVideoItem.durationText" class="video-duration">{{
+            previewVideoItem.durationText
+          }}</text>
+          <u-button text="关闭" shape="circle" :plain="true" @click="closeVideoPreview" />
         </view>
       </view>
     </u-popup>
@@ -667,7 +721,8 @@ function resolveActionHint(data) {
   const actionType = data && data.primaryActionType;
   if (actionType === 'accept') return '确认接单后进入下一处理阶段';
   if (actionType === 'scanDoorQr') return '上门后扫描用户提供的上门码';
-  if (actionType === 'submitInspection') return '请上传检查凭证，并仅填写服务费和材料费，其余费用由系统自动计算';
+  if (actionType === 'submitInspection')
+    return '请上传检查凭证，并仅填写服务费和材料费，其余费用由系统自动计算';
   if (actionType === 'editInspectionFee') return '已提交费用，用户支付前可调整服务费和材料费';
   if (actionType === 'advance') {
     return Number(data && data.status) === 5
@@ -681,10 +736,16 @@ function resolvePrimaryActionText(data) {
   if (!isBrokenText(data && data.primaryActionText)) return data.primaryActionText;
   const actionType = data && data.primaryActionType;
   if (actionType === 'accept') return '接单';
-  if (actionType === 'scanDoorQr') return Number(data && data.serviceMode) === 2 ? '扫码开始安装' : '扫码上门';
+  if (actionType === 'scanDoorQr')
+    return Number(data && data.serviceMode) === 2 ? '扫码开始安装' : '扫码上门';
   if (actionType === 'submitInspection') return '提交检查';
   if (actionType === 'editInspectionFee') return '修改费用';
-  if (actionType === 'advance') return Number(data && data.status) === 5 ? '提交完工' : (Number(data && data.serviceMode) === 2 ? '开始安装' : '开始维修');
+  if (actionType === 'advance')
+    return Number(data && data.status) === 5
+      ? '提交完工'
+      : Number(data && data.serviceMode) === 2
+        ? '开始安装'
+        : '开始维修';
   return '';
 }
 
@@ -841,7 +902,9 @@ export default {
       const detail = this.detail || {};
       const baseAmount = Math.max(
         0,
-        normalizeMoney(detail.totalAmount) - normalizeMoney(detail.serviceFee) - normalizeMoney(detail.materialFee)
+        normalizeMoney(detail.totalAmount) -
+          normalizeMoney(detail.serviceFee) -
+          normalizeMoney(detail.materialFee)
       );
       const serviceFee = resolvePreviewFeeAmount(this.inspectionForm.serviceFee);
       const materialFee = resolvePreviewFeeAmount(this.inspectionForm.materialFee);
@@ -892,7 +955,8 @@ export default {
           }
           this.detail = this.normalizeDetail(res.data);
           if (this.showInspectionPopup) {
-            const expectedActionType = this.inspectionPopupMode === 'editFee' ? 'editInspectionFee' : 'submitInspection';
+            const expectedActionType =
+              this.inspectionPopupMode === 'editFee' ? 'editInspectionFee' : 'submitInspection';
             if (this.detail.primaryActionType !== expectedActionType) {
               this.showInspectionPopup = false;
             }
@@ -1066,54 +1130,59 @@ export default {
     withActionLoading(action) {
       if (this.actionLoading) return;
       this.actionLoading = true;
-      action()
-        .finally(() => {
-          this.actionLoading = false;
-        });
+      action().finally(() => {
+        this.actionLoading = false;
+      });
     },
     handleAccept() {
-      this.withActionLoading(() => new Promise((resolve) => {
-        uni.showModal({
-          title: '确认接单',
-          content: '确认接受当前订单并进入下一处理阶段吗？',
-          success: ({ confirm }) => {
-            if (!confirm) {
-              resolve();
-              return;
-            }
-            acceptWorkerOrder(this.orderId)
-              .then((res) => {
-                this.applyDetailResponse(res, '接单成功');
-              })
-              .finally(resolve);
-          },
-          fail: resolve
-        });
-      }));
+      this.withActionLoading(
+        () =>
+          new Promise((resolve) => {
+            uni.showModal({
+              title: '确认接单',
+              content: '确认接受当前订单并进入下一处理阶段吗？',
+              success: ({ confirm }) => {
+                if (!confirm) {
+                  resolve();
+                  return;
+                }
+                acceptWorkerOrder(this.orderId)
+                  .then((res) => {
+                    this.applyDetailResponse(res, '接单成功');
+                  })
+                  .finally(resolve);
+              },
+              fail: resolve
+            });
+          })
+      );
     },
     handleAdvance() {
       const buttonText = (this.detail && this.detail.primaryActionText) || '继续处理';
       const isSubmitCompletion = this.detail && Number(this.detail.status) === 5;
-      this.withActionLoading(() => new Promise((resolve) => {
-        uni.showModal({
-          title: '确认操作',
-          content: isSubmitCompletion
-            ? '确认提交完工吗？提交后需等待用户确认完成，订单才会结束。'
-            : `确认执行“${buttonText}”吗？`,
-          success: ({ confirm }) => {
-            if (!confirm) {
-              resolve();
-              return;
-            }
-            advanceWorkerOrderStatus(this.orderId)
-              .then((res) => {
-                this.applyDetailResponse(res, `${buttonText}成功`);
-              })
-              .finally(resolve);
-          },
-          fail: resolve
-        });
-      }));
+      this.withActionLoading(
+        () =>
+          new Promise((resolve) => {
+            uni.showModal({
+              title: '确认操作',
+              content: isSubmitCompletion
+                ? '确认提交完工吗？提交后需等待用户确认完成，订单才会结束。'
+                : `确认执行“${buttonText}”吗？`,
+              success: ({ confirm }) => {
+                if (!confirm) {
+                  resolve();
+                  return;
+                }
+                advanceWorkerOrderStatus(this.orderId)
+                  .then((res) => {
+                    this.applyDetailResponse(res, `${buttonText}成功`);
+                  })
+                  .finally(resolve);
+              },
+              fail: resolve
+            });
+          })
+      );
     },
     handleScanDoorQr() {
       if (this.actionLoading) return;
@@ -1160,9 +1229,10 @@ export default {
     },
     openInspectionPopup(mode = 'submit') {
       this.inspectionPopupMode = mode;
-      this.inspectionForm = mode === 'editFee'
-        ? this.createInspectionForm(this.detail || {})
-        : this.createInspectionForm();
+      this.inspectionForm =
+        mode === 'editFee'
+          ? this.createInspectionForm(this.detail || {})
+          : this.createInspectionForm();
       this.showInspectionPopup = true;
     },
     chooseInspectionImages() {
@@ -1180,13 +1250,22 @@ export default {
         sizeType: ['compressed'],
         sourceType: ['album', 'camera'],
         success: (res) => {
-          const tempFiles = Array.isArray(res.tempFiles) && res.tempFiles.length
-            ? res.tempFiles
-            : (Array.isArray(res.tempFilePaths) ? res.tempFilePaths.map((path) => ({ path })) : []);
+          const tempFiles =
+            Array.isArray(res.tempFiles) && res.tempFiles.length
+              ? res.tempFiles
+              : Array.isArray(res.tempFilePaths)
+                ? res.tempFilePaths.map((path) => ({ path }))
+                : [];
           if (!tempFiles.length) return;
           this.uploadingImage = true;
           this.inspectionForm.images = this.inspectionForm.images
-            .concat(tempFiles.slice(0, remain).map((item, index) => createLocalInspectionImageItem(item, this.inspectionForm.images.length + index)))
+            .concat(
+              tempFiles
+                .slice(0, remain)
+                .map((item, index) =>
+                  createLocalInspectionImageItem(item, this.inspectionForm.images.length + index)
+                )
+            )
             .slice(0, MAX_INSPECTION_IMAGE_COUNT);
           this.uploadingImage = false;
         }
@@ -1357,14 +1436,16 @@ export default {
         mask: true
       });
       this.uploadPendingInspectionMedia(draft)
-        .then(({ images, video }) => submitWorkerInspection(this.orderId, {
-          inspectionDiagnosis: draft.inspectionDiagnosis,
-          repairPlan: draft.repairPlan,
-          serviceFee: draft.serviceFee,
-          materialFee: draft.materialFee,
-          images,
-          video
-        }))
+        .then(({ images, video }) =>
+          submitWorkerInspection(this.orderId, {
+            inspectionDiagnosis: draft.inspectionDiagnosis,
+            repairPlan: draft.repairPlan,
+            serviceFee: draft.serviceFee,
+            materialFee: draft.materialFee,
+            images,
+            video
+          })
+        )
         .then((res) => {
           const success = this.applyDetailResponse(res, '检查结果已提交');
           if (success) {
@@ -1477,9 +1558,9 @@ export default {
   background: transparent;
 }
 
-.page-scroll ::v-deep .uni-scroll-view,
-.page-scroll ::v-deep .uni-scroll-view-content,
-.page-scroll ::v-deep .uni-scroll-view-content-vertical {
+.page-scroll :deep(.uni-scroll-view),
+.page-scroll :deep(.uni-scroll-view-content),
+.page-scroll :deep(.uni-scroll-view-content-vertical) {
   background: transparent !important;
 }
 
@@ -1684,7 +1765,6 @@ export default {
   overflow: hidden;
   margin-top: 14rpx;
   padding: 20rpx;
-  
 }
 
 .section-card::before {
@@ -1996,8 +2076,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  background:
-    linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 41, 59, 0.96) 100%);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 41, 59, 0.96) 100%);
 }
 
 .video-play-mask {

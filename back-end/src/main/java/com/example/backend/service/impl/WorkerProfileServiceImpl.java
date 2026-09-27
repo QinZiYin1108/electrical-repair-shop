@@ -12,18 +12,19 @@ import com.example.backend.model.worker.WorkerUpdateProfileRequest;
 import com.example.backend.security.context.AuthUserContext;
 import com.example.backend.security.model.AccountRole;
 import com.example.backend.security.model.LoginUserInfo;
+import com.example.backend.service.ContentCheckLogsService;
+import com.example.backend.service.CreditRecordsService;
+import com.example.backend.service.ImageReviewQueueService;
 import com.example.backend.service.ImagesService;
+import com.example.backend.service.RealNameVerificationService;
 import com.example.backend.service.TechnicianAccountsService;
 import com.example.backend.service.TechnicianProfilesService;
 import com.example.backend.service.WorkerProfileService;
+import com.example.backend.service.contentcheck.AliyunGreenClient;
+import com.example.backend.service.contentcheck.CheckResult;
 import com.example.backend.utils.id.SnowflakeIdUtil;
 import com.example.backend.utils.oss.OssUtil;
 import com.example.backend.utils.upload.UploadLimitUtil;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-import org.springframework.web.multipart.MultipartFile;
-
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.InputStream;
 import java.time.Instant;
@@ -32,32 +33,51 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import javax.imageio.ImageIO;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class WorkerProfileServiceImpl implements WorkerProfileService {
 
-    private static final DateTimeFormatter BIRTHDAY_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final DateTimeFormatter BIRTHDAY_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final ZoneId SHANGHAI_ZONE = ZoneId.of("Asia/Shanghai");
     private static final Pattern PHONE_PATTERN = Pattern.compile("^1[3-9]\\d{9}$");
-    private static final Pattern ID_CARD_PATTERN = Pattern.compile(
-        "^[1-9]\\d{5}(19\\d{2}|20\\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])\\d{3}[0-9Xx]$"
-    );
+    private static final Pattern ID_CARD_PATTERN =
+            Pattern.compile(
+                    "^[1-9]\\d{5}(19\\d{2}|20\\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])\\d{3}[0-9Xx]$");
 
     private final TechnicianAccountsService technicianAccountsService;
     private final TechnicianProfilesService technicianProfilesService;
     private final ImagesService imagesService;
     private final OssUtil ossUtil;
+    private final AliyunGreenClient aliyunGreenClient;
+    private final ContentCheckLogsService checkLogsService;
+    private final ImageReviewQueueService imageReviewQueueService;
+    private final RealNameVerificationService realNameVerificationService;
+    private final CreditRecordsService creditRecordsService;
 
     public WorkerProfileServiceImpl(
-        TechnicianAccountsService technicianAccountsService,
-        TechnicianProfilesService technicianProfilesService,
-        ImagesService imagesService,
-        OssUtil ossUtil
-    ) {
+            TechnicianAccountsService technicianAccountsService,
+            TechnicianProfilesService technicianProfilesService,
+            ImagesService imagesService,
+            OssUtil ossUtil,
+            AliyunGreenClient aliyunGreenClient,
+            ContentCheckLogsService checkLogsService,
+            ImageReviewQueueService imageReviewQueueService,
+            RealNameVerificationService realNameVerificationService,
+            CreditRecordsService creditRecordsService) {
         this.technicianAccountsService = technicianAccountsService;
         this.technicianProfilesService = technicianProfilesService;
         this.imagesService = imagesService;
         this.ossUtil = ossUtil;
+        this.aliyunGreenClient = aliyunGreenClient;
+        this.checkLogsService = checkLogsService;
+        this.imageReviewQueueService = imageReviewQueueService;
+        this.realNameVerificationService = realNameVerificationService;
+        this.creditRecordsService = creditRecordsService;
     }
 
     @Override
@@ -65,16 +85,17 @@ public class WorkerProfileServiceImpl implements WorkerProfileService {
         LoginUserInfo user = requireWorker();
         String accountId = user.getAccountId();
         TechnicianAccounts technician = technicianAccountsService.getById(accountId);
-        if (technician == null || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
+        if (technician == null
+                || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "师傅账号不存在");
         }
 
-        TechnicianProfiles profile = technicianProfilesService.getOne(
-            new LambdaQueryWrapper<TechnicianProfiles>()
-                .eq(TechnicianProfiles::getTechnicianAccountId, accountId)
-                .eq(TechnicianProfiles::getIsDelete, 0),
-            false
-        );
+        TechnicianProfiles profile =
+                technicianProfilesService.getOne(
+                        new LambdaQueryWrapper<TechnicianProfiles>()
+                                .eq(TechnicianProfiles::getTechnicianAccountId, accountId)
+                                .eq(TechnicianProfiles::getIsDelete, 0),
+                        false);
 
         String avatarUrl = resolveAvatarUrl(accountId);
 
@@ -101,7 +122,6 @@ public class WorkerProfileServiceImpl implements WorkerProfileService {
             resp.setEducation(profile.getEducation());
             resp.setIntroduction(profile.getIntroduction());
             resp.setResponseTime(profile.getResponseTime());
-            resp.setLocationUpdateTime(profile.getLocationUpdateTime());
         }
         return resp;
     }
@@ -111,25 +131,47 @@ public class WorkerProfileServiceImpl implements WorkerProfileService {
         LoginUserInfo user = requireWorker();
         String accountId = user.getAccountId();
         TechnicianAccounts technician = technicianAccountsService.getById(accountId);
-        if (technician == null || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
+        if (technician == null
+                || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "师傅账号不存在");
         }
+        creditRecordsService.checkCreditLimit(accountId, 2, "修改个人资料");
         long now = System.currentTimeMillis();
 
         if (request != null) {
             if (StringUtils.hasText(request.getUsername())) {
-                technician.setUsername(request.getUsername().trim());
+                String username = request.getUsername().trim();
+                CheckResult r = aliyunGreenClient.checkText(username);
+                if (r.isBlocked()) {
+                    checkLogsService.logCheck(
+                            accountId,
+                            2,
+                            1,
+                            username,
+                            ContentCheckLogsService.RESULT_BLOCK,
+                            r.getLabel(),
+                            r.getSuggestion());
+                    throw new BusinessException(
+                            ErrorCode.BUSINESS_ERROR, "名称包含违规内容：" + r.getLabelDesc() + "，请修改后重新提交");
+                }
+                int logResult =
+                        r.isWatch()
+                                ? ContentCheckLogsService.RESULT_WATCH
+                                : ContentCheckLogsService.RESULT_PASS;
+                checkLogsService.logCheck(
+                        accountId, 2, 1, username, logResult, r.getLabel(), r.getSuggestion());
+                technician.setUsername(username);
             }
         }
         technician.setUpdatedTime(now);
         technicianAccountsService.updateById(technician);
 
-        TechnicianProfiles profile = technicianProfilesService.getOne(
-            new LambdaQueryWrapper<TechnicianProfiles>()
-                .eq(TechnicianProfiles::getTechnicianAccountId, accountId)
-                .eq(TechnicianProfiles::getIsDelete, 0),
-            false
-        );
+        TechnicianProfiles profile =
+                technicianProfilesService.getOne(
+                        new LambdaQueryWrapper<TechnicianProfiles>()
+                                .eq(TechnicianProfiles::getTechnicianAccountId, accountId)
+                                .eq(TechnicianProfiles::getIsDelete, 0),
+                        false);
         boolean isNew = profile == null;
         if (isNew) {
             profile = new TechnicianProfiles();
@@ -153,7 +195,30 @@ public class WorkerProfileServiceImpl implements WorkerProfileService {
                 profile.setEducation(request.getEducation());
             }
             if (request.getIntroduction() != null) {
-                profile.setIntroduction(request.getIntroduction());
+                String intro = request.getIntroduction().trim();
+                if (StringUtils.hasText(intro)) {
+                    CheckResult ri = aliyunGreenClient.checkText(intro);
+                    int introLogResult =
+                            ri.isBlocked()
+                                    ? ContentCheckLogsService.RESULT_BLOCK
+                                    : ri.isWatch()
+                                            ? ContentCheckLogsService.RESULT_WATCH
+                                            : ContentCheckLogsService.RESULT_PASS;
+                    checkLogsService.logCheck(
+                            accountId,
+                            2,
+                            1,
+                            intro,
+                            introLogResult,
+                            ri.getLabel(),
+                            ri.getSuggestion());
+                    if (ri.isBlocked()) {
+                        throw new BusinessException(
+                                ErrorCode.BUSINESS_ERROR,
+                                "个人介绍包含违规内容：" + ri.getLabelDesc() + "，请修改后重新提交");
+                    }
+                }
+                profile.setIntroduction(intro);
             }
             if (request.getResponseTime() != null) {
                 profile.setResponseTime(request.getResponseTime());
@@ -202,8 +267,20 @@ public class WorkerProfileServiceImpl implements WorkerProfileService {
         }
 
         TechnicianAccounts technician = technicianAccountsService.getById(accountId);
-        if (technician == null || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
+        if (technician == null
+                || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "师傅账号不存在");
+        }
+
+        // 调用腾讯云 FaceID 核验姓名+身份证号
+        RealNameVerificationService.VerificationResult verifyResult =
+                realNameVerificationService.verify(realName, idCard);
+        if (!verifyResult.isPassed()) {
+            String msg = verifyResult.getDescription();
+            if (msg == null || msg.isEmpty()) {
+                msg = "实名认证未通过，请确认姓名和身份证号正确";
+            }
+            throw new BusinessException(ErrorCode.BUSINESS_ERROR, msg);
         }
 
         long now = System.currentTimeMillis();
@@ -212,12 +289,12 @@ public class WorkerProfileServiceImpl implements WorkerProfileService {
         technician.setUpdatedTime(now);
         technicianAccountsService.updateById(technician);
 
-        TechnicianProfiles profile = technicianProfilesService.getOne(
-            new LambdaQueryWrapper<TechnicianProfiles>()
-                .eq(TechnicianProfiles::getTechnicianAccountId, accountId)
-                .eq(TechnicianProfiles::getIsDelete, 0),
-            false
-        );
+        TechnicianProfiles profile =
+                technicianProfilesService.getOne(
+                        new LambdaQueryWrapper<TechnicianProfiles>()
+                                .eq(TechnicianProfiles::getTechnicianAccountId, accountId)
+                                .eq(TechnicianProfiles::getIsDelete, 0),
+                        false);
         boolean isNew = profile == null;
         if (isNew) {
             profile = new TechnicianProfiles();
@@ -228,6 +305,7 @@ public class WorkerProfileServiceImpl implements WorkerProfileService {
         }
         profile.setRealName(realName);
         profile.setIdCard(idCard.toUpperCase());
+        profile.setIsRealNameVerified(true);
         profile.setUpdatedTime(now);
         if (isNew) {
             technicianProfilesService.save(profile);
@@ -245,9 +323,11 @@ public class WorkerProfileServiceImpl implements WorkerProfileService {
         UploadLimitUtil.validateImageSize(file);
         String accountId = user.getAccountId();
         TechnicianAccounts technician = technicianAccountsService.getById(accountId);
-        if (technician == null || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
+        if (technician == null
+                || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "师傅账号不存在");
         }
+        creditRecordsService.checkCreditLimit(accountId, 2, "上传图片");
 
         String originalFilename = file.getOriginalFilename();
         if (!StringUtils.hasText(originalFilename)) {
@@ -264,6 +344,14 @@ public class WorkerProfileServiceImpl implements WorkerProfileService {
             url = ossUtil.upload(objectName, in);
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传头像失败");
+        }
+
+        // 图片违规检测，不通过则删除 OSS 文件并拒绝
+        try {
+            imageReviewQueueService.checkImageOnly(url);
+        } catch (BusinessException e) {
+            ossUtil.delete(objectName);
+            throw e;
         }
 
         Images image = new Images();
@@ -287,6 +375,7 @@ public class WorkerProfileServiceImpl implements WorkerProfileService {
         image.setUploaderType(2);
         image.setBusinessType("AVATAR");
         image.setBusinessId(accountId);
+        image.setReviewStatus(1); // 待审核
         long now = System.currentTimeMillis();
         image.setCreatedTime(now);
         image.setIsDelete(0);
@@ -309,15 +398,15 @@ public class WorkerProfileServiceImpl implements WorkerProfileService {
     }
 
     private String resolveAvatarUrl(String accountId) {
-        Images avatarImage = imagesService.getOne(
-            new LambdaQueryWrapper<Images>()
-                .eq(Images::getBusinessType, "AVATAR")
-                .eq(Images::getBusinessId, accountId)
-                .eq(Images::getIsDelete, 0)
-                .orderByDesc(Images::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+        Images avatarImage =
+                imagesService.getOne(
+                        new LambdaQueryWrapper<Images>()
+                                .eq(Images::getBusinessType, "AVATAR")
+                                .eq(Images::getBusinessId, accountId)
+                                .eq(Images::getIsDelete, 0)
+                                .orderByDesc(Images::getCreatedTime)
+                                .last("limit 1"),
+                        false);
         return avatarImage != null ? avatarImage.getFileUrl() : null;
     }
 
@@ -328,7 +417,8 @@ public class WorkerProfileServiceImpl implements WorkerProfileService {
         if (birthdayMillis <= 0) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "生日时间戳不正确");
         }
-        LocalDate localDate = Instant.ofEpochMilli(birthdayMillis).atZone(SHANGHAI_ZONE).toLocalDate();
+        LocalDate localDate =
+                Instant.ofEpochMilli(birthdayMillis).atZone(SHANGHAI_ZONE).toLocalDate();
         String formatted = localDate.format(BIRTHDAY_FORMATTER);
         LocalDate normalized = LocalDate.parse(formatted, BIRTHDAY_FORMATTER);
         long normalizedMillis = normalized.atStartOfDay(SHANGHAI_ZONE).toInstant().toEpochMilli();

@@ -7,6 +7,6 @@ import com.example.backend.service.OrderDoorQrCodesService;
 import org.springframework.stereotype.Service;
 
 @Service
-public class OrderDoorQrCodesServiceImpl extends ServiceImpl<OrderDoorQrCodesMapper, OrderDoorQrCodes>
-    implements OrderDoorQrCodesService {
-}
+public class OrderDoorQrCodesServiceImpl
+        extends ServiceImpl<OrderDoorQrCodesMapper, OrderDoorQrCodes>
+        implements OrderDoorQrCodesService {}

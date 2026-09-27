@@ -3,105 +3,63 @@ package com.example.backend.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
-/**
- * 视频表
- * @TableName videos
- */
-@TableName(value ="videos")
+/** 视频表 @TableName videos */
+@TableName(value = "videos")
 @Data
 public class Videos {
-    /**
-     * 主键，VI+雪花ID
-     */
-    @TableId
-    private String id;
+    /** 主键，VI+雪花ID */
+    @TableId private String id;
 
-    /**
-     * 原始文件名
-     */
+    /** 原始文件名 */
     private String originalName;
 
-    /**
-     * 存储文件名
-     */
+    /** 存储文件名 */
     private String fileName;
 
-    /**
-     * 文件路径
-     */
+    /** 文件路径 */
     private String filePath;
 
-    /**
-     * 访问URL
-     */
+    /** 访问URL */
     private String fileUrl;
 
-    /**
-     * 文件大小（字节）
-     */
+    /** 文件大小（字节） */
     private Long fileSize;
 
-    /**
-     * MIME类型
-     */
+    /** MIME类型 */
     private String mimeType;
 
-    /**
-     * 视频时长（秒）
-     */
+    /** 视频时长（秒） */
     private Integer duration;
 
-    /**
-     * 视频宽度
-     */
+    /** 视频宽度 */
     private Integer width;
 
-    /**
-     * 视频高度
-     */
+    /** 视频高度 */
     private Integer height;
 
-    /**
-     * 缩略图URL
-     */
+    /** 缩略图URL */
     private String thumbnailUrl;
 
-    /**
-     * 上传者ID
-     */
+    /** 上传者ID */
     private String uploaderId;
 
-    /**
-     * 上传者类型：1-用户，2-师傅，3-管理员
-     */
+    /** 上传者类型：1-用户，2-师傅，3-管理员 */
     private Integer uploaderType;
 
-    /**
-     * 业务类型
-     */
+    /** 业务类型 */
     private String businessType;
 
-    /**
-     * 业务ID
-     */
+    /** 业务ID */
     private String businessId;
 
-    /**
-     * 创建时间戳
-     */
+    /** 创建时间戳 */
     private Long createdTime;
 
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
+    /** 乐观锁版本号 */
+    @Version private Integer version;
 
-    /**
-     * 逻辑删除：0-未删除，1-已删除
-     */
-    @TableLogic
-    private Integer isDelete;
+    /** 逻辑删除：0-未删除，1-已删除 */
+    @TableLogic private Integer isDelete;
 
     @Override
     public boolean equals(Object that) {
@@ -116,23 +74,57 @@ public class Videos {
         }
         Videos other = (Videos) that;
         return (this.getId() == null ? other.getId() == null : this.getId().equals(other.getId()))
-            && (this.getOriginalName() == null ? other.getOriginalName() == null : this.getOriginalName().equals(other.getOriginalName()))
-            && (this.getFileName() == null ? other.getFileName() == null : this.getFileName().equals(other.getFileName()))
-            && (this.getFilePath() == null ? other.getFilePath() == null : this.getFilePath().equals(other.getFilePath()))
-            && (this.getFileUrl() == null ? other.getFileUrl() == null : this.getFileUrl().equals(other.getFileUrl()))
-            && (this.getFileSize() == null ? other.getFileSize() == null : this.getFileSize().equals(other.getFileSize()))
-            && (this.getMimeType() == null ? other.getMimeType() == null : this.getMimeType().equals(other.getMimeType()))
-            && (this.getDuration() == null ? other.getDuration() == null : this.getDuration().equals(other.getDuration()))
-            && (this.getWidth() == null ? other.getWidth() == null : this.getWidth().equals(other.getWidth()))
-            && (this.getHeight() == null ? other.getHeight() == null : this.getHeight().equals(other.getHeight()))
-            && (this.getThumbnailUrl() == null ? other.getThumbnailUrl() == null : this.getThumbnailUrl().equals(other.getThumbnailUrl()))
-            && (this.getUploaderId() == null ? other.getUploaderId() == null : this.getUploaderId().equals(other.getUploaderId()))
-            && (this.getUploaderType() == null ? other.getUploaderType() == null : this.getUploaderType().equals(other.getUploaderType()))
-            && (this.getBusinessType() == null ? other.getBusinessType() == null : this.getBusinessType().equals(other.getBusinessType()))
-            && (this.getBusinessId() == null ? other.getBusinessId() == null : this.getBusinessId().equals(other.getBusinessId()))
-            && (this.getCreatedTime() == null ? other.getCreatedTime() == null : this.getCreatedTime().equals(other.getCreatedTime()))
-            && (this.getVersion() == null ? other.getVersion() == null : this.getVersion().equals(other.getVersion()))
-            && (this.getIsDelete() == null ? other.getIsDelete() == null : this.getIsDelete().equals(other.getIsDelete()));
+                && (this.getOriginalName() == null
+                        ? other.getOriginalName() == null
+                        : this.getOriginalName().equals(other.getOriginalName()))
+                && (this.getFileName() == null
+                        ? other.getFileName() == null
+                        : this.getFileName().equals(other.getFileName()))
+                && (this.getFilePath() == null
+                        ? other.getFilePath() == null
+                        : this.getFilePath().equals(other.getFilePath()))
+                && (this.getFileUrl() == null
+                        ? other.getFileUrl() == null
+                        : this.getFileUrl().equals(other.getFileUrl()))
+                && (this.getFileSize() == null
+                        ? other.getFileSize() == null
+                        : this.getFileSize().equals(other.getFileSize()))
+                && (this.getMimeType() == null
+                        ? other.getMimeType() == null
+                        : this.getMimeType().equals(other.getMimeType()))
+                && (this.getDuration() == null
+                        ? other.getDuration() == null
+                        : this.getDuration().equals(other.getDuration()))
+                && (this.getWidth() == null
+                        ? other.getWidth() == null
+                        : this.getWidth().equals(other.getWidth()))
+                && (this.getHeight() == null
+                        ? other.getHeight() == null
+                        : this.getHeight().equals(other.getHeight()))
+                && (this.getThumbnailUrl() == null
+                        ? other.getThumbnailUrl() == null
+                        : this.getThumbnailUrl().equals(other.getThumbnailUrl()))
+                && (this.getUploaderId() == null
+                        ? other.getUploaderId() == null
+                        : this.getUploaderId().equals(other.getUploaderId()))
+                && (this.getUploaderType() == null
+                        ? other.getUploaderType() == null
+                        : this.getUploaderType().equals(other.getUploaderType()))
+                && (this.getBusinessType() == null
+                        ? other.getBusinessType() == null
+                        : this.getBusinessType().equals(other.getBusinessType()))
+                && (this.getBusinessId() == null
+                        ? other.getBusinessId() == null
+                        : this.getBusinessId().equals(other.getBusinessId()))
+                && (this.getCreatedTime() == null
+                        ? other.getCreatedTime() == null
+                        : this.getCreatedTime().equals(other.getCreatedTime()))
+                && (this.getVersion() == null
+                        ? other.getVersion() == null
+                        : this.getVersion().equals(other.getVersion()))
+                && (this.getIsDelete() == null
+                        ? other.getIsDelete() == null
+                        : this.getIsDelete().equals(other.getIsDelete()));
     }
 
     @Override

@@ -1,11 +1,7 @@
 <template>
   <view class="page reset-page">
     <view class="page-shell">
-      <image
-        class="city-bg"
-        src="/static/login/worker-login-bg.png"
-        mode="widthFix"
-      />
+      <image class="city-bg" src="/static/login/worker-login-bg.png" mode="widthFix" />
       <view class="hero-glow"></view>
 
       <view class="top-nav">
@@ -21,30 +17,26 @@
         <view class="hero-copy">
           <text class="hero-title">找回密码</text>
           <view class="hero-badge">
-            <text class="hero-badge-text">邮箱验证</text>
+            <text class="hero-badge-text">手机验证</text>
           </view>
-          <text class="hero-desc">验证账号邮箱后，重新设置登录密码</text>
+          <text class="hero-desc">验证账号手机号后，重新设置登录密码</text>
         </view>
-        <image
-          class="hero-worker"
-          src="/static/login/worker-login-hero.png"
-          mode="widthFix"
-        />
+        <image class="hero-worker" src="/static/login/worker-login-hero.png" mode="widthFix" />
       </view>
 
       <view class="form-card">
         <view class="form-stack">
           <view class="field">
             <view class="field-icon">
-              <u-icon name="email" size="22" color="#8F99A8" />
+              <u-icon name="phone" size="22" color="#8F99A8" />
             </view>
             <input
-              v-model="email"
+              v-model="phone"
               class="field-input"
-              type="text"
-              maxlength="60"
+              type="number"
+              maxlength="11"
               confirm-type="next"
-              placeholder="请输入账号邮箱"
+              placeholder="请输入账号手机号"
               placeholder-class="input-placeholder"
             />
           </view>
@@ -63,11 +55,7 @@
               placeholder-class="input-placeholder"
             />
             <view class="field-divider"></view>
-            <text
-              class="field-action"
-              :class="{ disabled: isSendDisabled }"
-              @click="sendCode"
-            >
+            <text class="field-action" :class="{ disabled: isSendDisabled }" @click="sendCode">
               {{ sendText }}
             </text>
           </view>
@@ -104,18 +92,10 @@
           </view>
         </view>
 
-        <view
-          class="primary-button"
-          :class="{ disabled: saving }"
-          @click="submit"
-        >
+        <view class="primary-button" :class="{ disabled: saving }" @click="submit">
           <text class="primary-button-text">
             {{ saving ? '提交中...' : '确认重置' }}
           </text>
-        </view>
-
-        <view class="helper-row">
-          <text class="helper-text">收不到验证码？请检查垃圾邮件箱</text>
         </view>
 
         <view class="assist-row">
@@ -131,16 +111,13 @@
 </template>
 
 <script>
-import {
-  workerSendResetPasswordCode,
-  workerResetPasswordByEmail
-} from '@/api/workerAuth';
+import { workerSendResetPasswordCode, workerResetPasswordByPhone } from '@/api/workerAuth';
 
 export default {
   name: 'WorkerResetPasswordLoginPage',
   data() {
     return {
-      email: '',
+      phone: '',
       code: '',
       newPassword: '',
       confirmPassword: '',
@@ -171,8 +148,8 @@ export default {
     this.clearCountdown(true);
   },
   methods: {
-    validateEmail(email) {
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    validatePhone(phone) {
+      return /^1[3-9]\d{9}$/.test(phone);
     },
     goBack() {
       uni.navigateBack({
@@ -209,23 +186,23 @@ export default {
       if (this.isSendDisabled) {
         return;
       }
-      this.email = (this.email || '').trim();
-      if (!this.email) {
+      this.phone = (this.phone || '').trim();
+      if (!this.phone) {
         uni.showToast({
-          title: '请先输入邮箱地址',
+          title: '请先输入手机号',
           icon: 'none'
         });
         return;
       }
-      if (!this.validateEmail(this.email)) {
+      if (!this.validatePhone(this.phone)) {
         uni.showToast({
-          title: '请输入正确的邮箱地址',
+          title: '请输入正确的手机号',
           icon: 'none'
         });
         return;
       }
       this.sending = true;
-      workerSendResetPasswordCode(this.email)
+      workerSendResetPasswordCode(this.phone)
         .then((res) => {
           if (res && res.code === 200) {
             uni.showToast({
@@ -255,19 +232,19 @@ export default {
         return;
       }
 
-      this.email = (this.email || '').trim();
+      this.phone = (this.phone || '').trim();
       this.code = (this.code || '').trim();
 
-      if (!this.email || !this.code || !this.newPassword || !this.confirmPassword) {
+      if (!this.phone || !this.code || !this.newPassword || !this.confirmPassword) {
         uni.showToast({
           title: '请填写完整信息',
           icon: 'none'
         });
         return;
       }
-      if (!this.validateEmail(this.email)) {
+      if (!this.validatePhone(this.phone)) {
         uni.showToast({
-          title: '请输入正确的邮箱地址',
+          title: '请输入正确的手机号',
           icon: 'none'
         });
         return;
@@ -295,12 +272,7 @@ export default {
       }
 
       this.saving = true;
-      workerResetPasswordByEmail(
-        this.email,
-        this.code,
-        this.newPassword,
-        this.confirmPassword
-      )
+      workerResetPasswordByPhone(this.phone, this.code, this.newPassword, this.confirmPassword)
         .then((res) => {
           if (res && res.code === 200) {
             uni.showToast({
@@ -363,7 +335,12 @@ export default {
   width: 270rpx;
   height: 270rpx;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(45, 120, 255, 0.22) 0%, rgba(45, 120, 255, 0.05) 48%, rgba(45, 120, 255, 0) 76%);
+  background: radial-gradient(
+    circle,
+    rgba(45, 120, 255, 0.22) 0%,
+    rgba(45, 120, 255, 0.05) 48%,
+    rgba(45, 120, 255, 0) 76%
+  );
   z-index: 1;
 }
 

@@ -39,20 +39,48 @@
         </el-row>
 
         <el-descriptions :column="2" border class="detail-block">
-          <el-descriptions-item label="售后类型">{{ detail.applicationTypeText || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="订单状态">{{ detail.orderStatusText || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="支付状态">{{ detail.paymentStatusText || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="物流状态">{{ detail.deliveryStatusText || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="申请时间">{{ formatTime(detail.createdTime) || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="处理时间">{{ formatTime(detail.processedTime) || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="完成时间">{{ formatTime(detail.completedTime) || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="联系手机">{{ detail.contactPhone || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="联系地址" :span="2">{{ detail.contactAddress || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="收货地址" :span="2">{{ detail.deliveryAddress || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="快递公司">{{ detail.deliveryCompany || '待填写' }}</el-descriptions-item>
-          <el-descriptions-item label="快递单号">{{ detail.deliveryNo || '待填写' }}</el-descriptions-item>
-          <el-descriptions-item label="订单总额">￥{{ detail.totalAmount || '0.00' }}</el-descriptions-item>
-          <el-descriptions-item label="实付金额">￥{{ detail.paidAmount || '0.00' }}</el-descriptions-item>
+          <el-descriptions-item label="售后类型">{{
+            detail.applicationTypeText || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="订单状态">{{
+            detail.orderStatusText || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="支付状态">{{
+            detail.paymentStatusText || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="物流状态">{{
+            detail.deliveryStatusText || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="申请时间">{{
+            formatTime(detail.createdTime) || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="处理时间">{{
+            formatTime(detail.processedTime) || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="完成时间">{{
+            formatTime(detail.completedTime) || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="联系手机">{{
+            detail.contactPhone || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="联系地址" :span="2">{{
+            detail.contactAddress || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="收货地址" :span="2">{{
+            detail.deliveryAddress || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="快递公司">{{
+            detail.deliveryCompany || '待填写'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="快递单号">{{
+            detail.deliveryNo || '待填写'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="订单总额"
+            >￥{{ detail.totalAmount || '0.00' }}</el-descriptions-item
+          >
+          <el-descriptions-item label="实付金额"
+            >￥{{ detail.paidAmount || '0.00' }}</el-descriptions-item
+          >
         </el-descriptions>
 
         <div class="detail-block text-block">
@@ -73,8 +101,18 @@
         <div class="detail-block">
           <div class="block-title">商品明细</div>
           <el-table :data="detail.items" border>
-            <el-table-column prop="productName" label="商品名称" min-width="180" show-overflow-tooltip />
-            <el-table-column prop="productId" label="商品ID" min-width="140" show-overflow-tooltip />
+            <el-table-column
+              prop="productName"
+              label="商品名称"
+              min-width="180"
+              show-overflow-tooltip
+            />
+            <el-table-column
+              prop="productId"
+              label="商品ID"
+              min-width="140"
+              show-overflow-tooltip
+            />
             <el-table-column label="单价" width="110" align="center">
               <template #default="{ row }">￥{{ row.productPrice || '0.00' }}</template>
             </el-table-column>
@@ -104,8 +142,18 @@
         <div class="detail-block">
           <div class="block-title">视频凭证</div>
           <div v-if="detail.evidenceVideos.length" class="video-grid">
-            <div v-for="item in detail.evidenceVideos" :key="item.id || item.url" class="video-card">
-              <video class="evidence-video" :src="item.url" :poster="item.thumbnailUrl" controls preload="metadata" />
+            <div
+              v-for="item in detail.evidenceVideos"
+              :key="item.id || item.url"
+              class="video-card"
+            >
+              <video
+                class="evidence-video"
+                :src="item.url"
+                :poster="item.thumbnailUrl"
+                controls
+                preload="metadata"
+              />
               <div class="video-meta">{{ item.duration ? `${item.duration} 秒` : '时长未知' }}</div>
             </div>
           </div>
@@ -135,7 +183,9 @@
               />
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" :loading="processing" @click="submitProcess">提交处理</el-button>
+              <el-button type="primary" :loading="processing" @click="submitProcess"
+                >提交处理</el-button
+              >
             </el-form-item>
           </el-form>
         </div>
@@ -148,7 +198,10 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { fetchAdminProductAfterSalesDetail, processAdminProductAfterSales } from '../../api/adminAftersales';
+import {
+  fetchAdminProductAfterSalesDetail,
+  processAdminProductAfterSales
+} from '../../api/adminAftersales';
 import { useAdminPageRefresh } from '../../utils/adminPageRefresh';
 
 const route = useRoute();
@@ -197,7 +250,9 @@ const processForm = reactive({
   adminRemark: ''
 });
 
-const imagePreviewList = computed(() => detail.evidenceImages.map((item) => item.url).filter(Boolean));
+const imagePreviewList = computed(() =>
+  detail.evidenceImages.map((item) => item.url).filter(Boolean)
+);
 
 function getStatusTagType(value) {
   if (value === 1) return 'warning';

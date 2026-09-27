@@ -1,9 +1,8 @@
 package com.example.backend.service;
 
 import com.example.backend.model.admin.AdminEmailTemplateItemResponse;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface EmailTemplateService {
 

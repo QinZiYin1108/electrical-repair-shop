@@ -6,9 +6,18 @@
           <div class="hero-topbar">
             <el-button text @click="goBack">返回列表</el-button>
             <div class="hero-tags">
-              <el-tag :type="getOrderTagType(detail.orderStatus)" size="large">{{ detail.orderStatusText || '-' }}</el-tag>
-              <el-tag :type="getPaymentTagType(detail.paymentStatus)" size="large" effect="plain">{{ detail.paymentStatusText || '-' }}</el-tag>
-              <el-tag :type="getDeliveryTagType(detail.deliveryStatus)" size="large" effect="plain">{{ detail.deliveryStatusText || '-' }}</el-tag>
+              <el-tag :type="getOrderTagType(detail.orderStatus)" size="large">{{
+                detail.orderStatusText || '-'
+              }}</el-tag>
+              <el-tag :type="getPaymentTagType(detail.paymentStatus)" size="large" effect="plain">{{
+                detail.paymentStatusText || '-'
+              }}</el-tag>
+              <el-tag
+                :type="getDeliveryTagType(detail.deliveryStatus)"
+                size="large"
+                effect="plain"
+                >{{ detail.deliveryStatusText || '-' }}</el-tag
+              >
             </div>
           </div>
           <div class="hero-title-row">
@@ -39,7 +48,9 @@
           </div>
           <div class="stat-card accent-slate">
             <span class="stat-label">下单时间</span>
-            <strong class="stat-value time-value">{{ formatTime(detail.createdTime) || '-' }}</strong>
+            <strong class="stat-value time-value">{{
+              formatTime(detail.createdTime) || '-'
+            }}</strong>
             <span class="stat-meta">支付于 {{ formatTime(detail.paymentTime) || '-' }}</span>
           </div>
         </div>
@@ -55,7 +66,12 @@
               </div>
             </div>
             <div class="info-grid two-column">
-              <div v-for="item in shippingInfoItems" :key="item.label" class="info-item" :class="{ wide: item.wide }">
+              <div
+                v-for="item in shippingInfoItems"
+                :key="item.label"
+                class="info-item"
+                :class="{ wide: item.wide }"
+              >
                 <span class="info-label">{{ item.label }}</span>
                 <span class="info-value">{{ item.value || '-' }}</span>
               </div>
@@ -78,7 +94,9 @@
                 </el-image>
                 <div class="goods-main">
                   <div class="goods-name">{{ item.productName || '-' }}</div>
-                  <div class="goods-meta">单价 {{ formatMoney(item.productPrice) }} / 数量 x{{ item.quantity || 0 }}</div>
+                  <div class="goods-meta">
+                    单价 {{ formatMoney(item.productPrice) }} / 数量 x{{ item.quantity || 0 }}
+                  </div>
                 </div>
                 <div class="goods-total">{{ formatMoney(item.totalPrice) }}</div>
               </article>
@@ -107,7 +125,12 @@
               </div>
             </div>
             <div class="info-grid two-column top-gap">
-              <div v-for="item in paymentInfoItems" :key="item.label" class="info-item" :class="{ wide: item.wide }">
+              <div
+                v-for="item in paymentInfoItems"
+                :key="item.label"
+                class="info-item"
+                :class="{ wide: item.wide }"
+              >
                 <span class="info-label">{{ item.label }}</span>
                 <span class="info-value">{{ item.value || '-' }}</span>
               </div>
@@ -152,7 +175,11 @@
     <el-dialog v-model="shipDialogVisible" title="商品订单发货" width="460px" destroy-on-close>
       <el-form ref="shipFormRef" :model="shipForm" :rules="shipRules" label-width="88px">
         <el-form-item label="快递公司" prop="deliveryCompany">
-          <el-input v-model="shipForm.deliveryCompany" maxlength="30" placeholder="请输入快递公司" />
+          <el-input
+            v-model="shipForm.deliveryCompany"
+            maxlength="30"
+            placeholder="请输入快递公司"
+          />
         </el-form-item>
         <el-form-item label="快递单号" prop="deliveryNo">
           <el-input v-model="shipForm.deliveryNo" maxlength="50" placeholder="请输入快递单号" />
@@ -161,7 +188,9 @@
       <template #footer>
         <span>
           <el-button @click="shipDialogVisible = false">取消</el-button>
-          <el-button type="primary" :loading="shipSubmitting" @click="submitShip">确认发货</el-button>
+          <el-button type="primary" :loading="shipSubmitting" @click="submitShip"
+            >确认发货</el-button
+          >
         </span>
       </template>
     </el-dialog>
@@ -173,10 +202,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { useAdminPageRefresh } from '../../utils/adminPageRefresh';
-import {
-  fetchAdminProductOrderDetail,
-  shipAdminProductOrder
-} from '../../api/adminProductOrders';
+import { fetchAdminProductOrderDetail, shipAdminProductOrder } from '../../api/adminProductOrders';
 
 const route = useRoute();
 const router = useRouter();
@@ -234,7 +260,12 @@ const detail = reactive({
   items: []
 });
 
-const canShip = computed(() => Number(detail.orderStatus) === 2 && Number(detail.deliveryStatus) === 1 && Number(detail.paymentStatus) === 2);
+const canShip = computed(
+  () =>
+    Number(detail.orderStatus) === 2 &&
+    Number(detail.deliveryStatus) === 1 &&
+    Number(detail.paymentStatus) === 2
+);
 
 const shippingInfoItems = computed(() => [
   { label: '收货人', value: detail.deliveryName },
@@ -551,10 +582,18 @@ useAdminPageRefresh(async () => {
   opacity: 0.12;
 }
 
-.accent-blue::after { background: #3b82f6; }
-.accent-green::after { background: #10b981; }
-.accent-amber::after { background: #f59e0b; }
-.accent-slate::after { background: #64748b; }
+.accent-blue::after {
+  background: #3b82f6;
+}
+.accent-green::after {
+  background: #10b981;
+}
+.accent-amber::after {
+  background: #f59e0b;
+}
+.accent-slate::after {
+  background: #64748b;
+}
 
 .stat-label,
 .money-label,
@@ -814,8 +853,3 @@ useAdminPageRefresh(async () => {
   }
 }
 </style>
-
-
-
-
-

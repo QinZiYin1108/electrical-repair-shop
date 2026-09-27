@@ -8,6 +8,8 @@ import com.example.backend.model.admin.AdminSystemSettingsUpdateRequest;
 import com.example.backend.security.context.AuthUserContext;
 import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.AdminSystemSettingsService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "管理员端/系统设置")
 @RestController
 @RequestMapping("/admin/system/settings")
 public class AdminSystemSettingsController {
@@ -37,8 +40,10 @@ public class AdminSystemSettingsController {
         return Result.success(adminSystemSettingsService.getSettings());
     }
 
+    @Operation(summary = "修改编辑Settings")
     @PostMapping("/update")
-    public Result<AdminSystemSettingsResponse> updateSettings(@Valid @RequestBody AdminSystemSettingsUpdateRequest request) {
+    public Result<AdminSystemSettingsResponse> updateSettings(
+            @Valid @RequestBody AdminSystemSettingsUpdateRequest request) {
         requireSuperAdmin();
         return Result.success(adminSystemSettingsService.updateSettings(request));
     }

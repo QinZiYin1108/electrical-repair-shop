@@ -1,0 +1,27 @@
+.report-submit-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding-bottom: 40rpx;
+}
+
+.card {
+  margin: 16rpx 24rpx;
+  background-color: #fff;
+  border-radius: 16rpx;
+  overflow: hidden;
+}
+
+.section-title {
+  padding: 24rpx 32rpx 0;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #303133;
+}
+
+.card .van-uploader {
+  padding: 16rpx 32rpx 24rpx;
+}
+
+.submit-area {
+  margin: 32rpx 24rpx;
+}

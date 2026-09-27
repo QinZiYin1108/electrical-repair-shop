@@ -4,19 +4,27 @@ import com.example.backend.model.admin.AdminProductCategoryResponse;
 import com.example.backend.model.admin.AdminProductResponse;
 import com.example.backend.model.admin.AdminProductSaveRequest;
 import com.example.backend.model.admin.AdminProductUploadMediaResponse;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface AdminProductManageService {
 
     List<AdminProductCategoryResponse> listProductCategories();
 
-    List<AdminProductResponse> listProducts(Integer productType, String keyword, String categoryId, Integer status, String storeId);
+    List<AdminProductResponse> listProducts(
+            Integer productType,
+            String keyword,
+            String categoryId,
+            Integer status,
+            String storeId,
+            Integer auditStatus,
+            Integer isFrozen);
 
-    AdminProductResponse createProduct(Integer productType, AdminProductSaveRequest request, String storeId);
+    AdminProductResponse createProduct(
+            Integer productType, AdminProductSaveRequest request, String storeId);
 
-    AdminProductResponse updateProduct(Integer productType, String id, AdminProductSaveRequest request, String storeId);
+    AdminProductResponse updateProduct(
+            Integer productType, String id, AdminProductSaveRequest request, String storeId);
 
     AdminProductUploadMediaResponse uploadProductMedia(String mediaType, MultipartFile file);
 

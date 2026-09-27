@@ -1,19 +1,49 @@
 package com.example.backend.model.worker;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 
+@Schema(description = "师傅账号Info响应")
 public class WorkerAccountInfoResponse {
 
+    @Schema(description = "ID")
     private String id;
+
+    @Schema(description = "username")
     private String username;
+
+    @Schema(description = "邮箱")
     private String email;
+
+    @Schema(description = "账号状态")
     private Integer accountStatus;
+
+    @Schema(description = "工作状态")
     private Integer workStatus;
+
+    @Schema(description = "pending排序数量")
     private Integer pendingOrderCount;
+
+    @Schema(description = "地址")
     private String address;
+
+    @Schema(description = "纬度")
     private BigDecimal latitude;
+
+    @Schema(description = "经度")
     private BigDecimal longitude;
+
+    @Schema(description = "头像URL")
     private String avatarUrl;
+
+    @Schema(description = "门店ID")
+    private String storeId;
+
+    @Schema(description = "门店名称")
+    private String storeName;
+
+    @Schema(description = "门店地址")
+    private String storeAddress;
 
     public String getId() {
         return id;
@@ -94,5 +124,28 @@ public class WorkerAccountInfoResponse {
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
     }
-}
 
+    public String getStoreId() {
+        return storeId;
+    }
+
+    public void setStoreId(String storeId) {
+        this.storeId = storeId;
+    }
+
+    public String getStoreName() {
+        return storeName;
+    }
+
+    public void setStoreName(String storeName) {
+        this.storeName = storeName;
+    }
+
+    public String getStoreAddress() {
+        return storeAddress;
+    }
+
+    public void setStoreAddress(String storeAddress) {
+        this.storeAddress = storeAddress;
+    }
+}

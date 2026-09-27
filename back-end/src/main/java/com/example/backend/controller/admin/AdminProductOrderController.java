@@ -7,29 +7,21 @@ import com.example.backend.common.Result;
 import com.example.backend.entity.OrderItems;
 import com.example.backend.entity.PaymentRecords;
 import com.example.backend.entity.ProductOrders;
+import com.example.backend.entity.Products;
 import com.example.backend.entity.UserAccounts;
 import com.example.backend.exception.BusinessException;
 import com.example.backend.model.admin.AdminProductOrderModel;
 import com.example.backend.security.context.AuthUserContext;
 import com.example.backend.security.model.AccountRole;
 import com.example.backend.security.model.LoginUserInfo;
-import com.example.backend.entity.Products;
 import com.example.backend.service.OrderItemsService;
 import com.example.backend.service.PaymentRecordsService;
 import com.example.backend.service.ProductOrdersService;
 import com.example.backend.service.ProductsService;
 import com.example.backend.service.UserAccountsService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -40,8 +32,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "管理员端/商品订单")
 @RequestMapping("/admin/orders/product")
 public class AdminProductOrderController {
 
@@ -71,12 +73,11 @@ public class AdminProductOrderController {
     private final ProductsService productsService;
 
     public AdminProductOrderController(
-        ProductOrdersService productOrdersService,
-        OrderItemsService orderItemsService,
-        UserAccountsService userAccountsService,
-        PaymentRecordsService paymentRecordsService,
-        ProductsService productsService
-    ) {
+            ProductOrdersService productOrdersService,
+            OrderItemsService orderItemsService,
+            UserAccountsService userAccountsService,
+            PaymentRecordsService paymentRecordsService,
+            ProductsService productsService) {
         this.productOrdersService = productOrdersService;
         this.orderItemsService = orderItemsService;
         this.userAccountsService = userAccountsService;
@@ -86,19 +87,18 @@ public class AdminProductOrderController {
 
     @GetMapping
     public Result<Page<AdminProductOrderModel.ListItemResponse>> listOrders(
-        @RequestParam(value = "pageNum", defaultValue = "1") long pageNum,
-        @RequestParam(value = "pageSize", defaultValue = "10") long pageSize,
-        @RequestParam(value = "keyword", required = false) String keyword,
-        @RequestParam(value = "orderStatus", required = false) Integer orderStatus,
-        @RequestParam(value = "paymentStatus", required = false) Integer paymentStatus,
-        @RequestParam(value = "deliveryStatus", required = false) Integer deliveryStatus
-    ) {
+            @RequestParam(value = "pageNum", defaultValue = "1") long pageNum,
+            @RequestParam(value = "pageSize", defaultValue = "10") long pageSize,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "orderStatus", required = false) Integer orderStatus,
+            @RequestParam(value = "paymentStatus", required = false) Integer paymentStatus,
+            @RequestParam(value = "deliveryStatus", required = false) Integer deliveryStatus) {
         LoginUserInfo admin = requireAdmin();
         long currentPage = pageNum <= 0 ? 1 : pageNum;
         long currentSize = pageSize <= 0 ? 10 : pageSize;
 
-        LambdaQueryWrapper<ProductOrders> wrapper = new LambdaQueryWrapper<ProductOrders>()
-            .eq(ProductOrders::getIsDelete, 0);
+        LambdaQueryWrapper<ProductOrders> wrapper =
+                new LambdaQueryWrapper<ProductOrders>().eq(ProductOrders::getIsDelete, 0);
 
         // 门店管理员：仅查看本门店商品产生的订单
         applyStoreFilter(admin, wrapper);
@@ -113,37 +113,36 @@ public class AdminProductOrderController {
         }
         applyKeywordFilter(wrapper, keyword);
         wrapper.orderByDesc(ProductOrders::getUpdatedTime)
-            .orderByDesc(ProductOrders::getCreatedTime);
+                .orderByDesc(ProductOrders::getCreatedTime);
 
-        Page<ProductOrders> page = productOrdersService.page(new Page<>(currentPage, currentSize), wrapper);
-        Page<AdminProductOrderModel.ListItemResponse> responsePage = new Page<>(
-            page.getCurrent(),
-            page.getSize(),
-            page.getTotal()
-        );
+        Page<ProductOrders> page =
+                productOrdersService.page(new Page<>(currentPage, currentSize), wrapper);
+        Page<AdminProductOrderModel.ListItemResponse> responsePage =
+                new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
         responsePage.setRecords(buildListItems(page.getRecords()));
         return Result.success(responsePage);
     }
 
+    @Operation(summary = "查询详情")
     @GetMapping("/{id}")
     public Result<AdminProductOrderModel.DetailResponse> getDetail(@PathVariable("id") String id) {
         requireAdmin();
         return Result.success(buildDetailResponse(requireOrder(id)));
     }
 
+    @Operation(summary = "提交shipOrder")
     @PostMapping("/{id}/ship")
     @Transactional(rollbackFor = Exception.class)
     public Result<AdminProductOrderModel.DetailResponse> shipOrder(
-        @PathVariable("id") String id,
-        @Valid @RequestBody AdminProductOrderModel.ShipRequest request
-    ) {
+            @PathVariable("id") String id,
+            @Valid @RequestBody AdminProductOrderModel.ShipRequest request) {
         requireAdmin();
         ProductOrders order = requireOrder(id);
         if (safeInt(order.getPaymentStatus()) != PAYMENT_STATUS_PAID) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "当前订单未支付，无法发货");
         }
         if (safeInt(order.getOrderStatus()) != ORDER_STATUS_PENDING_DELIVERY
-            || safeInt(order.getDeliveryStatus()) != DELIVERY_STATUS_PENDING) {
+                || safeInt(order.getDeliveryStatus()) != DELIVERY_STATUS_PENDING) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "当前订单状态不支持发货");
         }
 
@@ -166,38 +165,72 @@ public class AdminProductOrderController {
             return;
         }
 
-        Set<String> userIds = userAccountsService.list(
-            new LambdaQueryWrapper<UserAccounts>()
-                .eq(UserAccounts::getIsDelete, 0)
-                .and(q -> q.like(UserAccounts::getUsername, normalizedKeyword)
-                    .or().like(UserAccounts::getPhone, normalizedKeyword)
-                    .or().like(UserAccounts::getEmail, normalizedKeyword))
-        ).stream().map(UserAccounts::getId).filter(StringUtils::hasText).collect(Collectors.toSet());
+        Set<String> userIds =
+                userAccountsService
+                        .list(
+                                new LambdaQueryWrapper<UserAccounts>()
+                                        .eq(UserAccounts::getIsDelete, 0)
+                                        .and(
+                                                q ->
+                                                        q.like(
+                                                                        UserAccounts::getUsername,
+                                                                        normalizedKeyword)
+                                                                .or()
+                                                                .like(
+                                                                        UserAccounts::getPhone,
+                                                                        normalizedKeyword)
+                                                                .or()
+                                                                .like(
+                                                                        UserAccounts::getEmail,
+                                                                        normalizedKeyword)))
+                        .stream()
+                        .map(UserAccounts::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
 
-        Set<String> orderIds = orderItemsService.list(
-            new LambdaQueryWrapper<OrderItems>()
-                .eq(OrderItems::getIsDelete, 0)
-                .and(q -> q.like(OrderItems::getProductName, normalizedKeyword)
-                    .or().like(OrderItems::getProductId, normalizedKeyword))
-        ).stream().map(OrderItems::getOrderId).filter(StringUtils::hasText).collect(Collectors.toSet());
+        Set<String> orderIds =
+                orderItemsService
+                        .list(
+                                new LambdaQueryWrapper<OrderItems>()
+                                        .eq(OrderItems::getIsDelete, 0)
+                                        .and(
+                                                q ->
+                                                        q.like(
+                                                                        OrderItems::getProductName,
+                                                                        normalizedKeyword)
+                                                                .or()
+                                                                .like(
+                                                                        OrderItems::getProductId,
+                                                                        normalizedKeyword)))
+                        .stream()
+                        .map(OrderItems::getOrderId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
 
-        wrapper.and(q -> {
-            q.like(ProductOrders::getOrderNo, normalizedKeyword)
-                .or().like(ProductOrders::getDeliveryName, normalizedKeyword)
-                .or().like(ProductOrders::getDeliveryPhone, normalizedKeyword)
-                .or().like(ProductOrders::getDeliveryAddress, normalizedKeyword)
-                .or().like(ProductOrders::getDeliveryCompany, normalizedKeyword)
-                .or().like(ProductOrders::getDeliveryNo, normalizedKeyword);
-            if (!userIds.isEmpty()) {
-                q.or().in(ProductOrders::getAccountId, userIds);
-            }
-            if (!orderIds.isEmpty()) {
-                q.or().in(ProductOrders::getId, orderIds);
-            }
-        });
+        wrapper.and(
+                q -> {
+                    q.like(ProductOrders::getOrderNo, normalizedKeyword)
+                            .or()
+                            .like(ProductOrders::getDeliveryName, normalizedKeyword)
+                            .or()
+                            .like(ProductOrders::getDeliveryPhone, normalizedKeyword)
+                            .or()
+                            .like(ProductOrders::getDeliveryAddress, normalizedKeyword)
+                            .or()
+                            .like(ProductOrders::getDeliveryCompany, normalizedKeyword)
+                            .or()
+                            .like(ProductOrders::getDeliveryNo, normalizedKeyword);
+                    if (!userIds.isEmpty()) {
+                        q.or().in(ProductOrders::getAccountId, userIds);
+                    }
+                    if (!orderIds.isEmpty()) {
+                        q.or().in(ProductOrders::getId, orderIds);
+                    }
+                });
     }
 
-    private List<AdminProductOrderModel.ListItemResponse> buildListItems(List<ProductOrders> orders) {
+    private List<AdminProductOrderModel.ListItemResponse> buildListItems(
+            List<ProductOrders> orders) {
         if (orders == null || orders.isEmpty()) {
             return Collections.emptyList();
         }
@@ -207,11 +240,13 @@ public class AdminProductOrderController {
 
         List<AdminProductOrderModel.ListItemResponse> items = new ArrayList<>();
         for (ProductOrders order : orders) {
-            List<OrderItems> orderItems = orderItemMap.getOrDefault(order.getId(), Collections.emptyList());
+            List<OrderItems> orderItems =
+                    orderItemMap.getOrDefault(order.getId(), Collections.emptyList());
             PaymentRecords payment = paymentMap.get(order.getId());
             UserAccounts user = userMap.get(order.getAccountId());
 
-            AdminProductOrderModel.ListItemResponse item = new AdminProductOrderModel.ListItemResponse();
+            AdminProductOrderModel.ListItemResponse item =
+                    new AdminProductOrderModel.ListItemResponse();
             item.setId(order.getId());
             item.setOrderNo(safe(order.getOrderNo()));
             item.setOrderStatus(order.getOrderStatus());
@@ -235,6 +270,7 @@ public class AdminProductOrderController {
             item.setCreatedTime(order.getCreatedTime());
             item.setPaymentTime(order.getPaymentTime());
             item.setDeliveryTime(order.getDeliveryTime());
+            item.setCancelReason(safe(order.getCancelReason()));
             if (payment != null && !StringUtils.hasText(item.getPaymentMethodText())) {
                 item.setPaymentMethodText(getPaymentMethodText(payment.getPaymentMethod()));
             }
@@ -249,11 +285,13 @@ public class AdminProductOrderController {
         Map<String, List<OrderItems>> orderItemMap = listOrderItemMap(orders);
         Map<String, PaymentRecords> paymentMap = listPaymentMap(orders);
 
-        List<OrderItems> orderItems = orderItemMap.getOrDefault(order.getId(), Collections.emptyList());
+        List<OrderItems> orderItems =
+                orderItemMap.getOrDefault(order.getId(), Collections.emptyList());
         PaymentRecords payment = paymentMap.get(order.getId());
         UserAccounts user = userMap.get(order.getAccountId());
 
-        AdminProductOrderModel.DetailResponse response = new AdminProductOrderModel.DetailResponse();
+        AdminProductOrderModel.DetailResponse response =
+                new AdminProductOrderModel.DetailResponse();
         response.setId(order.getId());
         response.setOrderNo(safe(order.getOrderNo()));
         response.setOrderStatus(order.getOrderStatus());
@@ -290,7 +328,10 @@ public class AdminProductOrderController {
         response.setDeliveryTime(order.getDeliveryTime());
         response.setReceiveTime(order.getReceiveTime());
         response.setCompletionTime(order.getCompletionTime());
-        response.setItems(orderItems.stream().map(this::buildOrderItemResponse).collect(Collectors.toCollection(ArrayList::new)));
+        response.setItems(
+                orderItems.stream()
+                        .map(this::buildOrderItemResponse)
+                        .collect(Collectors.toCollection(ArrayList::new)));
         if (payment != null) {
             response.setPaymentNo(safe(payment.getPaymentNo()));
             response.setThirdPartyNo(safe(payment.getThirdPartyNo()));
@@ -304,7 +345,8 @@ public class AdminProductOrderController {
     }
 
     private AdminProductOrderModel.OrderItemResponse buildOrderItemResponse(OrderItems item) {
-        AdminProductOrderModel.OrderItemResponse response = new AdminProductOrderModel.OrderItemResponse();
+        AdminProductOrderModel.OrderItemResponse response =
+                new AdminProductOrderModel.OrderItemResponse();
         response.setId(item.getId());
         response.setProductId(safe(item.getProductId()));
         response.setProductName(safe(item.getProductName()));
@@ -316,94 +358,115 @@ public class AdminProductOrderController {
     }
 
     private Map<String, UserAccounts> listUserMap(List<ProductOrders> orders) {
-        Set<String> userIds = orders.stream()
-            .map(ProductOrders::getAccountId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+        Set<String> userIds =
+                orders.stream()
+                        .map(ProductOrders::getAccountId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (userIds.isEmpty()) {
             return new HashMap<>();
         }
-        return userAccountsService.list(
-            new LambdaQueryWrapper<UserAccounts>()
-                .in(UserAccounts::getId, userIds)
-                .eq(UserAccounts::getIsDelete, 0)
-        ).stream().collect(Collectors.toMap(UserAccounts::getId, item -> item, (a, b) -> a, LinkedHashMap::new));
+        return userAccountsService
+                .list(
+                        new LambdaQueryWrapper<UserAccounts>()
+                                .in(UserAccounts::getId, userIds)
+                                .eq(UserAccounts::getIsDelete, 0))
+                .stream()
+                .collect(
+                        Collectors.toMap(
+                                UserAccounts::getId,
+                                item -> item,
+                                (a, b) -> a,
+                                LinkedHashMap::new));
     }
 
     private Map<String, List<OrderItems>> listOrderItemMap(List<ProductOrders> orders) {
-        Set<String> orderIds = orders.stream()
-            .map(ProductOrders::getId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+        Set<String> orderIds =
+                orders.stream()
+                        .map(ProductOrders::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (orderIds.isEmpty()) {
             return new HashMap<>();
         }
-        return orderItemsService.list(
-            new LambdaQueryWrapper<OrderItems>()
-                .in(OrderItems::getOrderId, orderIds)
-                .eq(OrderItems::getIsDelete, 0)
-                .orderByAsc(OrderItems::getCreatedTime)
-        ).stream().collect(Collectors.groupingBy(OrderItems::getOrderId, LinkedHashMap::new, Collectors.toList()));
+        return orderItemsService
+                .list(
+                        new LambdaQueryWrapper<OrderItems>()
+                                .in(OrderItems::getOrderId, orderIds)
+                                .eq(OrderItems::getIsDelete, 0)
+                                .orderByAsc(OrderItems::getCreatedTime))
+                .stream()
+                .collect(
+                        Collectors.groupingBy(
+                                OrderItems::getOrderId, LinkedHashMap::new, Collectors.toList()));
     }
 
     private Map<String, PaymentRecords> listPaymentMap(List<ProductOrders> orders) {
-        Set<String> orderIds = orders.stream()
-            .map(ProductOrders::getId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+        Set<String> orderIds =
+                orders.stream()
+                        .map(ProductOrders::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (orderIds.isEmpty()) {
             return new HashMap<>();
         }
-        return paymentRecordsService.list(
-            new LambdaQueryWrapper<PaymentRecords>()
-                .in(PaymentRecords::getOrderId, orderIds)
-                .eq(PaymentRecords::getOrderType, ORDER_TYPE_PRODUCT)
-                .eq(PaymentRecords::getIsDelete, 0)
-                .orderByDesc(PaymentRecords::getCreatedTime)
-        ).stream().collect(Collectors.toMap(PaymentRecords::getOrderId, item -> item, (a, b) -> a, LinkedHashMap::new));
+        return paymentRecordsService
+                .list(
+                        new LambdaQueryWrapper<PaymentRecords>()
+                                .in(PaymentRecords::getOrderId, orderIds)
+                                .eq(PaymentRecords::getOrderType, ORDER_TYPE_PRODUCT)
+                                .eq(PaymentRecords::getIsDelete, 0)
+                                .orderByDesc(PaymentRecords::getCreatedTime))
+                .stream()
+                .collect(
+                        Collectors.toMap(
+                                PaymentRecords::getOrderId,
+                                item -> item,
+                                (a, b) -> a,
+                                LinkedHashMap::new));
     }
 
     private ProductOrders requireOrder(String id) {
-        ProductOrders order = productOrdersService.getOne(
-            new LambdaQueryWrapper<ProductOrders>()
-                .eq(ProductOrders::getId, id)
-                .eq(ProductOrders::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        ProductOrders order =
+                productOrdersService.getOne(
+                        new LambdaQueryWrapper<ProductOrders>()
+                                .eq(ProductOrders::getId, id)
+                                .eq(ProductOrders::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (order == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "商品订单不存在");
         }
         return order;
     }
 
-    /**
-     * 门店管理员过滤：仅查看本门店商品产生的订单
-     */
+    /** 门店管理员过滤：仅查看本门店商品产生的订单 */
     private void applyStoreFilter(LoginUserInfo admin, LambdaQueryWrapper<ProductOrders> wrapper) {
         if (admin == null || !admin.isStoreAdmin() || !StringUtils.hasText(admin.getStoreId())) {
             return;
         }
-        List<Products> storeProducts = productsService.list(
-            new LambdaQueryWrapper<Products>()
-                .eq(Products::getStoreId, admin.getStoreId())
-                .eq(Products::getIsDelete, 0)
-        );
+        List<Products> storeProducts =
+                productsService.list(
+                        new LambdaQueryWrapper<Products>()
+                                .eq(Products::getStoreId, admin.getStoreId())
+                                .eq(Products::getIsDelete, 0));
         if (storeProducts.isEmpty()) {
             wrapper.eq(ProductOrders::getId, "-1");
             return;
         }
-        Set<String> productIds = storeProducts.stream().map(Products::getId).collect(Collectors.toSet());
-        List<OrderItems> items = orderItemsService.list(
-            new LambdaQueryWrapper<OrderItems>()
-                .in(OrderItems::getProductId, productIds)
-                .eq(OrderItems::getIsDelete, 0)
-        );
+        Set<String> productIds =
+                storeProducts.stream().map(Products::getId).collect(Collectors.toSet());
+        List<OrderItems> items =
+                orderItemsService.list(
+                        new LambdaQueryWrapper<OrderItems>()
+                                .in(OrderItems::getProductId, productIds)
+                                .eq(OrderItems::getIsDelete, 0));
         if (items.isEmpty()) {
             wrapper.eq(ProductOrders::getId, "-1");
             return;
         }
-        Set<String> orderIds = items.stream().map(OrderItems::getOrderId).collect(Collectors.toSet());
+        Set<String> orderIds =
+                items.stream().map(OrderItems::getOrderId).collect(Collectors.toSet());
         wrapper.in(ProductOrders::getId, orderIds);
     }
 
@@ -419,10 +482,11 @@ public class AdminProductOrderController {
     }
 
     private int calculateItemCount(List<OrderItems> orderItems) {
-        return (orderItems == null ? Collections.<OrderItems>emptyList() : orderItems).stream()
-            .map(OrderItems::getQuantity)
-            .filter(item -> item != null && item > 0)
-            .reduce(0, Integer::sum);
+        return (orderItems == null ? Collections.<OrderItems>emptyList() : orderItems)
+                .stream()
+                        .map(OrderItems::getQuantity)
+                        .filter(item -> item != null && item > 0)
+                        .reduce(0, Integer::sum);
     }
 
     private String buildProductSummary(List<OrderItems> orderItems) {
@@ -510,7 +574,9 @@ public class AdminProductOrderController {
     }
 
     private String formatMoney(BigDecimal value) {
-        return (value == null ? BigDecimal.ZERO : value).setScale(2, RoundingMode.HALF_UP).toPlainString();
+        return (value == null ? BigDecimal.ZERO : value)
+                .setScale(2, RoundingMode.HALF_UP)
+                .toPlainString();
     }
 
     private String trimToNull(String value) {

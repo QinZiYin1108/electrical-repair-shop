@@ -16,11 +16,6 @@ import com.example.backend.service.ImagesService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
 import com.example.backend.utils.oss.OssUtil;
 import com.example.backend.utils.upload.UploadLimitUtil;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-import org.springframework.web.multipart.MultipartFile;
-
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.time.LocalDateTime;
@@ -33,6 +28,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import javax.imageio.ImageIO;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class AdminAnnouncementServiceImpl implements AdminAnnouncementService {
@@ -44,7 +43,8 @@ public class AdminAnnouncementServiceImpl implements AdminAnnouncementService {
     private static final String BUSINESS_TYPE_ANNOUNCEMENT = "ANNOUNCEMENT";
     private static final int BANNER_RECOMMEND_WIDTH = 702;
     private static final int BANNER_RECOMMEND_HEIGHT = 250;
-    private static final double BANNER_RECOMMEND_RATIO = BANNER_RECOMMEND_WIDTH * 1.0 / BANNER_RECOMMEND_HEIGHT;
+    private static final double BANNER_RECOMMEND_RATIO =
+            BANNER_RECOMMEND_WIDTH * 1.0 / BANNER_RECOMMEND_HEIGHT;
     private static final double BANNER_RATIO_TOLERANCE = 0.03D;
 
     private final AnnouncementsService announcementsService;
@@ -52,10 +52,9 @@ public class AdminAnnouncementServiceImpl implements AdminAnnouncementService {
     private final OssUtil ossUtil;
 
     public AdminAnnouncementServiceImpl(
-        AnnouncementsService announcementsService,
-        ImagesService imagesService,
-        OssUtil ossUtil
-    ) {
+            AnnouncementsService announcementsService,
+            ImagesService imagesService,
+            OssUtil ossUtil) {
         this.announcementsService = announcementsService;
         this.imagesService = imagesService;
         this.ossUtil = ossUtil;
@@ -63,18 +62,19 @@ public class AdminAnnouncementServiceImpl implements AdminAnnouncementService {
 
     @Override
     public List<AdminAnnouncementResponse> listAnnouncements(Integer channel) {
-        LambdaQueryWrapper<Announcements> wrapper = new LambdaQueryWrapper<Announcements>()
-            .orderByAsc(Announcements::getSortOrder)
-            .orderByDesc(Announcements::getCreatedTime);
+        LambdaQueryWrapper<Announcements> wrapper =
+                new LambdaQueryWrapper<Announcements>()
+                        .orderByAsc(Announcements::getSortOrder)
+                        .orderByDesc(Announcements::getCreatedTime);
         if (channel != null) {
             validateChannel(channel);
             wrapper.eq(Announcements::getChannel, channel);
         }
 
         List<Announcements> list = announcementsService.list(wrapper);
-        Map<String, String> imageMap = loadLatestImageUrlMap(
-            list.stream().map(Announcements::getId).collect(Collectors.toList())
-        );
+        Map<String, String> imageMap =
+                loadLatestImageUrlMap(
+                        list.stream().map(Announcements::getId).collect(Collectors.toList()));
 
         List<AdminAnnouncementResponse> responses = new ArrayList<>();
         for (Announcements item : list) {
@@ -85,7 +85,11 @@ public class AdminAnnouncementServiceImpl implements AdminAnnouncementService {
 
     @Override
     public AdminAnnouncementResponse createAnnouncement(AdminAnnouncementCreateRequest request) {
-        validateCreateOrUpdateRequest(request.getChannel(), request.getContentType(), request.getStartTime(), request.getEndTime());
+        validateCreateOrUpdateRequest(
+                request.getChannel(),
+                request.getContentType(),
+                request.getStartTime(),
+                request.getEndTime());
         long now = System.currentTimeMillis();
 
         Announcements announcement = new Announcements();
@@ -103,13 +107,18 @@ public class AdminAnnouncementServiceImpl implements AdminAnnouncementService {
     }
 
     @Override
-    public AdminAnnouncementResponse updateAnnouncement(String id, AdminAnnouncementUpdateRequest request) {
+    public AdminAnnouncementResponse updateAnnouncement(
+            String id, AdminAnnouncementUpdateRequest request) {
         Announcements current = announcementsService.getById(id);
         if (current == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "公告不存在");
         }
 
-        validateCreateOrUpdateRequest(request.getChannel(), request.getContentType(), request.getStartTime(), request.getEndTime());
+        validateCreateOrUpdateRequest(
+                request.getChannel(),
+                request.getContentType(),
+                request.getStartTime(),
+                request.getEndTime());
         fillAnnouncementByRequest(current, request, false);
         current.setUpdatedTime(System.currentTimeMillis());
 
@@ -167,14 +176,22 @@ public class AdminAnnouncementServiceImpl implements AdminAnnouncementService {
         }
         validateBannerImage(width, height);
 
-        String originalName = Optional.ofNullable(file.getOriginalFilename()).orElse("announcement");
+        String originalName =
+                Optional.ofNullable(file.getOriginalFilename()).orElse("announcement");
         String ext = "";
         int dot = originalName.lastIndexOf('.');
         if (dot >= 0 && dot < originalName.length() - 1) {
             ext = originalName.substring(dot);
         }
         String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String objectName = "announcements/" + id + "/" + date + "_" + UUID.randomUUID().toString().replace("-", "") + ext;
+        String objectName =
+                "announcements/"
+                        + id
+                        + "/"
+                        + date
+                        + "_"
+                        + UUID.randomUUID().toString().replace("-", "")
+                        + ext;
         String url = ossUtil.upload(objectName, new ByteArrayInputStream(bytes));
 
         LoginUserInfo user = AuthUserContext.get();
@@ -214,20 +231,21 @@ public class AdminAnnouncementServiceImpl implements AdminAnnouncementService {
         }
         if (width < BANNER_RECOMMEND_WIDTH || height < BANNER_RECOMMEND_HEIGHT) {
             throw new BusinessException(
-                ErrorCode.PARAM_ERROR,
-                "轮播图尺寸不能小于 " + BANNER_RECOMMEND_WIDTH + "×" + BANNER_RECOMMEND_HEIGHT
-            );
+                    ErrorCode.PARAM_ERROR,
+                    "轮播图尺寸不能小于 " + BANNER_RECOMMEND_WIDTH + "×" + BANNER_RECOMMEND_HEIGHT);
         }
         double ratio = width * 1.0 / height;
         if (Math.abs(ratio - BANNER_RECOMMEND_RATIO) > BANNER_RATIO_TOLERANCE) {
             throw new BusinessException(
-                ErrorCode.PARAM_ERROR,
-                "轮播图图片比例需要接近 " + BANNER_RECOMMEND_WIDTH + ":" + BANNER_RECOMMEND_HEIGHT
-            );
+                    ErrorCode.PARAM_ERROR,
+                    "轮播图图片比例需要接近 " + BANNER_RECOMMEND_WIDTH + ":" + BANNER_RECOMMEND_HEIGHT);
         }
     }
 
-    private void fillAnnouncementByRequest(Announcements announcement, AdminAnnouncementCreateRequest request, boolean createMode) {
+    private void fillAnnouncementByRequest(
+            Announcements announcement,
+            AdminAnnouncementCreateRequest request,
+            boolean createMode) {
         announcement.setChannel(request.getChannel());
         if (Objects.equals(request.getChannel(), CHANNEL_NOTICE)) {
             announcement.setContentType(CONTENT_TYPE_TEXT);
@@ -247,7 +265,10 @@ public class AdminAnnouncementServiceImpl implements AdminAnnouncementService {
         }
     }
 
-    private void fillAnnouncementByRequest(Announcements announcement, AdminAnnouncementUpdateRequest request, boolean createMode) {
+    private void fillAnnouncementByRequest(
+            Announcements announcement,
+            AdminAnnouncementUpdateRequest request,
+            boolean createMode) {
         AdminAnnouncementCreateRequest payload = new AdminAnnouncementCreateRequest();
         payload.setChannel(request.getChannel());
         payload.setContentType(request.getContentType());
@@ -262,7 +283,8 @@ public class AdminAnnouncementServiceImpl implements AdminAnnouncementService {
         fillAnnouncementByRequest(announcement, payload, createMode);
     }
 
-    private void validateCreateOrUpdateRequest(Integer channel, Integer contentType, Long startTime, Long endTime) {
+    private void validateCreateOrUpdateRequest(
+            Integer channel, Integer contentType, Long startTime, Long endTime) {
         validateChannel(channel);
         validateContentType(channel, contentType);
         if (startTime != null && startTime <= 0) {
@@ -286,7 +308,8 @@ public class AdminAnnouncementServiceImpl implements AdminAnnouncementService {
         if (Objects.equals(channel, CHANNEL_NOTICE)) {
             return;
         }
-        if (!Objects.equals(contentType, CONTENT_TYPE_IMAGE) && !Objects.equals(contentType, CONTENT_TYPE_TEXT)) {
+        if (!Objects.equals(contentType, CONTENT_TYPE_IMAGE)
+                && !Objects.equals(contentType, CONTENT_TYPE_TEXT)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "内容类型参数错误");
         }
     }
@@ -295,15 +318,16 @@ public class AdminAnnouncementServiceImpl implements AdminAnnouncementService {
         if (announcementIds == null || announcementIds.isEmpty()) {
             return Map.of();
         }
-        List<Images> images = imagesService.list(
-            new LambdaQueryWrapper<Images>()
-                .eq(Images::getBusinessType, BUSINESS_TYPE_ANNOUNCEMENT)
-                .in(Images::getBusinessId, announcementIds)
-                .orderByDesc(Images::getCreatedTime)
-        );
+        List<Images> images =
+                imagesService.list(
+                        new LambdaQueryWrapper<Images>()
+                                .eq(Images::getBusinessType, BUSINESS_TYPE_ANNOUNCEMENT)
+                                .in(Images::getBusinessId, announcementIds)
+                                .orderByDesc(Images::getCreatedTime));
         Map<String, String> result = new HashMap<>();
         for (Images image : images) {
-            if (!result.containsKey(image.getBusinessId()) && StringUtils.hasText(image.getFileUrl())) {
+            if (!result.containsKey(image.getBusinessId())
+                    && StringUtils.hasText(image.getFileUrl())) {
                 result.put(image.getBusinessId(), image.getFileUrl());
             }
         }
@@ -340,5 +364,3 @@ public class AdminAnnouncementServiceImpl implements AdminAnnouncementService {
         return value == null ? defaultValue : value;
     }
 }
-
-

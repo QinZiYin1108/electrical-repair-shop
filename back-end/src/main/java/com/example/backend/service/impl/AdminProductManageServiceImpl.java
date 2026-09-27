@@ -10,27 +10,29 @@ import com.example.backend.model.admin.AdminProductResponse;
 import com.example.backend.model.admin.AdminProductSaveRequest;
 import com.example.backend.model.admin.AdminProductSpecItem;
 import com.example.backend.model.admin.AdminProductUploadMediaResponse;
+import com.example.backend.model.audit.AuditEventCommand;
+import com.example.backend.security.context.AuthUserContext;
+import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.AdminProductManageService;
+import com.example.backend.service.AuditEventsService;
+import com.example.backend.service.ContentCheckLogsService;
+import com.example.backend.service.ImageReviewQueueService;
 import com.example.backend.service.ProductCategoriesService;
 import com.example.backend.service.ProductsService;
+import com.example.backend.service.contentcheck.AliyunGreenClient;
+import com.example.backend.service.contentcheck.CheckResult;
 import com.example.backend.utils.id.SnowflakeIdUtil;
 import com.example.backend.utils.oss.OssUtil;
 import com.example.backend.utils.upload.UploadLimitUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-import org.springframework.web.multipart.MultipartFile;
-
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -44,27 +46,45 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import javax.imageio.ImageIO;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class AdminProductManageServiceImpl implements AdminProductManageService {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final TypeReference<List<AdminProductSpecItem>> SPEC_ITEM_LIST_TYPE = new TypeReference<>() {};
+    private static final TypeReference<List<AdminProductSpecItem>> SPEC_ITEM_LIST_TYPE =
+            new TypeReference<>() {};
     private static final TypeReference<List<String>> STRING_LIST_TYPE = new TypeReference<>() {};
-    private static final DateTimeFormatter MEDIA_OBJECT_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+    private static final DateTimeFormatter MEDIA_OBJECT_DATE_FORMAT =
+            DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
     private final ProductsService productsService;
     private final ProductCategoriesService productCategoriesService;
     private final OssUtil ossUtil;
+    private final AliyunGreenClient aliyunGreenClient;
+    private final ContentCheckLogsService checkLogsService;
+    private final ImageReviewQueueService imageReviewQueueService;
+    private final AuditEventsService auditEventsService;
 
     public AdminProductManageServiceImpl(
-        ProductsService productsService,
-        ProductCategoriesService productCategoriesService,
-        OssUtil ossUtil
-    ) {
+            ProductsService productsService,
+            ProductCategoriesService productCategoriesService,
+            OssUtil ossUtil,
+            AliyunGreenClient aliyunGreenClient,
+            ContentCheckLogsService checkLogsService,
+            ImageReviewQueueService imageReviewQueueService,
+            AuditEventsService auditEventsService) {
         this.productsService = productsService;
         this.productCategoriesService = productCategoriesService;
         this.ossUtil = ossUtil;
+        this.aliyunGreenClient = aliyunGreenClient;
+        this.checkLogsService = checkLogsService;
+        this.imageReviewQueueService = imageReviewQueueService;
+        this.auditEventsService = auditEventsService;
     }
 
     @Override
@@ -74,11 +94,24 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
     }
 
     @Override
-    public List<AdminProductResponse> listProducts(Integer productType, String keyword, String categoryId, Integer status, String storeId) {
+    public List<AdminProductResponse> listProducts(
+            Integer productType,
+            String keyword,
+            String categoryId,
+            Integer status,
+            String storeId,
+            Integer auditStatus,
+            Integer isFrozen) {
         int normalizedProductType = normalizeProductType(productType);
         List<ProductCategories> categories = listAllCategories();
-        Map<String, ProductCategories> categoryMap = categories.stream()
-            .collect(Collectors.toMap(ProductCategories::getId, item -> item, (a, b) -> a, LinkedHashMap::new));
+        Map<String, ProductCategories> categoryMap =
+                categories.stream()
+                        .collect(
+                                Collectors.toMap(
+                                        ProductCategories::getId,
+                                        item -> item,
+                                        (a, b) -> a,
+                                        LinkedHashMap::new));
 
         LambdaQueryWrapper<Products> wrapper = new LambdaQueryWrapper<>();
         applyProductTypeCondition(wrapper, normalizedProductType);
@@ -90,15 +123,15 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
 
         String normalizedKeyword = normalizeBlankToNull(keyword);
         if (StringUtils.hasText(normalizedKeyword)) {
-            wrapper.and(query -> query
-                .like(Products::getName, normalizedKeyword)
-                .or()
-                .like(Products::getProductNo, normalizedKeyword)
-                .or()
-                .like(Products::getBrand, normalizedKeyword)
-                .or()
-                .like(Products::getModel, normalizedKeyword)
-            );
+            wrapper.and(
+                    query ->
+                            query.like(Products::getName, normalizedKeyword)
+                                    .or()
+                                    .like(Products::getProductNo, normalizedKeyword)
+                                    .or()
+                                    .like(Products::getBrand, normalizedKeyword)
+                                    .or()
+                                    .like(Products::getModel, normalizedKeyword));
         }
 
         String normalizedCategoryId = normalizeBlankToNull(categoryId);
@@ -115,11 +148,19 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
             wrapper.eq(Products::getStatus, status);
         }
 
-        List<Products> products = productsService.list(
-            wrapper.orderByAsc(Products::getSortOrder)
-                .orderByDesc(Products::getUpdatedTime)
-                .orderByDesc(Products::getCreatedTime)
-        );
+        if (auditStatus != null) {
+            wrapper.eq(Products::getAuditStatus, auditStatus);
+        }
+
+        if (isFrozen != null) {
+            wrapper.eq(Products::getIsFrozen, isFrozen);
+        }
+
+        List<Products> products =
+                productsService.list(
+                        wrapper.orderByAsc(Products::getSortOrder)
+                                .orderByDesc(Products::getUpdatedTime)
+                                .orderByDesc(Products::getCreatedTime));
 
         List<AdminProductResponse> responses = new ArrayList<>();
         for (Products product : products) {
@@ -130,7 +171,8 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public AdminProductResponse createProduct(Integer productType, AdminProductSaveRequest request, String storeId) {
+    public AdminProductResponse createProduct(
+            Integer productType, AdminProductSaveRequest request, String storeId) {
         int normalizedProductType = normalizeProductType(productType);
         validateSaveRequest(request);
         Map<String, ProductCategories> categoryMap = loadCategoryMap();
@@ -150,10 +192,12 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
         product.setCreatedTime(now);
         product.setUpdatedTime(now);
 
-        // 店铺管理员创建的商品自动归属其门店
+        // 店铺管理员创建的商品自动归属其门店，状态为待审核
         if (StringUtils.hasText(storeId)) {
             product.setStoreId(storeId);
-            product.setAuditStatus(2); // 店铺管理员创建的商品自动审核通过
+            product.setAuditStatus(1); // 店铺管理员创建 → 待审核，需超管审核
+        } else {
+            product.setAuditStatus(2); // 超管创建 → 自动审核通过
         }
 
         if (!productsService.save(product)) {
@@ -164,7 +208,8 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public AdminProductResponse updateProduct(Integer productType, String id, AdminProductSaveRequest request, String storeId) {
+    public AdminProductResponse updateProduct(
+            Integer productType, String id, AdminProductSaveRequest request, String storeId) {
         int normalizedProductType = normalizeProductType(productType);
         validateSaveRequest(request);
 
@@ -178,6 +223,7 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
         requireCategory(request.getCategoryId(), categoryMap);
 
         long now = System.currentTimeMillis();
+        Integer previousStock = current.getStockQuantity();
         current.setProductType(normalizedProductType);
         fillProduct(current, request, now);
         current.setUpdatedTime(now);
@@ -185,20 +231,44 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
         if (!productsService.updateById(current)) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新商品失败");
         }
+        if (previousStock == null || !previousStock.equals(current.getStockQuantity())) {
+            auditEventsService.record(
+                    new AuditEventCommand(
+                            "INVENTORY_ADJUST",
+                            "PRODUCT",
+                            current.getId(),
+                            String.valueOf(previousStock),
+                            String.valueOf(current.getStockQuantity()),
+                            null,
+                            null,
+                            "管理员修改库存",
+                            null));
+        }
         return toProductResponse(current, categoryMap);
     }
 
     @Override
-    public AdminProductUploadMediaResponse uploadProductMedia(String mediaType, MultipartFile file) {
+    public AdminProductUploadMediaResponse uploadProductMedia(
+            String mediaType, MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "上传文件不能为空");
         }
 
-        String uploadType = resolveUploadMediaType(mediaType, file.getContentType(), file.getOriginalFilename());
+        String uploadType =
+                resolveUploadMediaType(
+                        mediaType, file.getContentType(), file.getOriginalFilename());
         UploadLimitUtil.validateMediaSize(uploadType, file);
-        String extension = resolveUploadExtension(file.getOriginalFilename(), file.getContentType(), uploadType);
-        String objectName = "products/" + uploadType + "/" + LocalDateTime.now().format(MEDIA_OBJECT_DATE_FORMAT)
-            + "_" + UUID.randomUUID().toString().replace("-", "") + extension;
+        String extension =
+                resolveUploadExtension(
+                        file.getOriginalFilename(), file.getContentType(), uploadType);
+        String objectName =
+                "products/"
+                        + uploadType
+                        + "/"
+                        + LocalDateTime.now().format(MEDIA_OBJECT_DATE_FORMAT)
+                        + "_"
+                        + UUID.randomUUID().toString().replace("-", "")
+                        + extension;
 
         String fileUrl;
         try (InputStream inputStream = file.getInputStream()) {
@@ -207,9 +277,24 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传商品素材失败");
         }
 
+        // 图片/视频违规检测，不通过则删除 OSS 文件并拒绝
+        try {
+            if ("video".equals(uploadType)) {
+                imageReviewQueueService.checkFileOnly(fileUrl);
+            } else {
+                imageReviewQueueService.checkImageOnly(fileUrl);
+            }
+        } catch (BusinessException e) {
+            ossUtil.delete(objectName);
+            throw e;
+        }
+
         AdminProductUploadMediaResponse response = new AdminProductUploadMediaResponse();
         response.setUrl(fileUrl);
-        response.setName(resolveMediaName(file.getOriginalFilename(), "video".equals(uploadType) ? "product-video.mp4" : "product-image.jpg"));
+        response.setName(
+                resolveMediaName(
+                        file.getOriginalFilename(),
+                        "video".equals(uploadType) ? "product-video.mp4" : "product-image.jpg"));
         response.setFileSize(file.getSize());
         response.setMimeType(resolveUploadMimeType(file.getContentType(), uploadType));
         response.setMediaType(uploadType);
@@ -238,6 +323,12 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
     }
 
     private void fillProduct(Products product, AdminProductSaveRequest request, long now) {
+        // 文字内容违规检测
+        checkText(request.getName(), "商品名称");
+        if (request.getDescription() != null && !request.getDescription().isEmpty()) {
+            checkText(request.getDescription(), "商品描述");
+        }
+
         product.setName(request.getName().trim());
         product.setCategoryId(request.getCategoryId().trim());
         product.setBrand(request.getBrand().trim());
@@ -294,7 +385,11 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
 
     private void applyProductTypeCondition(LambdaQueryWrapper<Products> wrapper, int productType) {
         if (productType == 1) {
-            wrapper.and(query -> query.eq(Products::getProductType, 1).or().isNull(Products::getProductType));
+            wrapper.and(
+                    query ->
+                            query.eq(Products::getProductType, 1)
+                                    .or()
+                                    .isNull(Products::getProductType));
             return;
         }
         wrapper.eq(Products::getProductType, productType);
@@ -302,18 +397,23 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
 
     private Map<String, ProductCategories> loadCategoryMap() {
         return listAllCategories().stream()
-            .collect(Collectors.toMap(ProductCategories::getId, item -> item, (a, b) -> a, LinkedHashMap::new));
+                .collect(
+                        Collectors.toMap(
+                                ProductCategories::getId,
+                                item -> item,
+                                (a, b) -> a,
+                                LinkedHashMap::new));
     }
 
     private List<ProductCategories> listAllCategories() {
         return productCategoriesService.list(
-            new LambdaQueryWrapper<ProductCategories>()
-                .orderByAsc(ProductCategories::getSortOrder)
-                .orderByDesc(ProductCategories::getCreatedTime)
-        );
+                new LambdaQueryWrapper<ProductCategories>()
+                        .orderByAsc(ProductCategories::getSortOrder)
+                        .orderByDesc(ProductCategories::getCreatedTime));
     }
 
-    private ProductCategories requireCategory(String categoryId, Map<String, ProductCategories> categoryMap) {
+    private ProductCategories requireCategory(
+            String categoryId, Map<String, ProductCategories> categoryMap) {
         String normalizedCategoryId = normalizeBlankToNull(categoryId);
         ProductCategories category = categoryMap.get(normalizedCategoryId);
         if (category == null || Objects.equals(category.getIsDelete(), 1)) {
@@ -322,7 +422,8 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
         return category;
     }
 
-    private List<AdminProductCategoryResponse> buildCategoryTree(List<ProductCategories> categories) {
+    private List<AdminProductCategoryResponse> buildCategoryTree(
+            List<ProductCategories> categories) {
         if (categories == null || categories.isEmpty()) {
             return Collections.emptyList();
         }
@@ -343,7 +444,8 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
 
         List<AdminProductCategoryResponse> roots = new ArrayList<>();
         for (AdminProductCategoryResponse node : nodeMap.values()) {
-            if (StringUtils.hasText(node.getParentId()) && nodeMap.containsKey(node.getParentId())) {
+            if (StringUtils.hasText(node.getParentId())
+                    && nodeMap.containsKey(node.getParentId())) {
                 nodeMap.get(node.getParentId()).getChildren().add(node);
             } else {
                 roots.add(node);
@@ -358,23 +460,26 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
         if (nodes == null || nodes.isEmpty()) {
             return;
         }
-        nodes.sort(Comparator
-            .comparing((AdminProductCategoryResponse item) -> defaultIfNull(item.getSortOrder(), 0))
-            .thenComparing(item -> defaultIfNull(item.getLevel(), 0))
-            .thenComparing(item -> defaultIfNull(item.getName(), ""))
-        );
+        nodes.sort(
+                Comparator.comparing(
+                                (AdminProductCategoryResponse item) ->
+                                        defaultIfNull(item.getSortOrder(), 0))
+                        .thenComparing(item -> defaultIfNull(item.getLevel(), 0))
+                        .thenComparing(item -> defaultIfNull(item.getName(), "")));
         for (AdminProductCategoryResponse node : nodes) {
             sortCategoryTree(node.getChildren());
         }
     }
 
-    private Set<String> collectCategoryIds(String categoryId, Map<String, ProductCategories> categoryMap) {
+    private Set<String> collectCategoryIds(
+            String categoryId, Map<String, ProductCategories> categoryMap) {
         Set<String> categoryIds = new LinkedHashSet<>();
         collectCategoryIds(categoryId, categoryMap, categoryIds);
         return categoryIds;
     }
 
-    private void collectCategoryIds(String categoryId, Map<String, ProductCategories> categoryMap, Set<String> container) {
+    private void collectCategoryIds(
+            String categoryId, Map<String, ProductCategories> categoryMap, Set<String> container) {
         if (!StringUtils.hasText(categoryId) || !container.add(categoryId)) {
             return;
         }
@@ -385,7 +490,8 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
         }
     }
 
-    private AdminProductResponse toProductResponse(Products product, Map<String, ProductCategories> categoryMap) {
+    private AdminProductResponse toProductResponse(
+            Products product, Map<String, ProductCategories> categoryMap) {
         AdminProductResponse response = new AdminProductResponse();
         Integer normalizedProductType = defaultIfNull(product.getProductType(), 1);
         response.setId(product.getId());
@@ -395,7 +501,8 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
         response.setName(product.getName());
         response.setCategoryId(product.getCategoryId());
 
-        ProductCategories category = categoryMap == null ? null : categoryMap.get(product.getCategoryId());
+        ProductCategories category =
+                categoryMap == null ? null : categoryMap.get(product.getCategoryId());
         response.setCategoryName(category == null ? null : category.getName());
         response.setCategoryPath(buildCategoryPath(product.getCategoryId(), categoryMap));
 
@@ -430,7 +537,8 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
         return response;
     }
 
-    private String buildCategoryPath(String categoryId, Map<String, ProductCategories> categoryMap) {
+    private String buildCategoryPath(
+            String categoryId, Map<String, ProductCategories> categoryMap) {
         if (!StringUtils.hasText(categoryId) || categoryMap == null || categoryMap.isEmpty()) {
             return "";
         }
@@ -460,9 +568,9 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
                 return new ArrayList<>();
             }
             return list.stream()
-                .map(this::normalizeSpecItem)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toCollection(ArrayList::new));
+                    .map(this::normalizeSpecItem)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toCollection(ArrayList::new));
         } catch (Exception e) {
             return new ArrayList<>();
         }
@@ -482,7 +590,8 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
 
     private String writeSpecifications(List<AdminProductSpecItem> specifications) {
         List<AdminProductSpecItem> normalizedList = new ArrayList<>();
-        for (AdminProductSpecItem item : specifications == null ? List.<AdminProductSpecItem>of() : specifications) {
+        for (AdminProductSpecItem item :
+                specifications == null ? List.<AdminProductSpecItem>of() : specifications) {
             AdminProductSpecItem normalizedItem = normalizeSpecItem(item);
             if (normalizedItem != null) {
                 normalizedList.add(normalizedItem);
@@ -503,7 +612,8 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
         }
     }
 
-    private String resolveUploadMediaType(String mediaType, String mimeType, String originalFilename) {
+    private String resolveUploadMediaType(
+            String mediaType, String mimeType, String originalFilename) {
         String normalizedType = normalizeBlankToNull(mediaType);
         if (StringUtils.hasText(normalizedType)) {
             String lower = normalizedType.toLowerCase();
@@ -526,26 +636,27 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
         if (StringUtils.hasText(fileName)) {
             String lowerName = fileName.toLowerCase();
             if (lowerName.endsWith(".jpg")
-                || lowerName.endsWith(".jpeg")
-                || lowerName.endsWith(".png")
-                || lowerName.endsWith(".webp")
-                || lowerName.endsWith(".gif")
-                || lowerName.endsWith(".bmp")) {
+                    || lowerName.endsWith(".jpeg")
+                    || lowerName.endsWith(".png")
+                    || lowerName.endsWith(".webp")
+                    || lowerName.endsWith(".gif")
+                    || lowerName.endsWith(".bmp")) {
                 return "image";
             }
             if (lowerName.endsWith(".mp4")
-                || lowerName.endsWith(".mov")
-                || lowerName.endsWith(".m4v")
-                || lowerName.endsWith(".avi")
-                || lowerName.endsWith(".mkv")
-                || lowerName.endsWith(".webm")) {
+                    || lowerName.endsWith(".mov")
+                    || lowerName.endsWith(".m4v")
+                    || lowerName.endsWith(".avi")
+                    || lowerName.endsWith(".mkv")
+                    || lowerName.endsWith(".webm")) {
                 return "video";
             }
         }
         throw new BusinessException(ErrorCode.PARAM_ERROR, "无法识别上传文件类型");
     }
 
-    private String resolveUploadExtension(String originalFilename, String mimeType, String mediaType) {
+    private String resolveUploadExtension(
+            String originalFilename, String mimeType, String mediaType) {
         String filename = normalizeBlankToNull(originalFilename);
         if (StringUtils.hasText(filename)) {
             int index = filename.lastIndexOf('.');
@@ -599,10 +710,10 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
             return new ArrayList<>();
         }
         return values.stream()
-            .map(AdminProductManageServiceImpl::normalizeBlankToNull)
-            .filter(StringUtils::hasText)
-            .distinct()
-            .collect(Collectors.toCollection(ArrayList::new));
+                .map(AdminProductManageServiceImpl::normalizeBlankToNull)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     private AdminProductSpecItem normalizeSpecItem(AdminProductSpecItem item) {
@@ -654,8 +765,9 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
         validateSwitchValue(request.getIsRecommended(), "推荐状态");
         validateStatus(request.getStatus());
 
-        if (request.getSellingPrice() != null && request.getOriginalPrice() != null
-            && request.getSellingPrice().compareTo(request.getOriginalPrice()) > 0) {
+        if (request.getSellingPrice() != null
+                && request.getOriginalPrice() != null
+                && request.getSellingPrice().compareTo(request.getOriginalPrice()) > 0) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "售价不能高于原价");
         }
     }
@@ -703,7 +815,10 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
     private String generateProductNo(int productType, String productId) {
         String prefix = productType == 2 ? "SH" : "SP";
         String dateText = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-        String suffix = productId == null ? String.valueOf(System.currentTimeMillis()) : productId.replaceAll("[^0-9]", "");
+        String suffix =
+                productId == null
+                        ? String.valueOf(System.currentTimeMillis())
+                        : productId.replaceAll("[^0-9]", "");
         if (suffix.length() > 6) {
             suffix = suffix.substring(suffix.length() - 6);
         }
@@ -736,5 +851,31 @@ public class AdminProductManageServiceImpl implements AdminProductManageService 
 
     private static <T> T defaultIfNull(T value, T defaultValue) {
         return value == null ? defaultValue : value;
+    }
+
+    private void checkText(String text, String fieldName) {
+        LoginUserInfo user = AuthUserContext.get();
+        String accountId = user != null ? user.getAccountId() : "system";
+        int accountType = 3; // 门店管理员
+        CheckResult r = aliyunGreenClient.checkText(text);
+        if (r.isBlocked()) {
+            checkLogsService.logCheck(
+                    accountId,
+                    accountType,
+                    1,
+                    text,
+                    ContentCheckLogsService.RESULT_BLOCK,
+                    r.getLabel(),
+                    r.getSuggestion());
+            throw new BusinessException(
+                    ErrorCode.BUSINESS_ERROR,
+                    fieldName + "包含违规内容：" + r.getLabelDesc() + "，请修改后重新提交");
+        }
+        int logResult =
+                r.isWatch()
+                        ? ContentCheckLogsService.RESULT_WATCH
+                        : ContentCheckLogsService.RESULT_PASS;
+        checkLogsService.logCheck(
+                accountId, accountType, 1, text, logResult, r.getLabel(), r.getSuggestion());
     }
 }

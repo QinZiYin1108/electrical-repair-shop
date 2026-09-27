@@ -17,14 +17,22 @@ function listUserFundFlows(params) {
 
 function rechargeUserFunds(data) {
   return request({
-    url: '/user/funds/recharge',
+    url: '/user/payments/intents',
     method: 'POST',
-    data: data || {}
+    data: Object.assign({ orderType: 3 }, data || {})
+  });
+}
+
+function getPaymentStatus(paymentNo) {
+  return request({
+    url: `/user/payments/${encodeURIComponent(paymentNo)}`,
+    method: 'GET'
   });
 }
 
 module.exports = {
   getUserFundsSummary,
   listUserFundFlows,
-  rechargeUserFunds
+  rechargeUserFunds,
+  getPaymentStatus
 };

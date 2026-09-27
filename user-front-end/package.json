@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "format": "prettier --write \"app.js\" \"api/**/*.js\" \"utils/**/*.js\" \"scripts/**/*.js\" \"*.json\"",
+    "format:check": "prettier --check \"app.js\" \"api/**/*.js\" \"utils/**/*.js\" \"scripts/**/*.js\" \"*.json\"",
+    "validate": "node scripts/validate-project.js",
+    "check": "npm run format:check && npm run validate"
   },
   "keywords": [],
   "author": "",
@@ -11,5 +14,8 @@
   "description": "",
   "dependencies": {
     "@vant/weapp": "^1.11.7"
+  },
+  "devDependencies": {
+    "prettier": "^3.7.0"
   }
 }

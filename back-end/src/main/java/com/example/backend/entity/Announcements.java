@@ -10,17 +10,12 @@ import lombok.Data;
 @TableName("announcements")
 public class Announcements {
 
-    @TableId
-    private String id;
+    @TableId private String id;
 
-    /**
-     * 1-banner, 2-notice
-     */
+    /** 1-banner, 2-notice */
     private Integer channel;
 
-    /**
-     * 1-image, 2-text
-     */
+    /** 1-image, 2-text */
     private Integer contentType;
 
     private String title;
@@ -43,10 +38,7 @@ public class Announcements {
 
     private Long updatedTime;
 
-    @Version
-    private Integer version;
+    @Version private Integer version;
 
-    @TableLogic
-    private Integer isDelete;
+    @TableLogic private Integer isDelete;
 }
-

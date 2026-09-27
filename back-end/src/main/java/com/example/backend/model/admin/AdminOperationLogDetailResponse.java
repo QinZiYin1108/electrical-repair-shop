@@ -1,24 +1,62 @@
 package com.example.backend.model.admin;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "管理员操作日志详情响应")
 public class AdminOperationLogDetailResponse {
 
+    @Schema(description = "ID")
     private String id;
+
+    @Schema(description = "操作人ID")
     private String operatorId;
+
+    @Schema(description = "操作人类型")
     private Integer operatorType;
+
+    @Schema(description = "操作人名称")
     private String operatorName;
+
+    @Schema(description = "操作类型")
     private String operationType;
+
+    @Schema(description = "操作描述")
     private String operationDesc;
+
+    @Schema(description = "module名称")
     private String moduleName;
+
+    @Schema(description = "请求Method")
     private String requestMethod;
+
+    @Schema(description = "请求URL")
     private String requestUrl;
+
+    @Schema(description = "请求Params")
     private String requestParams;
+
+    @Schema(description = "响应数据")
     private String responseData;
+
+    @Schema(description = "IP地址地址")
     private String ipAddress;
+
+    @Schema(description = "用户Agent")
     private String userAgent;
+
+    @Schema(description = "deviceID")
     private String deviceId;
+
+    @Schema(description = "execution时间")
     private Integer executionTime;
+
+    @Schema(description = "状态")
     private Integer status;
+
+    @Schema(description = "error消息")
     private String errorMessage;
+
+    @Schema(description = "创建时间")
     private Long createdTime;
 
     public String getId() {
@@ -165,4 +203,3 @@ public class AdminOperationLogDetailResponse {
         this.createdTime = createdTime;
     }
 }
-

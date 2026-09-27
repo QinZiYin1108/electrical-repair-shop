@@ -1,27 +1,35 @@
 package com.example.backend.model.admin;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-
 import java.math.BigDecimal;
 
+@Schema(description = "管理员服务类型Create请求")
 public class AdminServiceTypeCreateRequest {
 
     @NotBlank(message = "name is required")
+    @Schema(description = "名称")
     private String name;
 
     @NotNull(message = "type is required")
+    @Schema(description = "类型")
     private Integer type;
 
     @NotBlank(message = "categoryId is required")
+    @Schema(description = "分类ID")
     private String categoryId;
 
+    @Schema(description = "description")
     private String description;
 
+    @Schema(description = "base价格")
     private BigDecimal basePrice;
 
+    @Schema(description = "is是否启用")
     private Integer isActive;
 
+    @Schema(description = "排序")
     private Integer sortOrder;
 
     public String getName() {
@@ -80,4 +88,3 @@ public class AdminServiceTypeCreateRequest {
         this.sortOrder = sortOrder;
     }
 }
-

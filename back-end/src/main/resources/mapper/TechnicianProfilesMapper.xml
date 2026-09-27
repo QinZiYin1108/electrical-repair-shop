@@ -9,6 +9,7 @@
             <result property="technicianAccountId" column="technician_account_id" />
             <result property="realName" column="real_name" />
             <result property="idCard" column="id_card" />
+            <result property="isRealNameVerified" column="is_real_name_verified" />
             <result property="gender" column="gender" />
             <result property="birthday" column="birthday" />
             <result property="workYears" column="work_years" />
@@ -18,7 +19,6 @@
             <result property="serviceArea" column="service_area" />
             <result property="introduction" column="introduction" />
             <result property="responseTime" column="response_time" />
-            <result property="locationUpdateTime" column="location_update_time" />
             <result property="createdTime" column="created_time" />
             <result property="updatedTime" column="updated_time" />
             <result property="version" column="version" />
@@ -26,9 +26,9 @@
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,technician_account_id,real_name,id_card,gender,birthday,
+        id,technician_account_id,real_name,id_card,is_real_name_verified,gender,birthday,
         work_years,education,certificates,specialties,service_area,
-        introduction,response_time,location_update_time,created_time,updated_time,
+        introduction,response_time,created_time,updated_time,
         version,is_delete
     </sql>
 </mapper>

@@ -8,6 +8,4 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class UserAccountsServiceImpl extends ServiceImpl<UserAccountsMapper, UserAccounts>
-    implements UserAccountsService {
-}
-
+        implements UserAccountsService {}

@@ -1,0 +1,46 @@
+<view class="page my-reports-page">
+  <view wx:if="{{loading && reports.length === 0}}" class="loading-area">
+    <van-loading type="spinner" size="40rpx" />
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <block wx:elif="{{reports.length > 0}}">
+    <view
+      wx:for="{{reports}}"
+      wx:key="id"
+      class="card report-card"
+    >
+      <view class="report-header">
+        <view class="report-target">
+          <text class="target-label">{{item.targetTypeText}}</text>
+          <text class="target-id">{{item.targetId}}</text>
+        </view>
+        <van-tag type="{{item.statusColor}}" size="medium">{{item.statusText}}</van-tag>
+      </view>
+      <view class="report-body">
+        <view class="info-row">
+          <text class="info-label">原因：</text>
+          <text class="info-value">{{item.reasonCategory}}</text>
+        </view>
+        <view wx:if="{{item.description}}" class="info-row">
+          <text class="info-label">说明：</text>
+          <text class="info-value">{{item.description}}</text>
+        </view>
+        <view wx:if="{{item.result}}" class="info-row">
+          <text class="info-label">结果：</text>
+          <text class="info-value result-text">{{item.result}}</text>
+        </view>
+      </view>
+      <view class="report-footer">
+        <text class="time-text">{{item.createdTimeText}}</text>
+      </view>
+    </view>
+
+    <view wx:if="{{loading}}" class="loading-more">
+      <van-loading type="spinner" size="30rpx" />
+    </view>
+    <view wx:elif="{{!hasMore}}" class="no-more">— 没有更多了 —</view>
+  </block>
+
+  <van-empty wx:else description="暂无举报记录" />
+</view>

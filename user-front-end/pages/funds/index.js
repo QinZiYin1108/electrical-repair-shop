@@ -1,8 +1,13 @@
 ﻿const userFundsApi = require('../../api/userFunds');
 
 const PAYMENT_METHODS = [
-  { id: 1, name: '微信支付', desc: '推荐使用微信完成充值', iconText: '微', activeClass: 'wechat-active' },
-  { id: 2, name: '支付宝', desc: '适合使用支付宝快速充值', iconText: '支', activeClass: 'alipay-active' }
+  {
+    id: 1,
+    name: '微信支付',
+    desc: '使用微信完成充值',
+    iconText: '微',
+    activeClass: 'wechat-active'
+  }
 ];
 
 const QUICK_AMOUNTS = [50, 100, 200, 500, 1000, 2000];
@@ -36,6 +41,25 @@ function normalizeSummary(data) {
     totalIncome: formatMoney(safeData.totalIncome),
     totalExpense: formatMoney(safeData.totalExpense)
   };
+}
+
+function requestWechatPayment(parameters) {
+  const params = parameters || {};
+  return new Promise((resolve, reject) => {
+    wx.requestPayment({
+      timeStamp: String(params.timeStamp || ''),
+      nonceStr: params.nonceStr || '',
+      package: params.package || '',
+      signType: params.signType || 'RSA',
+      paySign: params.paySign || '',
+      success: resolve,
+      fail: reject
+    });
+  });
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 Page({
@@ -140,7 +164,7 @@ Page({
     try {
       const resp = await userFundsApi.rechargeUserFunds({
         amount: amount.toFixed(2),
-        paymentMethod: this.data.selectedPaymentMethod
+        provider: this.data.selectedPaymentMethod
       });
       if (!resp || resp.code !== 200) {
         wx.showToast({
@@ -149,10 +173,17 @@ Page({
         });
         return;
       }
-      this.setData({
-        summaryDisplay: normalizeSummary(resp.data),
-        lastUpdatedText: formatTimeText(Date.now())
-      });
+      const intent = resp.data || {};
+      if (!intent.paymentNo || !intent.invokeParameters) {
+        throw new Error('支付参数不完整');
+      }
+      await requestWechatPayment(intent.invokeParameters);
+      const paid = await this.waitForPaymentSuccess(intent.paymentNo);
+      if (!paid) {
+        wx.showToast({ title: '支付结果确认中', icon: 'none' });
+        return;
+      }
+      await this.reloadSummary();
       wx.showToast({
         title: '充值成功',
         icon: 'success'
@@ -165,5 +196,18 @@ Page({
     } finally {
       this.setData({ submitting: false });
     }
+  },
+
+  async waitForPaymentSuccess(paymentNo) {
+    for (let index = 0; index < 5; index += 1) {
+      if (index > 0) {
+        await delay(1000);
+      }
+      const resp = await userFundsApi.getPaymentStatus(paymentNo);
+      const status = resp && resp.code === 200 && resp.data ? Number(resp.data.status) : 0;
+      if (status === 3) return true;
+      if (status === 4 || status === 6) return false;
+    }
+    return false;
   }
 });

@@ -9,4 +9,3 @@ public interface UserHomeService {
 
     UserHomePrivateResponse getCurrentUserPrivateHomeData();
 }
-

@@ -172,19 +172,5 @@
     </view>
   </view>
 
-  <view class="section-card promise-card">
-    <view class="section-head">
-      <text class="section-title">{{texts.serviceTitle}}</text>
-    </view>
-    <view class="promise-list">
-      <view
-        wx:for="{{servicePromises}}"
-        wx:key="title"
-        class="promise-item promise-item-{{item.theme}}"
-      >
-        <text class="promise-title">{{item.title}}</text>
-        <text class="promise-sub">{{item.subtitle}}</text>
-      </view>
-    </view>
-  </view>
+
 </view>

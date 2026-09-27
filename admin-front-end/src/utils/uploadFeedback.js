@@ -20,7 +20,9 @@ export function isUploadRelatedError(error, fallback = '') {
   if (!message) {
     return false;
   }
-  return ['上传', '图片', '视频', '图标', '头像', '素材', '附件', '文件'].some(keyword => message.includes(keyword));
+  return ['上传', '图片', '视频', '图标', '头像', '素材', '附件', '文件'].some((keyword) =>
+    message.includes(keyword)
+  );
 }
 
 export function showUploadErrorDialog(error, fallback = DEFAULT_UPLOAD_ERROR, title = '上传失败') {

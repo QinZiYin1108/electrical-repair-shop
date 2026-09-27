@@ -1,1 +1,1 @@
-export const APP_TITLE = '安修到家管理后台';
+export const APP_TITLE = '速修派管理后台';

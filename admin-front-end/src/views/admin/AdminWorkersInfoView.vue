@@ -67,9 +67,16 @@
             <span>{{ formatTime(row.createdTime) || '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right" align="center">
+        <el-table-column label="操作" width="220" fixed="right" align="center">
           <template #default="{ row }">
             <el-button type="primary" link @click="goDetail(row.id)">查看详情</el-button>
+            <el-button
+              v-if="isSuperAdmin && !row.storeId"
+              type="success"
+              link
+              @click="openAssignStore(row)"
+              >分配门店</el-button
+            >
           </template>
         </el-table-column>
       </el-table>
@@ -87,18 +94,66 @@
         />
       </div>
     </el-card>
+
+    <el-dialog v-model="showAssignDialog" title="分配门店" width="480px">
+      <div style="display: flex; gap: 8px; margin-bottom: 8px">
+        <el-input
+          v-model="storeKeyword"
+          placeholder="搜索门店名称"
+          clearable
+          @keyup.enter="searchStores"
+        />
+        <el-button type="primary" @click="searchStores" :loading="storeSearching">搜索</el-button>
+      </div>
+      <div style="max-height: 300px; overflow-y: auto">
+        <div
+          v-for="s in storeCandidates"
+          :key="s.id"
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+          "
+        >
+          <div>
+            <div>{{ s.name }}</div>
+            <div style="font-size: 12px; color: #909399">{{ s.address || '-' }}</div>
+          </div>
+          <el-button size="small" type="primary" @click="handleAssignStore(s)">分配</el-button>
+        </div>
+        <el-empty
+          v-if="storeSearched && !storeCandidates.length"
+          description="未找到门店"
+          :image-size="30"
+        />
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { Search } from '@element-plus/icons-vue';
 import { fetchAdminWorkerList } from '../../api/adminWorkers';
+import { useAdminStore } from '../../stores/admin';
+import request from '../../api/request';
 import { useAdminPageRefresh } from '../../utils/adminPageRefresh';
 
 const router = useRouter();
+const adminStore = useAdminStore();
+const isSuperAdmin = computed(() => adminStore.adminRole === 1);
+
+// 门店分配
+const showAssignDialog = ref(false);
+const assigningWorker = ref(null);
+const storeKeyword = ref('');
+const storeCandidates = ref([]);
+const storeSearched = ref(false);
+const storeSearching = ref(false);
 
 const searchKeyword = ref('');
 const loading = ref(false);
@@ -210,6 +265,56 @@ function handleSizeChange(size) {
 function goDetail(id) {
   if (!id) return;
   router.push(`/admin/workers/info/${id}`);
+}
+
+function openAssignStore(row) {
+  assigningWorker.value = row;
+  storeKeyword.value = '';
+  storeCandidates.value = [];
+  storeSearched.value = false;
+  showAssignDialog.value = true;
+}
+
+async function searchStores() {
+  storeSearched.value = true;
+  storeSearching.value = true;
+  try {
+    const res = await request({
+      url: '/admin/stores',
+      method: 'get',
+      params: { keyword: storeKeyword.value, pageSize: 30, pageNum: 1 }
+    });
+    if (res.code === 200 && res.data) {
+      storeCandidates.value = res.data.list || res.data.records || [];
+    } else {
+      storeCandidates.value = [];
+    }
+  } catch (e) {
+    storeCandidates.value = [];
+  } finally {
+    storeSearching.value = false;
+  }
+}
+
+async function handleAssignStore(store) {
+  if (!assigningWorker.value || !store) return;
+  try {
+    const res = await request({
+      url: `/admin/workers/${assigningWorker.value.id}/bind-store`,
+      method: 'post',
+      data: { storeId: store.id }
+    });
+    if (res.code === 200) {
+      ElMessage.success(`已将 ${assigningWorker.value.username} 分配到 ${store.name}`);
+      showAssignDialog.value = false;
+      assigningWorker.value.storeId = store.id;
+      await loadList();
+    } else {
+      ElMessage.error(res.message || '分配失败');
+    }
+  } catch (e) {
+    ElMessage.error('分配失败');
+  }
 }
 
 onMounted(() => {

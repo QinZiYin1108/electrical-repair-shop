@@ -59,7 +59,7 @@
       <view class="brand-strip">
         <image class="brand-strip-logo" src="../../assets/logo-icon.png" mode="aspectFit" />
         <view class="brand-strip-main">
-          <text class="brand-strip-title">安修到家</text>
+          <text class="brand-strip-title">速修派</text>
           <text class="brand-strip-sub">家电维修 / 安装 / 清洗 / 售后，一站到家</text>
         </view>
       </view>

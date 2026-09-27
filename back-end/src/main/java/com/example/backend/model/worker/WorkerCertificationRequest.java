@@ -1,9 +1,17 @@
 package com.example.backend.model.worker;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "师傅实名认证请求")
 public class WorkerCertificationRequest {
 
+    @Schema(description = "手机号")
     private String phone;
+
+    @Schema(description = "真实姓名")
     private String realName;
+
+    @Schema(description = "IDCard")
     private String idCard;
 
     public String getPhone() {

@@ -1,8 +1,6 @@
 package com.example.backend.controller.user;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.backend.common.ErrorCode;
 import com.example.backend.common.Result;
 import com.example.backend.entity.ConversationMessages;
@@ -14,14 +12,32 @@ import com.example.backend.exception.BusinessException;
 import com.example.backend.security.context.AuthUserContext;
 import com.example.backend.security.model.AccountRole;
 import com.example.backend.security.model.LoginUserInfo;
+import com.example.backend.service.ContentCheckLogsService;
 import com.example.backend.service.ConversationMessagesService;
 import com.example.backend.service.ConversationSessionsService;
 import com.example.backend.service.RepairOrdersService;
 import com.example.backend.service.SystemMessagesService;
 import com.example.backend.service.TechnicianAccountsService;
+import com.example.backend.service.contentcheck.AliyunGreenClient;
+import com.example.backend.service.contentcheck.CheckResult;
 import com.example.backend.utils.id.SnowflakeIdUtil;
 import com.example.backend.utils.oss.OssUtil;
 import com.example.backend.utils.upload.UploadLimitUtil;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import java.awt.image.BufferedImage;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import javax.imageio.ImageIO;
 import lombok.Data;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
@@ -34,19 +50,8 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 @RestController
+@Tag(name = "用户端/消息通知")
 @RequestMapping("/user/messages")
 public class UserMessageController {
 
@@ -68,34 +73,39 @@ public class UserMessageController {
     private final RepairOrdersService repairOrdersService;
     private final TechnicianAccountsService technicianAccountsService;
     private final OssUtil ossUtil;
+    private final AliyunGreenClient aliyunGreenClient;
+    private final ContentCheckLogsService checkLogsService;
 
     public UserMessageController(
-        ConversationSessionsService conversationSessionsService,
-        SystemMessagesService systemMessagesService,
-        ConversationMessagesService conversationMessagesService,
-        RepairOrdersService repairOrdersService,
-        TechnicianAccountsService technicianAccountsService,
-        OssUtil ossUtil
-    ) {
+            ConversationSessionsService conversationSessionsService,
+            SystemMessagesService systemMessagesService,
+            ConversationMessagesService conversationMessagesService,
+            RepairOrdersService repairOrdersService,
+            TechnicianAccountsService technicianAccountsService,
+            OssUtil ossUtil,
+            AliyunGreenClient aliyunGreenClient,
+            ContentCheckLogsService checkLogsService) {
         this.conversationSessionsService = conversationSessionsService;
         this.systemMessagesService = systemMessagesService;
         this.conversationMessagesService = conversationMessagesService;
         this.repairOrdersService = repairOrdersService;
         this.technicianAccountsService = technicianAccountsService;
         this.ossUtil = ossUtil;
+        this.aliyunGreenClient = aliyunGreenClient;
+        this.checkLogsService = checkLogsService;
     }
 
     @GetMapping("/system")
     public Result<List<Map<String, Object>>> listSystemMessages() {
         LoginUserInfo user = requireCurrentUser();
         String accountId = user.getAccountId();
-        List<SystemMessages> list = systemMessagesService.list(
-            new LambdaQueryWrapper<SystemMessages>()
-                .eq(SystemMessages::getReceiverId, accountId)
-                .eq(SystemMessages::getReceiverType, ROLE_USER)
-                .eq(SystemMessages::getIsDelete, 0)
-                .orderByDesc(SystemMessages::getCreatedTime)
-        );
+        List<SystemMessages> list =
+                systemMessagesService.list(
+                        new LambdaQueryWrapper<SystemMessages>()
+                                .eq(SystemMessages::getReceiverId, accountId)
+                                .eq(SystemMessages::getReceiverType, ROLE_USER)
+                                .eq(SystemMessages::getIsDelete, 0)
+                                .orderByDesc(SystemMessages::getCreatedTime));
         List<Map<String, Object>> items = new ArrayList<>();
         if (list != null) {
             for (SystemMessages msg : list) {
@@ -116,6 +126,7 @@ public class UserMessageController {
         return Result.success(items);
     }
 
+    @Operation(summary = "查询markAll系统Read")
     @GetMapping("/system/mark-all-read")
     public Result<Void> markAllSystemRead() {
         LoginUserInfo user = requireCurrentUser();
@@ -126,30 +137,30 @@ public class UserMessageController {
         update.setReadTime(now);
         update.setUpdatedTime(now);
         systemMessagesService.update(
-            update,
-            new LambdaQueryWrapper<SystemMessages>()
-                .eq(SystemMessages::getReceiverId, accountId)
-                .eq(SystemMessages::getReceiverType, ROLE_USER)
-                .eq(SystemMessages::getIsRead, 0)
-                .eq(SystemMessages::getIsDelete, 0)
-        );
+                update,
+                new LambdaQueryWrapper<SystemMessages>()
+                        .eq(SystemMessages::getReceiverId, accountId)
+                        .eq(SystemMessages::getReceiverType, ROLE_USER)
+                        .eq(SystemMessages::getIsRead, 0)
+                        .eq(SystemMessages::getIsDelete, 0));
         return Result.success();
     }
 
     @GetMapping("/chat")
-    public Result<Map<String, Object>> listChatMessages(@RequestParam("sessionId") String sessionId) {
+    public Result<Map<String, Object>> listChatMessages(
+            @RequestParam("sessionId") String sessionId) {
         LoginUserInfo user = requireCurrentUser();
         ConversationSessions session = requireOwnedSession(sessionId, user.getAccountId());
         RepairOrders order = getRepairOrder(session.getRepairOrderId());
         TechnicianAccounts technician = getTechnician(session.getTechnicianAccountId());
 
-        List<ConversationMessages> list = conversationMessagesService.list(
-            new LambdaQueryWrapper<ConversationMessages>()
-                .eq(ConversationMessages::getSessionId, sessionId)
-                .eq(ConversationMessages::getIsDelete, 0)
-                .eq(ConversationMessages::getStatus, MESSAGE_STATUS_NORMAL)
-                .orderByAsc(ConversationMessages::getSendTime)
-        );
+        List<ConversationMessages> list =
+                conversationMessagesService.list(
+                        new LambdaQueryWrapper<ConversationMessages>()
+                                .eq(ConversationMessages::getSessionId, sessionId)
+                                .eq(ConversationMessages::getIsDelete, 0)
+                                .eq(ConversationMessages::getStatus, MESSAGE_STATUS_NORMAL)
+                                .orderByAsc(ConversationMessages::getSendTime));
         List<Map<String, Object>> items = new ArrayList<>();
         if (list != null) {
             for (ConversationMessages msg : list) {
@@ -161,14 +172,13 @@ public class UserMessageController {
         ConversationMessages updateMsg = new ConversationMessages();
         updateMsg.setReadTime(now);
         conversationMessagesService.update(
-            updateMsg,
-            new LambdaQueryWrapper<ConversationMessages>()
-                .eq(ConversationMessages::getSessionId, sessionId)
-                .eq(ConversationMessages::getReceiverId, user.getAccountId())
-                .eq(ConversationMessages::getReceiverType, ROLE_USER)
-                .isNull(ConversationMessages::getReadTime)
-                .eq(ConversationMessages::getIsDelete, 0)
-        );
+                updateMsg,
+                new LambdaQueryWrapper<ConversationMessages>()
+                        .eq(ConversationMessages::getSessionId, sessionId)
+                        .eq(ConversationMessages::getReceiverId, user.getAccountId())
+                        .eq(ConversationMessages::getReceiverType, ROLE_USER)
+                        .isNull(ConversationMessages::getReadTime)
+                        .eq(ConversationMessages::getIsDelete, 0));
         ConversationSessions updateSession = new ConversationSessions();
         updateSession.setId(sessionId);
         updateSession.setUserUnreadCount(0);
@@ -188,7 +198,8 @@ public class UserMessageController {
     }
 
     @PostMapping("/chat/send")
-    public Result<Map<String, Object>> sendChatMessage(@RequestBody(required = false) UserSendChatMessageRequest request) {
+    public Result<Map<String, Object>> sendChatMessage(
+            @RequestBody(required = false) UserSendChatMessageRequest request) {
         LoginUserInfo user = requireCurrentUser();
         String sessionId = request == null ? null : trimToNull(request.getSessionId());
         if (!StringUtils.hasText(sessionId)) {
@@ -200,8 +211,33 @@ public class UserMessageController {
         }
 
         int contentType = normalizeContentType(request == null ? null : request.getContentType());
-        String content = normalizeMessageContent(contentType, request == null ? null : request.getContent());
-        Map<String, Object> extraData = normalizeExtraData(contentType, request == null ? null : request.getExtraData());
+        String content =
+                normalizeMessageContent(contentType, request == null ? null : request.getContent());
+        Map<String, Object> extraData =
+                normalizeExtraData(contentType, request == null ? null : request.getExtraData());
+
+        if (contentType == CONTENT_TYPE_TEXT && StringUtils.hasText(content)) {
+            CheckResult cr = aliyunGreenClient.checkText(content);
+            int logResult =
+                    cr.isBlocked()
+                            ? ContentCheckLogsService.RESULT_BLOCK
+                            : cr.isWatch()
+                                    ? ContentCheckLogsService.RESULT_WATCH
+                                    : ContentCheckLogsService.RESULT_PASS;
+            checkLogsService.logCheck(
+                    user.getAccountId(),
+                    1,
+                    1,
+                    content,
+                    logResult,
+                    cr.getLabel(),
+                    cr.getSuggestion());
+            if (cr.isBlocked()) {
+                throw new BusinessException(
+                        ErrorCode.BUSINESS_ERROR, "消息包含违规内容：" + cr.getLabelDesc() + "，请修改后重新发送");
+            }
+        }
+
         long now = System.currentTimeMillis();
 
         ConversationMessages message = new ConversationMessages();
@@ -239,37 +275,41 @@ public class UserMessageController {
 
     @PostMapping(value = "/chat/upload-media", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Result<Map<String, Object>> uploadChatMedia(
-        @RequestParam(value = "mediaType", required = false) String mediaType,
-        @RequestPart("file") MultipartFile file
-    ) {
+            @RequestParam(value = "mediaType", required = false) String mediaType,
+            @RequestPart("file") MultipartFile file) {
         LoginUserInfo user = requireCurrentUser();
-        return Result.success(uploadChatMediaInternal("user", user.getAccountId(), mediaType, file));
+        return Result.success(
+                uploadChatMediaInternal("user", user.getAccountId(), mediaType, file));
     }
 
     @GetMapping("/sessions")
     public Result<List<Map<String, Object>>> listSessions() {
         LoginUserInfo user = requireCurrentUser();
         String accountId = user.getAccountId();
-        List<ConversationSessions> sessions = conversationSessionsService.list(
-            new LambdaQueryWrapper<ConversationSessions>()
-                .eq(ConversationSessions::getUserAccountId, accountId)
-                .eq(ConversationSessions::getStatus, SESSION_STATUS_ACTIVE)
-                .eq(ConversationSessions::getIsDelete, 0)
-                .orderByDesc(ConversationSessions::getLastMessageTime)
-                .orderByDesc(ConversationSessions::getUpdatedTime)
-        );
+        List<ConversationSessions> sessions =
+                conversationSessionsService.list(
+                        new LambdaQueryWrapper<ConversationSessions>()
+                                .eq(ConversationSessions::getUserAccountId, accountId)
+                                .eq(ConversationSessions::getStatus, SESSION_STATUS_ACTIVE)
+                                .eq(ConversationSessions::getIsDelete, 0)
+                                .orderByDesc(ConversationSessions::getLastMessageTime)
+                                .orderByDesc(ConversationSessions::getUpdatedTime));
         if (sessions == null || sessions.isEmpty()) {
             return Result.success(Collections.emptyList());
         }
 
-        Map<String, RepairOrders> orderMap = listRepairOrderMap(sessions.stream()
-            .map(ConversationSessions::getRepairOrderId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet()));
-        Map<String, TechnicianAccounts> technicianMap = listTechnicianMap(sessions.stream()
-            .map(ConversationSessions::getTechnicianAccountId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet()));
+        Map<String, RepairOrders> orderMap =
+                listRepairOrderMap(
+                        sessions.stream()
+                                .map(ConversationSessions::getRepairOrderId)
+                                .filter(StringUtils::hasText)
+                                .collect(Collectors.toSet()));
+        Map<String, TechnicianAccounts> technicianMap =
+                listTechnicianMap(
+                        sessions.stream()
+                                .map(ConversationSessions::getTechnicianAccountId)
+                                .filter(StringUtils::hasText)
+                                .collect(Collectors.toSet()));
 
         List<Map<String, Object>> items = new ArrayList<>();
         for (ConversationSessions session : sessions) {
@@ -296,20 +336,20 @@ public class UserMessageController {
     public Result<Map<String, Object>> unreadFlag() {
         LoginUserInfo user = requireCurrentUser();
         String accountId = user.getAccountId();
-        long chatUnreadCount = conversationSessionsService.count(
-            new LambdaQueryWrapper<ConversationSessions>()
-                .eq(ConversationSessions::getUserAccountId, accountId)
-                .eq(ConversationSessions::getStatus, SESSION_STATUS_ACTIVE)
-                .eq(ConversationSessions::getIsDelete, 0)
-                .gt(ConversationSessions::getUserUnreadCount, 0)
-        );
-        long systemUnreadCount = systemMessagesService.count(
-            new LambdaQueryWrapper<SystemMessages>()
-                .eq(SystemMessages::getReceiverId, accountId)
-                .eq(SystemMessages::getReceiverType, ROLE_USER)
-                .eq(SystemMessages::getIsRead, 0)
-                .eq(SystemMessages::getIsDelete, 0)
-        );
+        long chatUnreadCount =
+                conversationSessionsService.count(
+                        new LambdaQueryWrapper<ConversationSessions>()
+                                .eq(ConversationSessions::getUserAccountId, accountId)
+                                .eq(ConversationSessions::getStatus, SESSION_STATUS_ACTIVE)
+                                .eq(ConversationSessions::getIsDelete, 0)
+                                .gt(ConversationSessions::getUserUnreadCount, 0));
+        long systemUnreadCount =
+                systemMessagesService.count(
+                        new LambdaQueryWrapper<SystemMessages>()
+                                .eq(SystemMessages::getReceiverId, accountId)
+                                .eq(SystemMessages::getReceiverType, ROLE_USER)
+                                .eq(SystemMessages::getIsRead, 0)
+                                .eq(SystemMessages::getIsDelete, 0));
         int chatCount = (int) chatUnreadCount;
         int systemCount = (int) systemUnreadCount;
         Map<String, Object> data = new HashMap<>();
@@ -333,8 +373,8 @@ public class UserMessageController {
     private ConversationSessions requireOwnedSession(String sessionId, String accountId) {
         ConversationSessions session = conversationSessionsService.getById(sessionId);
         if (session == null
-            || safeInt(session.getIsDelete()) != 0
-            || !accountId.equals(session.getUserAccountId())) {
+                || safeInt(session.getIsDelete()) != 0
+                || !accountId.equals(session.getUserAccountId())) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "会话不存在或无权访问");
         }
         return session;
@@ -370,22 +410,29 @@ public class UserMessageController {
         if (orderIds == null || orderIds.isEmpty()) {
             return Collections.emptyMap();
         }
-        return repairOrdersService.list(
-            new LambdaQueryWrapper<RepairOrders>()
-                .in(RepairOrders::getId, orderIds)
-                .eq(RepairOrders::getIsDelete, 0)
-        ).stream().collect(Collectors.toMap(RepairOrders::getId, item -> item, (left, right) -> left));
+        return repairOrdersService
+                .list(
+                        new LambdaQueryWrapper<RepairOrders>()
+                                .in(RepairOrders::getId, orderIds)
+                                .eq(RepairOrders::getIsDelete, 0))
+                .stream()
+                .collect(
+                        Collectors.toMap(RepairOrders::getId, item -> item, (left, right) -> left));
     }
 
     private Map<String, TechnicianAccounts> listTechnicianMap(Set<String> technicianIds) {
         if (technicianIds == null || technicianIds.isEmpty()) {
             return Collections.emptyMap();
         }
-        return technicianAccountsService.list(
-            new LambdaQueryWrapper<TechnicianAccounts>()
-                .in(TechnicianAccounts::getId, technicianIds)
-                .eq(TechnicianAccounts::getIsDelete, 0)
-        ).stream().collect(Collectors.toMap(TechnicianAccounts::getId, item -> item, (left, right) -> left));
+        return technicianAccountsService
+                .list(
+                        new LambdaQueryWrapper<TechnicianAccounts>()
+                                .in(TechnicianAccounts::getId, technicianIds)
+                                .eq(TechnicianAccounts::getIsDelete, 0))
+                .stream()
+                .collect(
+                        Collectors.toMap(
+                                TechnicianAccounts::getId, item -> item, (left, right) -> left));
     }
 
     private RepairOrders getRepairOrder(String orderId) {
@@ -393,12 +440,11 @@ public class UserMessageController {
             return null;
         }
         return repairOrdersService.getOne(
-            new LambdaQueryWrapper<RepairOrders>()
-                .eq(RepairOrders::getId, orderId)
-                .eq(RepairOrders::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+                new LambdaQueryWrapper<RepairOrders>()
+                        .eq(RepairOrders::getId, orderId)
+                        .eq(RepairOrders::getIsDelete, 0)
+                        .last("limit 1"),
+                false);
     }
 
     private TechnicianAccounts getTechnician(String technicianId) {
@@ -406,17 +452,18 @@ public class UserMessageController {
             return null;
         }
         return technicianAccountsService.getOne(
-            new LambdaQueryWrapper<TechnicianAccounts>()
-                .eq(TechnicianAccounts::getId, technicianId)
-                .eq(TechnicianAccounts::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+                new LambdaQueryWrapper<TechnicianAccounts>()
+                        .eq(TechnicianAccounts::getId, technicianId)
+                        .eq(TechnicianAccounts::getIsDelete, 0)
+                        .last("limit 1"),
+                false);
     }
 
     private int normalizeContentType(Integer contentType) {
         int value = contentType == null ? CONTENT_TYPE_TEXT : contentType;
-        if (value != CONTENT_TYPE_TEXT && value != CONTENT_TYPE_IMAGE && value != CONTENT_TYPE_VIDEO) {
+        if (value != CONTENT_TYPE_TEXT
+                && value != CONTENT_TYPE_IMAGE
+                && value != CONTENT_TYPE_VIDEO) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "仅支持文本、图片和视频消息");
         }
         return value;
@@ -434,12 +481,13 @@ public class UserMessageController {
             return normalized;
         }
         return StringUtils.hasText(normalized)
-            ? normalized
-            : (contentType == CONTENT_TYPE_IMAGE ? "[图片]" : "[视频]");
+                ? normalized
+                : (contentType == CONTENT_TYPE_IMAGE ? "[图片]" : "[视频]");
     }
 
     private Map<String, Object> normalizeExtraData(int contentType, Map<String, Object> extraData) {
-        Map<String, Object> normalized = extraData == null ? new HashMap<>() : new HashMap<>(extraData);
+        Map<String, Object> normalized =
+                extraData == null ? new HashMap<>() : new HashMap<>(extraData);
         if (contentType == CONTENT_TYPE_TEXT) {
             return normalized;
         }
@@ -454,15 +502,28 @@ public class UserMessageController {
         return normalized;
     }
 
-    private Map<String, Object> uploadChatMediaInternal(String roleFolder, String accountId, String mediaType, MultipartFile file) {
+    private Map<String, Object> uploadChatMediaInternal(
+            String roleFolder, String accountId, String mediaType, MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "上传文件不能为空");
         }
-        String mediaKind = resolveUploadMediaType(mediaType, file.getContentType(), file.getOriginalFilename());
+        String mediaKind =
+                resolveUploadMediaType(
+                        mediaType, file.getContentType(), file.getOriginalFilename());
         UploadLimitUtil.validateMediaSize(mediaKind, file);
         String originalFilename = trimToNull(file.getOriginalFilename());
-        String extension = resolveUploadExtension(originalFilename, file.getContentType(), mediaKind);
-        String objectName = "conversation/" + roleFolder + "/" + accountId + "/" + mediaKind + "/" + UUID.randomUUID() + extension;
+        String extension =
+                resolveUploadExtension(originalFilename, file.getContentType(), mediaKind);
+        String objectName =
+                "conversation/"
+                        + roleFolder
+                        + "/"
+                        + accountId
+                        + "/"
+                        + mediaKind
+                        + "/"
+                        + UUID.randomUUID()
+                        + extension;
 
         String uploadUrl;
         try (InputStream in = file.getInputStream()) {
@@ -489,7 +550,8 @@ public class UserMessageController {
         return data;
     }
 
-    private String resolveUploadMediaType(String mediaType, String mimeType, String originalFilename) {
+    private String resolveUploadMediaType(
+            String mediaType, String mimeType, String originalFilename) {
         String normalizedType = trimToNull(mediaType);
         if (StringUtils.hasText(normalizedType)) {
             String lower = normalizedType.toLowerCase();
@@ -511,19 +573,28 @@ public class UserMessageController {
         String fileName = trimToNull(originalFilename);
         if (StringUtils.hasText(fileName)) {
             String lowerName = fileName.toLowerCase();
-            if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png")
-                || lowerName.endsWith(".webp") || lowerName.endsWith(".gif") || lowerName.endsWith(".bmp")) {
+            if (lowerName.endsWith(".jpg")
+                    || lowerName.endsWith(".jpeg")
+                    || lowerName.endsWith(".png")
+                    || lowerName.endsWith(".webp")
+                    || lowerName.endsWith(".gif")
+                    || lowerName.endsWith(".bmp")) {
                 return "image";
             }
-            if (lowerName.endsWith(".mp4") || lowerName.endsWith(".mov") || lowerName.endsWith(".m4v")
-                || lowerName.endsWith(".avi") || lowerName.endsWith(".mkv") || lowerName.endsWith(".webm")) {
+            if (lowerName.endsWith(".mp4")
+                    || lowerName.endsWith(".mov")
+                    || lowerName.endsWith(".m4v")
+                    || lowerName.endsWith(".avi")
+                    || lowerName.endsWith(".mkv")
+                    || lowerName.endsWith(".webm")) {
                 return "video";
             }
         }
         throw new BusinessException(ErrorCode.PARAM_ERROR, "无法识别上传文件类型");
     }
 
-    private String resolveUploadExtension(String originalFilename, String mimeType, String mediaType) {
+    private String resolveUploadExtension(
+            String originalFilename, String mimeType, String mediaType) {
         String filename = trimToNull(originalFilename);
         if (StringUtils.hasText(filename)) {
             int index = filename.lastIndexOf('.');

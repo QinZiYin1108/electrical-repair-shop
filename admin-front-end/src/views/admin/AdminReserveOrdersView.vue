@@ -22,13 +22,28 @@
           </template>
         </el-input>
         <el-select v-model="status" clearable class="filter-item" placeholder="订单状态">
-          <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
+          <el-option
+            v-for="item in statusOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
         </el-select>
         <el-select v-model="paymentStatus" clearable class="filter-item" placeholder="支付状态">
-          <el-option v-for="item in paymentStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
+          <el-option
+            v-for="item in paymentStatusOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
         </el-select>
         <el-select v-model="serviceMode" clearable class="filter-item" placeholder="服务方式">
-          <el-option v-for="item in serviceModeOptions" :key="item.value" :label="item.label" :value="item.value" />
+          <el-option
+            v-for="item in serviceModeOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
         </el-select>
         <el-date-picker
           v-model="appointmentRange"
@@ -55,7 +70,9 @@
         <el-table-column label="服务信息" min-width="220">
           <template #default="{ row }">
             <div class="stack-text strong">{{ row.serviceTypeName || '-' }}</div>
-            <div class="stack-text muted">{{ row.serviceCategoryPath || row.serviceCategoryName || '-' }}</div>
+            <div class="stack-text muted">
+              {{ row.serviceCategoryPath || row.serviceCategoryName || '-' }}
+            </div>
           </template>
         </el-table-column>
         <el-table-column label="用户信息" min-width="170">
@@ -77,12 +94,21 @@
         </el-table-column>
         <el-table-column label="订单状态" width="110" align="center">
           <template #default="{ row }">
-            <el-tag size="small" :type="getStatusTagType(row.status)">{{ row.statusText || '-' }}</el-tag>
+            <el-tag size="small" :type="getStatusTagType(row.status)">{{
+              row.statusText || '-'
+            }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="支付状态" width="110" align="center">
           <template #default="{ row }">
-            <el-tag size="small" :type="getPaymentTagType(row.paymentStatus)">{{ row.paymentStatusText || '-' }}</el-tag>
+            <el-tag size="small" :type="getPaymentTagType(row.paymentStatus)">{{
+              row.paymentStatusText || '-'
+            }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="取消原因" width="120" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span>{{ row.cancelReasonLabel || row.cancelReason || '-' }}</span>
           </template>
         </el-table-column>
         <el-table-column label="预约时间" min-width="170">

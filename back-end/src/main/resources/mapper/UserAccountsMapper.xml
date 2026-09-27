@@ -55,6 +55,30 @@
         LIMIT 1
     </select>
 
+    <select id="selectByPhoneIncludeDeleted" resultMap="BaseResultMap">
+        SELECT
+            id,
+            wx_openid,
+            wx_unionid,
+            username,
+            phone,
+            email,
+            password,
+            salt,
+            is_verified,
+            balance,
+            status,
+            cancel_apply_time,
+            cancel_time,
+            created_time,
+            updated_time,
+            version,
+            is_delete
+        FROM user_accounts
+        WHERE phone = #{phone}
+        LIMIT 1
+    </select>
+
     <select id="selectByWxOpenidIncludeDeleted" resultMap="BaseResultMap">
         SELECT
             id,

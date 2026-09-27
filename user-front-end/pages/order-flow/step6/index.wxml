@@ -66,17 +66,6 @@
       </view>
       <view class="pay-method-check {{selectedPaymentMethod === 1 ? 'pay-method-check--active' : ''}}"></view>
     </view>
-
-    <view
-      class="pay-method-item {{selectedPaymentMethod === 2 ? 'pay-method-item--active' : ''}}"
-      data-method="2"
-      bind:tap="onSelectPaymentMethod"
-    >
-      <view class="pay-method-main">
-        <text class="pay-method-name">支付宝支付</text>
-      </view>
-      <view class="pay-method-check {{selectedPaymentMethod === 2 ? 'pay-method-check--active' : ''}}"></view>
-    </view>
   </view>
 </view>
 

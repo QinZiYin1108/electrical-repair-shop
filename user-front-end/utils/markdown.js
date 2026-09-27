@@ -52,7 +52,7 @@ function renderHeading(level, text) {
 function renderList(items, ordered) {
   const tag = ordered ? 'ol' : 'ul';
   const start = ordered ? 'padding-left: 24px;' : 'padding-left: 22px;';
-  return `<${tag} style="margin: 0 0 16px; ${start} color: #243c4e; line-height: 1.9;">${items.map(item => `<li style="margin: 8px 0;">${parseInline(item)}</li>`).join('')}</${tag}>`;
+  return `<${tag} style="margin: 0 0 16px; ${start} color: #243c4e; line-height: 1.9;">${items.map((item) => `<li style="margin: 8px 0;">${parseInline(item)}</li>`).join('')}</${tag}>`;
 }
 
 function renderBlockquote(lines) {
@@ -67,22 +67,34 @@ function renderTable(lines) {
   if (lines.length < 2) {
     return renderParagraph(lines);
   }
-  const headerCells = lines[0].trim().replace(/^\||\|$/g, '').split('|').map(item => item.trim());
+  const headerCells = lines[0]
+    .trim()
+    .replace(/^\||\|$/g, '')
+    .split('|')
+    .map((item) => item.trim());
   const alignLine = lines[1].trim();
   if (!/^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?$/.test(alignLine)) {
     return renderParagraph(lines);
   }
   const bodyLines = lines.slice(2);
-  const thead = `<tr>${headerCells.map(cell => `<th style="padding: 10px 12px; border: 1px solid #d8e3ee; background: #f5f8fb; text-align: left; color: #173247;">${parseInline(cell)}</th>`).join('')}</tr>`;
-  const tbody = bodyLines.map(line => {
-    const cells = line.trim().replace(/^\||\|$/g, '').split('|').map(item => item.trim());
-    return `<tr>${headerCells.map((_, index) => `<td style="padding: 10px 12px; border: 1px solid #d8e3ee; color: #243c4e; vertical-align: top;">${parseInline(cells[index] || '')}</td>`).join('')}</tr>`;
-  }).join('');
+  const thead = `<tr>${headerCells.map((cell) => `<th style="padding: 10px 12px; border: 1px solid #d8e3ee; background: #f5f8fb; text-align: left; color: #173247;">${parseInline(cell)}</th>`).join('')}</tr>`;
+  const tbody = bodyLines
+    .map((line) => {
+      const cells = line
+        .trim()
+        .replace(/^\||\|$/g, '')
+        .split('|')
+        .map((item) => item.trim());
+      return `<tr>${headerCells.map((_, index) => `<td style="padding: 10px 12px; border: 1px solid #d8e3ee; color: #243c4e; vertical-align: top;">${parseInline(cells[index] || '')}</td>`).join('')}</tr>`;
+    })
+    .join('');
   return `<div style="margin: 0 0 16px; overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; font-size: 14px; line-height: 1.8;"><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
 }
 
 function markdownToHtml(markdown) {
-  const source = String(markdown || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const source = String(markdown || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n');
   const lines = source.split('\n');
   const blocks = [];
 

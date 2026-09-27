@@ -41,8 +41,15 @@
               :class="['message-row', msg.isSelf ? 'message-row-self' : 'message-row-other']"
             >
               <view class="message-block">
-                <view :class="['message-bubble', msg.bubbleType !== 'text' ? 'message-bubble-media' : '']">
-                  <text v-if="msg.bubbleType === 'text'" class="bubble-text">{{ msg.content }}</text>
+                <view
+                  :class="[
+                    'message-bubble',
+                    msg.bubbleType !== 'text' ? 'message-bubble-media' : ''
+                  ]"
+                >
+                  <text v-if="msg.bubbleType === 'text'" class="bubble-text">{{
+                    msg.content
+                  }}</text>
                   <image
                     v-else-if="msg.bubbleType === 'image'"
                     class="bubble-image"
@@ -84,7 +91,10 @@
           confirm-type="send"
           @confirm="sendTextMessage"
         />
-        <view :class="['composer-send', messageInput.trim() && canSend ? 'composer-send-active' : '']" @click="sendTextMessage">
+        <view
+          :class="['composer-send', messageInput.trim() && canSend ? 'composer-send-active' : '']"
+          @click="sendTextMessage"
+        >
           {{ sending ? '发送中' : '发送' }}
         </view>
       </view>
@@ -134,9 +144,11 @@ function isSameDay(leftTimestamp, rightTimestamp) {
   }
   const left = new Date(leftTimestamp);
   const right = new Date(rightTimestamp);
-  return left.getFullYear() === right.getFullYear()
-    && left.getMonth() === right.getMonth()
-    && left.getDate() === right.getDate();
+  return (
+    left.getFullYear() === right.getFullYear() &&
+    left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate()
+  );
 }
 
 function formatTimeDivider(timestamp) {
@@ -180,9 +192,12 @@ function normalizeExtraData(extraData) {
 function mapChatMessage(item) {
   const extraData = normalizeExtraData(item && item.extraData);
   const contentType = Number((item && item.contentType) || CONTENT_TYPE_TEXT);
-  const bubbleType = contentType === CONTENT_TYPE_IMAGE
-    ? 'image'
-    : (contentType === CONTENT_TYPE_VIDEO ? 'video' : 'text');
+  const bubbleType =
+    contentType === CONTENT_TYPE_IMAGE
+      ? 'image'
+      : contentType === CONTENT_TYPE_VIDEO
+        ? 'video'
+        : 'text';
   return {
     id: (item && item.id) || `local-${Date.now()}`,
     senderType: Number((item && item.senderType) || 0),
@@ -348,7 +363,7 @@ export default {
         .catch((error) => {
           this.sending = false;
           uni.showToast({
-              title: (error && error.message) || '发送失败',
+            title: (error && error.message) || '发送失败',
             icon: 'none'
           });
           this.loadChatMessages(true);
@@ -476,6 +491,11 @@ export default {
       if (item.businessType === 'USER_REVIEW_NOTIFY_WORKER') {
         uni.navigateTo({
           url: '/pages/reviews/index'
+        });
+      }
+      if (item.businessType === 'STORE_INVITE_TECHNICIAN') {
+        uni.navigateTo({
+          url: '/pages/store-binding/index'
         });
       }
     }

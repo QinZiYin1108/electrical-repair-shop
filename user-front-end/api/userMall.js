@@ -5,7 +5,7 @@ function buildParams(params) {
   const result = {};
   Object.keys(source).forEach((key) => {
     const value = source[key];
-    if (value === undefined || value === null || value === "") {
+    if (value === undefined || value === null || value === '') {
       return;
     }
     result[key] = value;
@@ -53,10 +53,18 @@ function toggleMallProductFavorite(id, favorite) {
   });
 }
 
+function fetchStoreDetail(storeId) {
+  return request({
+    url: `/pass/stores/${storeId}`,
+    method: 'GET'
+  });
+}
+
 module.exports = {
   fetchMallCategories,
   fetchMallProducts,
   fetchMallFavoriteProducts,
   fetchMallProductDetail,
-  toggleMallProductFavorite
+  toggleMallProductFavorite,
+  fetchStoreDetail
 };

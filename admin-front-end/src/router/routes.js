@@ -26,9 +26,22 @@ import AdminReserveOrderDetailView from '../views/admin/AdminReserveOrderDetailV
 import AdminOfflineOrderCreateView from '../views/admin/AdminOfflineOrderCreateView.vue';
 import AdminProductOrdersView from '../views/admin/AdminProductOrdersView.vue';
 import AdminProductOrderDetailView from '../views/admin/AdminProductOrderDetailView.vue';
+import AdminCancelReasonsView from '../views/admin/AdminCancelReasonsView.vue';
 import AdminSystemSettingsView from '../views/admin/AdminSystemSettingsView.vue';
 import AdminStoreListView from '../views/admin/AdminStoreListView.vue';
 import AdminStoreDetailView from '../views/admin/AdminStoreDetailView.vue';
+import AdminContentCheckView from '../views/admin/AdminContentCheckView.vue';
+import AdminReportManageView from '../views/admin/AdminReportManageView.vue';
+import AdminPenaltyManageView from '../views/admin/AdminPenaltyManageView.vue';
+import AdminCreditManageView from '../views/admin/AdminCreditManageView.vue';
+import AdminWorkerWithdrawalsView from '../views/admin/AdminWorkerWithdrawalsView.vue';
+import AdminNotificationOutboxView from '../views/admin/AdminNotificationOutboxView.vue';
+import AdminOrderSlaView from '../views/admin/AdminOrderSlaView.vue';
+import AdminSupportTicketsView from '../views/admin/AdminSupportTicketsView.vue';
+import AdminAppointmentCapacityView from '../views/admin/AdminAppointmentCapacityView.vue';
+import AdminInvoicesView from '../views/admin/AdminInvoicesView.vue';
+import AdminFinanceView from '../views/admin/AdminFinanceView.vue';
+import AdminFundReconciliationView from '../views/admin/AdminFundReconciliationView.vue';
 import ProtocolViewerView from '../views/common/ProtocolViewerView.vue';
 
 const routes = [
@@ -91,6 +104,12 @@ const routes = [
         meta: { title: '商品订单详情', description: '用于查看商品订单明细和物流信息。' }
       },
       {
+        path: 'orders/cancel-reasons',
+        name: 'AdminCancelReasons',
+        component: AdminCancelReasonsView,
+        meta: { title: '取消原因', description: '用于查看订单取消原因记录与分类统计。' }
+      },
+      {
         path: 'stores/list',
         name: 'AdminStoresList',
         component: AdminStoreListView,
@@ -101,6 +120,33 @@ const routes = [
         name: 'AdminStoreDetail',
         component: AdminStoreDetailView,
         meta: { title: '门店详情', description: '查看门店详情、管理员信息和营业时间。' }
+      },
+      {
+        path: 'content-check',
+        name: 'AdminContentCheck',
+        component: AdminContentCheckView,
+        meta: {
+          title: '内容审核管理',
+          description: '审核日志查看、存疑复审、图片/视频审核队列与改判。'
+        }
+      },
+      {
+        path: 'reports',
+        name: 'AdminReports',
+        component: AdminReportManageView,
+        meta: { title: '举报管理', description: '审核用户、师傅和门店管理员的举报内容。' }
+      },
+      {
+        path: 'penalties',
+        name: 'AdminPenalties',
+        component: AdminPenaltyManageView,
+        meta: { title: '处罚管理', description: '查看、执行和管理处罚记录及申诉处理。' }
+      },
+      {
+        path: 'credits',
+        name: 'AdminCredits',
+        component: AdminCreditManageView,
+        meta: { title: '信用积分', description: '查看和管理用户、师傅的信用积分及变动记录。' }
       },
       {
         path: 'products/categories',
@@ -263,6 +309,60 @@ const routes = [
         name: 'AdminProfile',
         component: AdminProfileView,
         meta: { title: '个人中心', description: '用于查看和编辑当前管理员个人信息。' }
+      },
+      {
+        path: 'operations/withdrawals',
+        name: 'AdminOperationsWithdrawals',
+        component: AdminWorkerWithdrawalsView,
+        meta: {
+          title: '师傅提现审核',
+          description: '审核、打款与提现风控（高金额复核、人工拦截）。'
+        }
+      },
+      {
+        path: 'operations/notifications',
+        name: 'AdminOperationsNotifications',
+        component: AdminNotificationOutboxView,
+        meta: { title: '通知 outbox', description: '事务 outbox 待发送/失败/死信记录与人工重试。' }
+      },
+      {
+        path: 'operations/order-sla',
+        name: 'AdminOperationsOrderSla',
+        component: AdminOrderSlaView,
+        meta: {
+          title: '订单 SLA',
+          description: '维修订单各阶段超时事件（责任方/通知/升级/处理结果）。'
+        }
+      },
+      {
+        path: 'operations/support-tickets',
+        name: 'AdminOperationsSupportTickets',
+        component: AdminSupportTicketsView,
+        meta: { title: '客服工单', description: '客服工单分派、优先级、备注、双人审批与操作记录。' }
+      },
+      {
+        path: 'operations/appointment-capacity',
+        name: 'AdminOperationsAppointmentCapacity',
+        component: AdminAppointmentCapacityView,
+        meta: { title: '预约容量', description: '停业/请假时段与师傅时段占用。' }
+      },
+      {
+        path: 'operations/invoices',
+        name: 'AdminOperationsInvoices',
+        component: AdminInvoicesView,
+        meta: { title: '发票管理', description: '用户发票申请的开票、驳回与红冲。' }
+      },
+      {
+        path: 'operations/finance',
+        name: 'AdminOperationsFinance',
+        component: AdminFinanceView,
+        meta: { title: '财务核算', description: '订单财务快照与按时间口径的财务报表。' }
+      },
+      {
+        path: 'operations/reconciliation',
+        name: 'AdminOperationsReconciliation',
+        component: AdminFundReconciliationView,
+        meta: { title: '资金对账', description: '对账批次、异常明细与手动触发。' }
       }
     ]
   }

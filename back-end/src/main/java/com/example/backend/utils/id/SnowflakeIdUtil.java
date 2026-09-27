@@ -49,9 +49,9 @@ public class SnowflakeIdUtil {
         }
         lastStamp = currStamp;
         return (currStamp - START_STAMP) << TIMESTAMP_LEFT
-            | datacenterId << DATACENTER_LEFT
-            | machineId << MACHINE_LEFT
-            | sequence;
+                | datacenterId << DATACENTER_LEFT
+                | machineId << MACHINE_LEFT
+                | sequence;
     }
 
     private long getNextMill() {
@@ -158,10 +158,6 @@ public class SnowflakeIdUtil {
         return "TVP" + DEFAULT.nextId();
     }
 
-    public static String nextTechnicianServiceAreaId() {
-        return "TSA" + DEFAULT.nextId();
-    }
-
     public static String nextTechnicianSkillId() {
         return "TS" + DEFAULT.nextId();
     }
@@ -192,6 +188,10 @@ public class SnowflakeIdUtil {
 
     public static String nextPaymentRecordId() {
         return "PR" + DEFAULT.nextId();
+    }
+
+    public static String nextRechargeOrderId() {
+        return "RC" + DEFAULT.nextId();
     }
 
     public static String nextConversationSessionId() {
@@ -262,6 +262,22 @@ public class SnowflakeIdUtil {
         return "CDR" + DEFAULT.nextId();
     }
 
+    public static String nextPaymentRefundId() {
+        return "RF" + DEFAULT.nextId();
+    }
+
+    public static String nextReconciliationBatchId() {
+        return "RB" + DEFAULT.nextId();
+    }
+
+    public static String nextReconciliationIssueId() {
+        return "RI" + DEFAULT.nextId();
+    }
+
+    public static String nextInventoryReservationId() {
+        return "IR" + DEFAULT.nextId();
+    }
+
     public static String nextPenaltyRecordId() {
         return "PN" + DEFAULT.nextId();
     }
@@ -271,11 +287,51 @@ public class SnowflakeIdUtil {
     }
 
     public static String nextContentCheckLogId() {
-        return "CCL" + DEFAULT.nextId();
+        return "CL" + DEFAULT.nextId();
     }
 
     public static String nextImageReviewQueueId() {
-        return "IRQ" + DEFAULT.nextId();
+        return "IQ" + DEFAULT.nextId();
+    }
+
+    public static String nextWithdrawalId() {
+        return "TW" + DEFAULT.nextId();
+    }
+
+    public static String nextAuditEventId() {
+        return "AE" + DEFAULT.nextId();
+    }
+
+    public static String nextNotificationOutboxId() {
+        return "NO" + DEFAULT.nextId();
+    }
+
+    public static String nextOrderSlaEventId() {
+        return "SL" + DEFAULT.nextId();
+    }
+
+    public static String nextSupportTicketId() {
+        return "TK" + DEFAULT.nextId();
+    }
+
+    public static String nextSupportTicketLogId() {
+        return "TL" + DEFAULT.nextId();
+    }
+
+    public static String nextAppointmentReservationId() {
+        return "AR" + DEFAULT.nextId();
+    }
+
+    public static String nextAppointmentClosureId() {
+        return "AC" + DEFAULT.nextId();
+    }
+
+    public static String nextInvoiceId() {
+        return "IV" + DEFAULT.nextId();
+    }
+
+    public static String nextFinanceSnapshotId() {
+        return "FO" + DEFAULT.nextId();
     }
 
     public static String nextAdminId() {

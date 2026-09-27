@@ -2,7 +2,7 @@ package com.example.backend.service;
 
 public interface AuthCodeService {
 
-    void sendCode(String email, String type);
+    void sendCode(String phone, String type);
 
-    void verifyCode(String email, String type, String code);
+    void verifyCode(String phone, String type, String code);
 }

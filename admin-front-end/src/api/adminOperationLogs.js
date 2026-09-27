@@ -14,4 +14,3 @@ export function fetchOperationLogDetail(id) {
     method: 'get'
   });
 }
-

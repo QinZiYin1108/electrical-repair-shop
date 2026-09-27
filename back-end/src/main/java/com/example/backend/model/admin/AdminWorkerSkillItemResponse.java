@@ -1,17 +1,41 @@
 package com.example.backend.model.admin;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "管理员师傅技能Item响应")
 public class AdminWorkerSkillItemResponse {
 
+    @Schema(description = "ID")
     private String id;
+
+    @Schema(description = "服务类型ID")
     private String serviceTypeId;
+
+    @Schema(description = "服务类型名称")
     private String serviceTypeName;
+
+    @Schema(description = "服务Mode")
     private Integer serviceMode;
+
+    @Schema(description = "服务ModeText")
     private String serviceModeText;
+
+    @Schema(description = "分类ID")
     private String categoryId;
+
+    @Schema(description = "分类路径")
     private String categoryPath;
+
+    @Schema(description = "技能级别")
     private Integer skillLevel;
+
+    @Schema(description = "技能级别Text")
     private String skillLevelText;
+
+    @Schema(description = "is是否启用")
     private Integer isActive;
+
+    @Schema(description = "更新时间")
     private Long updatedTime;
 
     public String getId() {
@@ -102,4 +126,3 @@ public class AdminWorkerSkillItemResponse {
         this.updatedTime = updatedTime;
     }
 }
-

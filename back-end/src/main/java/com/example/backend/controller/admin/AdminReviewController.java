@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.backend.common.ErrorCode;
 import com.example.backend.common.Result;
 import com.example.backend.entity.Products;
+import com.example.backend.entity.Reviews;
 import com.example.backend.entity.TechnicianAccounts;
 import com.example.backend.exception.BusinessException;
 import com.example.backend.model.review.ReviewItemResponse;
@@ -13,9 +14,16 @@ import com.example.backend.model.review.ReviewStatusUpdateRequest;
 import com.example.backend.security.context.AuthUserContext;
 import com.example.backend.security.model.AccountRole;
 import com.example.backend.security.model.LoginUserInfo;
+import com.example.backend.service.AdminDataScopeService;
 import com.example.backend.service.ProductsService;
 import com.example.backend.service.ReviewsService;
 import com.example.backend.service.TechnicianAccountsService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,60 +33,74 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 @RestController
+@Tag(name = "管理员端/评价管理")
 @RequestMapping("/admin/reviews")
 public class AdminReviewController {
 
     private final ReviewsService reviewsService;
     private final TechnicianAccountsService technicianAccountsService;
     private final ProductsService productsService;
+    private final AdminDataScopeService adminDataScopeService;
 
     public AdminReviewController(
-        ReviewsService reviewsService,
-        TechnicianAccountsService technicianAccountsService,
-        ProductsService productsService
-    ) {
+            ReviewsService reviewsService,
+            TechnicianAccountsService technicianAccountsService,
+            ProductsService productsService,
+            AdminDataScopeService adminDataScopeService) {
         this.reviewsService = reviewsService;
         this.technicianAccountsService = technicianAccountsService;
         this.productsService = productsService;
+        this.adminDataScopeService = adminDataScopeService;
     }
 
     @GetMapping
     public Result<Page<ReviewItemResponse>> pageReviews(
-        @RequestParam(value = "pageNum", defaultValue = "1") long pageNum,
-        @RequestParam(value = "pageSize", defaultValue = "10") long pageSize,
-        @RequestParam(value = "keyword", required = false) String keyword,
-        @RequestParam(value = "reviewType", required = false) Integer reviewType,
-        @RequestParam(value = "status", required = false) Integer status,
-        @RequestParam(value = "rating", required = false) Integer rating,
-        @RequestParam(value = "hasReply", required = false) Integer hasReply
-    ) {
+            @RequestParam(value = "pageNum", defaultValue = "1") long pageNum,
+            @RequestParam(value = "pageSize", defaultValue = "10") long pageSize,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "reviewType", required = false) Integer reviewType,
+            @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "rating", required = false) Integer rating,
+            @RequestParam(value = "hasReply", required = false) Integer hasReply) {
         LoginUserInfo admin = requireAdmin();
         Set<String> targetIds = buildStoreTargetIds(admin);
-        return Result.success(reviewsService.pageAdminReviews(pageNum, pageSize, keyword, reviewType, status, rating, hasReply, targetIds));
+        return Result.success(
+                reviewsService.pageAdminReviews(
+                        pageNum,
+                        pageSize,
+                        keyword,
+                        reviewType,
+                        status,
+                        rating,
+                        hasReply,
+                        targetIds));
     }
 
+    @Operation(summary = "修改编辑Status")
     @PostMapping("/{id}/status")
     public Result<ReviewItemResponse> updateStatus(
-        @PathVariable("id") String id,
-        @RequestBody(required = false) ReviewStatusUpdateRequest request
-    ) {
-        requireAdmin();
-        return Result.success(reviewsService.updateAdminReviewStatus(id, request == null ? null : request.getStatus()));
+            @PathVariable("id") String id,
+            @RequestBody(required = false) ReviewStatusUpdateRequest request) {
+        LoginUserInfo admin = requireAdmin();
+        Reviews review = reviewsService.getById(id);
+        adminDataScopeService.requireReviewAccess(admin, review);
+        return Result.success(
+                reviewsService.updateAdminReviewStatus(
+                        id, request == null ? null : request.getStatus()));
     }
 
+    @Operation(summary = "提交replyReview")
     @PostMapping("/{id}/reply")
     public Result<ReviewItemResponse> replyReview(
-        @PathVariable("id") String id,
-        @RequestBody(required = false) ReviewReplyRequest request
-    ) {
-        requireAdmin();
-        return Result.success(reviewsService.replyAdminReview(id, request == null ? null : request.getReplyContent()));
+            @PathVariable("id") String id,
+            @RequestBody(required = false) ReviewReplyRequest request) {
+        LoginUserInfo admin = requireAdmin();
+        Reviews review = reviewsService.getById(id);
+        adminDataScopeService.requireReviewAccess(admin, review);
+        return Result.success(
+                reviewsService.replyAdminReview(
+                        id, request == null ? null : request.getReplyContent()));
     }
 
     private Set<String> buildStoreTargetIds(LoginUserInfo admin) {
@@ -87,18 +109,18 @@ public class AdminReviewController {
         }
         Set<String> ids = new HashSet<>();
         // 门店师傅
-        List<TechnicianAccounts> techs = technicianAccountsService.list(
-            new LambdaQueryWrapper<TechnicianAccounts>()
-                .eq(TechnicianAccounts::getStoreId, admin.getStoreId())
-                .eq(TechnicianAccounts::getIsDelete, 0)
-        );
+        List<TechnicianAccounts> techs =
+                technicianAccountsService.list(
+                        new LambdaQueryWrapper<TechnicianAccounts>()
+                                .eq(TechnicianAccounts::getStoreId, admin.getStoreId())
+                                .eq(TechnicianAccounts::getIsDelete, 0));
         ids.addAll(techs.stream().map(TechnicianAccounts::getId).collect(Collectors.toSet()));
         // 门店商品
-        List<Products> products = productsService.list(
-            new LambdaQueryWrapper<Products>()
-                .eq(Products::getStoreId, admin.getStoreId())
-                .eq(Products::getIsDelete, 0)
-        );
+        List<Products> products =
+                productsService.list(
+                        new LambdaQueryWrapper<Products>()
+                                .eq(Products::getStoreId, admin.getStoreId())
+                                .eq(Products::getIsDelete, 0));
         ids.addAll(products.stream().map(Products::getId).collect(Collectors.toSet()));
         return ids;
     }

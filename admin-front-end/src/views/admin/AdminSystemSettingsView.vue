@@ -8,18 +8,15 @@
           <p>{{ ui.pageDescription }}</p>
         </div>
         <div class="hero-actions">
-          <el-button type="primary" :loading="saving" @click="handleSave">{{ ui.saveButton }}</el-button>
+          <el-button type="primary" :loading="saving" @click="handleSave">{{
+            ui.saveButton
+          }}</el-button>
         </div>
       </div>
     </el-card>
 
     <div v-loading="loading" class="group-list">
-      <el-card
-        v-for="group in groups"
-        :key="group.groupName"
-        class="group-card"
-        shadow="never"
-      >
+      <el-card v-for="group in groups" :key="group.groupName" class="group-card" shadow="never">
         <template #header>
           <div class="group-header">
             <div>
@@ -30,15 +27,13 @@
           </div>
         </template>
 
-        <div
-          v-for="item in group.items"
-          :key="item.configKey"
-          class="setting-item"
-        >
+        <div v-for="item in group.items" :key="item.configKey" class="setting-item">
           <div class="setting-meta">
             <div class="setting-title-row">
               <div class="setting-title">{{ item.label }}</div>
-              <el-tag v-if="item.usingDefault" size="small" type="success">{{ ui.defaultTag }}</el-tag>
+              <el-tag v-if="item.usingDefault" size="small" type="success">{{
+                ui.defaultTag
+              }}</el-tag>
             </div>
             <div class="setting-desc">{{ item.description }}</div>
             <div class="setting-extra">
@@ -55,11 +50,7 @@
               :max="item.maxValue ?? Number.MAX_SAFE_INTEGER"
               controls-position="right"
             />
-            <el-input
-              v-else
-              v-model="formValues[item.configKey]"
-              clearable
-            />
+            <el-input v-else v-model="formValues[item.configKey]" clearable />
             <span v-if="item.unit" class="unit-text">{{ item.unit }}</span>
           </div>
         </div>
@@ -99,7 +90,7 @@
             <el-upload
               :show-file-list="false"
               accept=".md,.markdown,text/markdown"
-              :http-request="options => handleProtocolUpload(item.type, options)"
+              :http-request="(options) => handleProtocolUpload(item.type, options)"
             >
               <el-button type="primary" :loading="uploadingProtocolType === item.type">
                 {{ ui.uploadMarkdown }}
@@ -140,9 +131,9 @@
             </div>
             <div class="template-tip">
               {{ ui.placeholderLabel }}
-              <code v-pre>{{code}}</code>
+              <code v-pre>{{ code }}</code>
               {{ ui.placeholderSeparator }}
-              <code v-pre>{{expireMinutes}}</code>
+              <code v-pre>{{ expireMinutes }}</code>
             </div>
           </div>
 
@@ -150,13 +141,15 @@
             <el-upload
               :show-file-list="false"
               accept=".html,.htm,text/html"
-              :http-request="options => handleEmailTemplateUpload(item.type, options)"
+              :http-request="(options) => handleEmailTemplateUpload(item.type, options)"
             >
               <el-button type="primary" :loading="uploadingEmailTemplateType === item.type">
                 {{ ui.uploadHtml }}
               </el-button>
             </el-upload>
-            <el-button plain :disabled="!item.fileUrl" @click="openAsset(item.fileUrl)">{{ ui.viewFile }}</el-button>
+            <el-button plain :disabled="!item.fileUrl" @click="openAsset(item.fileUrl)">{{
+              ui.viewFile
+            }}</el-button>
           </div>
         </div>
       </div>
@@ -179,7 +172,8 @@ import {
 
 const ui = {
   pageTitle: '\u7ba1\u7406\u5458\u57fa\u7840\u8bbe\u7f6e',
-  pageDescription: '\u7edf\u4e00\u7ef4\u62a4\u552e\u540e\u3001\u8d26\u53f7\u6ce8\u9500\u3001\u9a8c\u8bc1\u7801\u3001\u9884\u7ea6\u3001\u4e0a\u95e8\u4e8c\u7ef4\u7801\u3001\u534f\u8bae\u6587\u6863\u4e0e\u90ae\u7bb1\u6a21\u677f\u7b49\u7cfb\u7edf\u57fa\u7840\u53c2\u6570\u3002',
+  pageDescription:
+    '\u7edf\u4e00\u7ef4\u62a4\u552e\u540e\u3001\u8d26\u53f7\u6ce8\u9500\u3001\u9a8c\u8bc1\u7801\u3001\u9884\u7ea6\u3001\u4e0a\u95e8\u4e8c\u7ef4\u7801\u3001\u534f\u8bae\u6587\u6863\u4e0e\u90ae\u7bb1\u6a21\u677f\u7b49\u7cfb\u7edf\u57fa\u7840\u53c2\u6570\u3002',
   saveButton: '\u4fdd\u5b58\u914d\u7f6e',
   itemUnit: '\u9879',
   fileUnit: '\u4efd',
@@ -187,15 +181,21 @@ const ui = {
   configKeyLabel: '\u914d\u7f6e\u952e\uff1a',
   defaultValueLabel: '\u9ed8\u8ba4\u503c\uff1a',
   protocolSectionTitle: '\u534f\u8bae\u6587\u6863',
-  protocolSectionDesc: '\u901a\u8fc7 OSS \u6258\u7ba1 Markdown \u6587\u4ef6\uff0c\u524d\u7aef\u7edf\u4e00\u7ecf\u540e\u7aef\u8bfb\u53d6\u5c55\u793a\u3002',
+  protocolSectionDesc:
+    '\u901a\u8fc7 OSS \u6258\u7ba1 Markdown \u6587\u4ef6\uff0c\u524d\u7aef\u7edf\u4e00\u7ecf\u540e\u7aef\u8bfb\u53d6\u5c55\u793a\u3002',
   emailTemplateSectionTitle: '\u90ae\u7bb1\u6a21\u677f\u8bbe\u7f6e',
-  emailTemplateSectionDesc: '\u901a\u8fc7 OSS \u6258\u7ba1 HTML \u90ae\u4ef6\u6a21\u677f\uff0c\u6a21\u677f\u6587\u4ef6\u8bb0\u5f55\u5199\u5165\u6587\u4ef6\u8868\uff0c\u5f53\u524d\u542f\u7528\u6a21\u677f ID \u5199\u5165\u7cfb\u7edf\u914d\u7f6e\u8868\u3002',
+  emailTemplateSectionDesc:
+    '\u901a\u8fc7 OSS \u6258\u7ba1 HTML \u90ae\u4ef6\u6a21\u677f\uff0c\u6a21\u677f\u6587\u4ef6\u8bb0\u5f55\u5199\u5165\u6587\u4ef6\u8868\uff0c\u5f53\u524d\u542f\u7528\u6a21\u677f ID \u5199\u5165\u7cfb\u7edf\u914d\u7f6e\u8868\u3002',
   uploaded: '\u5df2\u4e0a\u4f20',
   notUploaded: '\u672a\u4e0a\u4f20',
-  protocolUploadedDesc: '\u5f53\u524d\u542f\u7528\u6587\u4ef6\u5c06\u7528\u4e8e\u7ba1\u7406\u5458\u3001\u7528\u6237\u548c\u5e08\u5085\u7aef\u534f\u8bae\u5185\u5bb9\u5c55\u793a\u3002',
-  protocolEmptyDesc: '\u6682\u672a\u4e0a\u4f20\uff0c\u5c06\u663e\u793a\u9ed8\u8ba4\u5360\u4f4d\u5185\u5bb9\u3002',
-  emailTemplateUploadedDesc: '\u9a8c\u8bc1\u7801\u53d1\u9001\u65f6\u5c06\u4f18\u5148\u4f7f\u7528\u5f53\u524d\u542f\u7528\u7684 OSS \u6a21\u677f\u3002',
-  emailTemplateEmptyDesc: '\u6682\u672a\u4e0a\u4f20\u65f6\uff0c\u5c06\u56de\u9000\u5230\u540e\u7aef\u9ed8\u8ba4\u9a8c\u8bc1\u7801\u6a21\u677f\u3002',
+  protocolUploadedDesc:
+    '\u5f53\u524d\u542f\u7528\u6587\u4ef6\u5c06\u7528\u4e8e\u7ba1\u7406\u5458\u3001\u7528\u6237\u548c\u5e08\u5085\u7aef\u534f\u8bae\u5185\u5bb9\u5c55\u793a\u3002',
+  protocolEmptyDesc:
+    '\u6682\u672a\u4e0a\u4f20\uff0c\u5c06\u663e\u793a\u9ed8\u8ba4\u5360\u4f4d\u5185\u5bb9\u3002',
+  emailTemplateUploadedDesc:
+    '\u9a8c\u8bc1\u7801\u53d1\u9001\u65f6\u5c06\u4f18\u5148\u4f7f\u7528\u5f53\u524d\u542f\u7528\u7684 OSS \u6a21\u677f\u3002',
+  emailTemplateEmptyDesc:
+    '\u6682\u672a\u4e0a\u4f20\u65f6\uff0c\u5c06\u56de\u9000\u5230\u540e\u7aef\u9ed8\u8ba4\u9a8c\u8bc1\u7801\u6a21\u677f\u3002',
   fileNameLabel: '\u6587\u4ef6\u540d\uff1a',
   updatedTimeLabel: '\u66f4\u65b0\u65f6\u95f4\uff1a',
   uploadMarkdown: '\u4e0a\u4f20 Markdown',
@@ -293,8 +293,8 @@ async function loadEmailTemplates() {
 
 async function handleSave() {
   const items = [];
-  groups.value.forEach(group => {
-    (group.items || []).forEach(item => {
+  groups.value.forEach((group) => {
+    (group.items || []).forEach((item) => {
       const value = formValues[item.configKey];
       items.push({
         configKey: item.configKey,
@@ -388,11 +388,11 @@ function openAsset(url) {
 
 function applyResponse(data) {
   groups.value = data.groups || [];
-  Object.keys(formValues).forEach(key => {
+  Object.keys(formValues).forEach((key) => {
     delete formValues[key];
   });
-  groups.value.forEach(group => {
-    (group.items || []).forEach(item => {
+  groups.value.forEach((group) => {
+    (group.items || []).forEach((item) => {
       formValues[item.configKey] = normalizeItemValue(item);
     });
   });

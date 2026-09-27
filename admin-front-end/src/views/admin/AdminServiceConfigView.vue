@@ -50,12 +50,14 @@
         </el-table-column>
         <el-table-column label="操作" width="140" fixed="right">
           <template #default="{ row }">
-            <el-dropdown @command="command => handleCategoryAction(command, row)">
+            <el-dropdown @command="(command) => handleCategoryAction(command, row)">
               <el-button size="small">操作</el-button>
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="edit">编辑</el-dropdown-item>
-                  <el-dropdown-item v-if="row.level === 3" command="uploadIcon">上传图标</el-dropdown-item>
+                  <el-dropdown-item v-if="row.level === 3" command="uploadIcon"
+                    >上传图标</el-dropdown-item
+                  >
                   <el-dropdown-item command="delete">删除</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
@@ -78,12 +80,22 @@
             placeholder="名称/描述/分类"
             style="width: 220px"
           />
-          <el-select v-model="typeFilter.type" clearable placeholder="服务类型" style="width: 140px">
+          <el-select
+            v-model="typeFilter.type"
+            clearable
+            placeholder="服务类型"
+            style="width: 140px"
+          >
             <el-option :value="1" label="上门维修" />
             <el-option :value="2" label="上门安装" />
             <el-option :value="3" label="线下维修" />
           </el-select>
-          <el-select v-model="typeFilter.isActive" clearable placeholder="状态" style="width: 120px">
+          <el-select
+            v-model="typeFilter.isActive"
+            clearable
+            placeholder="状态"
+            style="width: 120px"
+          >
             <el-option :value="1" label="启用" />
             <el-option :value="0" label="禁用" />
           </el-select>
@@ -129,7 +141,12 @@
             @selection-change="handleTypeSelectionChange"
           >
             <el-table-column type="selection" width="52" align="center" reserve-selection />
-            <el-table-column prop="name" label="服务类型名称" min-width="170" show-overflow-tooltip />
+            <el-table-column
+              prop="name"
+              label="服务类型名称"
+              min-width="170"
+              show-overflow-tooltip
+            />
             <el-table-column label="类型" width="120">
               <template #default="{ row }">
                 {{ serviceTypeLabel(row.type) }}
@@ -151,7 +168,7 @@
             </el-table-column>
             <el-table-column label="操作" width="140" fixed="right">
               <template #default="{ row }">
-                <el-dropdown @command="command => handleTypeAction(command, row)">
+                <el-dropdown @command="(command) => handleTypeAction(command, row)">
                   <el-button size="small">操作</el-button>
                   <template #dropdown>
                     <el-dropdown-menu>
@@ -171,7 +188,9 @@
     <el-card v-else class="panel-card" shadow="never">
       <div class="toolbar toolbar-between">
         <div class="toolbar-left">
-          <el-button :disabled="!selectedFaultRows.length" @click="openFaultCopy">批量复制</el-button>
+          <el-button :disabled="!selectedFaultRows.length" @click="openFaultCopy"
+            >批量复制</el-button
+          >
         </div>
         <div class="toolbar-right filter-wrap">
           <el-input
@@ -180,7 +199,12 @@
             placeholder="名称/描述关键词"
             style="width: 220px"
           />
-          <el-select v-model="faultFilter.serviceTypeType" clearable placeholder="服务类型类别" style="width: 140px">
+          <el-select
+            v-model="faultFilter.serviceTypeType"
+            clearable
+            placeholder="服务类型类别"
+            style="width: 140px"
+          >
             <el-option :value="1" label="上门维修" />
             <el-option :value="2" label="上门安装" />
             <el-option :value="3" label="线下维修" />
@@ -199,7 +223,12 @@
               :value="item.id"
             />
           </el-select>
-          <el-select v-model="faultFilter.isActive" clearable placeholder="状态" style="width: 120px">
+          <el-select
+            v-model="faultFilter.isActive"
+            clearable
+            placeholder="状态"
+            style="width: 120px"
+          >
             <el-option :value="1" label="启用" />
             <el-option :value="0" label="禁用" />
           </el-select>
@@ -245,15 +274,35 @@
             @selection-change="handleFaultSelectionChange"
           >
             <el-table-column type="selection" width="52" align="center" reserve-selection />
-            <el-table-column prop="name" label="故障现象名称" min-width="180" show-overflow-tooltip />
-            <el-table-column prop="serviceCategoryPath" label="所属分类" min-width="220" show-overflow-tooltip />
+            <el-table-column
+              prop="name"
+              label="故障现象名称"
+              min-width="180"
+              show-overflow-tooltip
+            />
+            <el-table-column
+              prop="serviceCategoryPath"
+              label="所属分类"
+              min-width="220"
+              show-overflow-tooltip
+            />
             <el-table-column label="服务类型类别" width="120">
               <template #default="{ row }">
                 {{ serviceTypeLabel(row.serviceTypeType) }}
               </template>
             </el-table-column>
-            <el-table-column prop="serviceTypeName" label="服务类型" min-width="160" show-overflow-tooltip />
-            <el-table-column prop="description" label="描述" min-width="220" show-overflow-tooltip />
+            <el-table-column
+              prop="serviceTypeName"
+              label="服务类型"
+              min-width="160"
+              show-overflow-tooltip
+            />
+            <el-table-column
+              prop="description"
+              label="描述"
+              min-width="220"
+              show-overflow-tooltip
+            />
             <el-table-column label="预估价格" width="160">
               <template #default="{ row }">
                 {{ formatPriceRange(row.estimatedPriceMin, row.estimatedPriceMax) }}
@@ -269,7 +318,7 @@
             </el-table-column>
             <el-table-column label="操作" width="140" fixed="right">
               <template #default="{ row }">
-                <el-dropdown @command="command => handleFaultAction(command, row)">
+                <el-dropdown @command="(command) => handleFaultAction(command, row)">
                   <el-button size="small">操作</el-button>
                   <template #dropdown>
                     <el-dropdown-menu>
@@ -352,7 +401,13 @@
           <el-input v-model="typeForm.description" type="textarea" :rows="3" />
         </el-form-item>
         <el-form-item label="基础价格">
-          <el-input-number v-model="typeForm.basePrice" :min="0" :precision="2" :step="10" style="width: 180px" />
+          <el-input-number
+            v-model="typeForm.basePrice"
+            :min="0"
+            :precision="2"
+            :step="10"
+            style="width: 180px"
+          />
         </el-form-item>
         <el-form-item label="状态">
           <el-switch v-model="typeForm.isActive" :active-value="1" :inactive-value="0" />
@@ -367,15 +422,15 @@
       </template>
     </el-dialog>
 
-    <el-dialog
-      v-model="copyDialogVisible"
-      title="批量复制服务类型"
-      width="620px"
-      destroy-on-close
-    >
+    <el-dialog v-model="copyDialogVisible" title="批量复制服务类型" width="620px" destroy-on-close>
       <el-form label-width="120px">
         <el-form-item label="复制为类型">
-          <el-select v-model="copyForm.targetType" clearable placeholder="请选择复制后的类型" style="width: 100%">
+          <el-select
+            v-model="copyForm.targetType"
+            clearable
+            placeholder="请选择复制后的类型"
+            style="width: 100%"
+          >
             <el-option :value="1" label="上门维修" />
             <el-option :value="2" label="上门安装" />
             <el-option :value="3" label="线下维修" />
@@ -383,14 +438,12 @@
         </el-form-item>
         <el-form-item label="已选类型">
           <div class="copy-selected-list">
-            <el-tag
-              v-for="item in selectedTypeRows"
-              :key="item.id"
-              class="copy-selected-tag"
-            >
+            <el-tag v-for="item in selectedTypeRows" :key="item.id" class="copy-selected-tag">
               {{ formatServiceTypeOptionLabel(item) }}
             </el-tag>
-            <span v-if="!selectedTypeRows.length" class="copy-empty-text">请先在列表中勾选服务类型</span>
+            <span v-if="!selectedTypeRows.length" class="copy-empty-text"
+              >请先在列表中勾选服务类型</span
+            >
           </div>
         </el-form-item>
       </el-form>
@@ -408,7 +461,12 @@
     >
       <el-form label-width="120px">
         <el-form-item label="服务类型类别">
-          <el-select v-model="faultCopyForm.targetType" clearable placeholder="请选择服务类型类别" style="width: 100%">
+          <el-select
+            v-model="faultCopyForm.targetType"
+            clearable
+            placeholder="请选择服务类型类别"
+            style="width: 100%"
+          >
             <el-option :value="1" label="上门维修" />
             <el-option :value="2" label="上门安装" />
             <el-option :value="3" label="线下维修" />
@@ -442,20 +500,20 @@
         </el-form-item>
         <el-form-item label="已选故障现象">
           <div class="copy-selected-list">
-            <el-tag
-              v-for="item in selectedFaultRows"
-              :key="item.id"
-              class="copy-selected-tag"
-            >
+            <el-tag v-for="item in selectedFaultRows" :key="item.id" class="copy-selected-tag">
               {{ formatFaultSelectionLabel(item) }}
             </el-tag>
-            <span v-if="!selectedFaultRows.length" class="copy-empty-text">请先在列表中勾选故障现象</span>
+            <span v-if="!selectedFaultRows.length" class="copy-empty-text"
+              >请先在列表中勾选故障现象</span
+            >
           </div>
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="faultCopyDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="faultCopySaving" @click="submitFaultCopy">确认复制</el-button>
+        <el-button type="primary" :loading="faultCopySaving" @click="submitFaultCopy"
+          >确认复制</el-button
+        >
       </template>
     </el-dialog>
 
@@ -467,7 +525,12 @@
     >
       <el-form label-width="130px">
         <el-form-item label="服务类型">
-          <el-select v-model="faultForm.serviceTypeId" :disabled="faultDialogServiceTypeLocked" filterable style="width: 100%">
+          <el-select
+            v-model="faultForm.serviceTypeId"
+            :disabled="faultDialogServiceTypeLocked"
+            filterable
+            style="width: 100%"
+          >
             <el-option
               v-for="item in typeRows"
               :key="item.id"
@@ -483,10 +546,22 @@
           <el-input v-model="faultForm.description" type="textarea" :rows="3" />
         </el-form-item>
         <el-form-item label="最低预估价">
-          <el-input-number v-model="faultForm.estimatedPriceMin" :min="0" :precision="2" :step="10" style="width: 180px" />
+          <el-input-number
+            v-model="faultForm.estimatedPriceMin"
+            :min="0"
+            :precision="2"
+            :step="10"
+            style="width: 180px"
+          />
         </el-form-item>
         <el-form-item label="最高预估价">
-          <el-input-number v-model="faultForm.estimatedPriceMax" :min="0" :precision="2" :step="10" style="width: 180px" />
+          <el-input-number
+            v-model="faultForm.estimatedPriceMax"
+            :min="0"
+            :precision="2"
+            :step="10"
+            style="width: 180px"
+          />
         </el-form-item>
         <el-form-item label="状态">
           <el-switch v-model="faultForm.isActive" :active-value="1" :inactive-value="0" />
@@ -507,7 +582,7 @@
       accept="image/*"
       style="display: none"
       @change="onCategoryIconFileChange"
-    >
+    />
   </div>
 </template>
 
@@ -640,7 +715,9 @@ const categoryParentTreeRows = computed(() => {
   return markDisabledTreeNodes(treeRows, excludedIdSet);
 });
 
-const categoryParentOptions = computed(() => toParentCascaderOptions(categoryParentTreeRows.value || []));
+const categoryParentOptions = computed(() =>
+  toParentCascaderOptions(categoryParentTreeRows.value || [])
+);
 const typeCategoryOptions = computed(() => toTypeCategoryOptions(categoryTreeRows.value || []));
 
 const categoryNodeMap = computed(() => {
@@ -655,19 +732,36 @@ const categoryPathMap = computed(() => {
   return map;
 });
 
-const typeSelectedCategoryLabel = computed(() => resolveCategoryPath(typeFilter.categoryId) || '全部分类');
-const faultSelectedCategoryLabel = computed(() => resolveCategoryPath(faultFilter.categoryId) || '全部分类');
+const typeSelectedCategoryLabel = computed(
+  () => resolveCategoryPath(typeFilter.categoryId) || '全部分类'
+);
+const faultSelectedCategoryLabel = computed(
+  () => resolveCategoryPath(faultFilter.categoryId) || '全部分类'
+);
 
 const filteredTypeRows = computed(() => {
-  const keyword = String(typeFilter.keyword || '').trim().toLowerCase();
-  return (typeRows.value || []).filter(item => {
-    if (typeFilter.type != null && typeFilter.type !== '' && Number(item.type) !== Number(typeFilter.type)) {
+  const keyword = String(typeFilter.keyword || '')
+    .trim()
+    .toLowerCase();
+  return (typeRows.value || []).filter((item) => {
+    if (
+      typeFilter.type != null &&
+      typeFilter.type !== '' &&
+      Number(item.type) !== Number(typeFilter.type)
+    ) {
       return false;
     }
-    if (typeFilter.isActive != null && typeFilter.isActive !== '' && Number(item.isActive) !== Number(typeFilter.isActive)) {
+    if (
+      typeFilter.isActive != null &&
+      typeFilter.isActive !== '' &&
+      Number(item.isActive) !== Number(typeFilter.isActive)
+    ) {
       return false;
     }
-    if (typeFilter.categoryId && !matchesTypeCategoryFilter(item.categoryId, typeFilter.categoryId)) {
+    if (
+      typeFilter.categoryId &&
+      !matchesTypeCategoryFilter(item.categoryId, typeFilter.categoryId)
+    ) {
       return false;
     }
     if (!keyword) {
@@ -678,25 +772,40 @@ const filteredTypeRows = computed(() => {
       item.description,
       resolveCategoryPath(item.categoryId),
       serviceTypeLabel(item.type)
-    ].filter(Boolean).join(' ').toLowerCase();
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
     return searchText.includes(keyword);
   });
 });
 
 const filteredFaultRows = computed(() => {
-  const keyword = String(faultFilter.keyword || '').trim().toLowerCase();
-  return (faultRows.value || []).filter(item => {
-    if (faultFilter.serviceTypeType != null && faultFilter.serviceTypeType !== ''
-      && Number(item.serviceTypeType) !== Number(faultFilter.serviceTypeType)) {
+  const keyword = String(faultFilter.keyword || '')
+    .trim()
+    .toLowerCase();
+  return (faultRows.value || []).filter((item) => {
+    if (
+      faultFilter.serviceTypeType != null &&
+      faultFilter.serviceTypeType !== '' &&
+      Number(item.serviceTypeType) !== Number(faultFilter.serviceTypeType)
+    ) {
       return false;
     }
     if (faultFilter.serviceTypeId && item.serviceTypeId !== faultFilter.serviceTypeId) {
       return false;
     }
-    if (faultFilter.isActive != null && faultFilter.isActive !== '' && Number(item.isActive) !== Number(faultFilter.isActive)) {
+    if (
+      faultFilter.isActive != null &&
+      faultFilter.isActive !== '' &&
+      Number(item.isActive) !== Number(faultFilter.isActive)
+    ) {
       return false;
     }
-    if (faultFilter.categoryId && !matchesTypeCategoryFilter(item.serviceCategoryId, faultFilter.categoryId)) {
+    if (
+      faultFilter.categoryId &&
+      !matchesTypeCategoryFilter(item.serviceCategoryId, faultFilter.categoryId)
+    ) {
       return false;
     }
     if (!keyword) {
@@ -708,18 +817,27 @@ const filteredFaultRows = computed(() => {
       item.serviceTypeName,
       serviceTypeLabel(item.serviceTypeType),
       item.serviceCategoryPath
-    ].filter(Boolean).join(' ').toLowerCase();
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
     return searchText.includes(keyword);
   });
 });
 
 const filteredFaultTypeRows = computed(() => {
-  return (typeRows.value || []).filter(item => {
-    if (faultFilter.serviceTypeType != null && faultFilter.serviceTypeType !== ''
-      && Number(item.type) !== Number(faultFilter.serviceTypeType)) {
+  return (typeRows.value || []).filter((item) => {
+    if (
+      faultFilter.serviceTypeType != null &&
+      faultFilter.serviceTypeType !== '' &&
+      Number(item.type) !== Number(faultFilter.serviceTypeType)
+    ) {
       return false;
     }
-    if (faultFilter.categoryId && !matchesTypeCategoryFilter(item.categoryId, faultFilter.categoryId)) {
+    if (
+      faultFilter.categoryId &&
+      !matchesTypeCategoryFilter(item.categoryId, faultFilter.categoryId)
+    ) {
       return false;
     }
     return true;
@@ -727,12 +845,18 @@ const filteredFaultTypeRows = computed(() => {
 });
 
 const filteredFaultCopyTypeRows = computed(() => {
-  return (typeRows.value || []).filter(item => {
-    if (faultCopyForm.targetType != null && faultCopyForm.targetType !== ''
-      && Number(item.type) !== Number(faultCopyForm.targetType)) {
+  return (typeRows.value || []).filter((item) => {
+    if (
+      faultCopyForm.targetType != null &&
+      faultCopyForm.targetType !== '' &&
+      Number(item.type) !== Number(faultCopyForm.targetType)
+    ) {
       return false;
     }
-    if (faultCopyForm.categoryId && !matchesTypeCategoryFilter(item.categoryId, faultCopyForm.categoryId)) {
+    if (
+      faultCopyForm.categoryId &&
+      !matchesTypeCategoryFilter(item.categoryId, faultCopyForm.categoryId)
+    ) {
       return false;
     }
     return true;
@@ -754,7 +878,9 @@ watch(
     if (!faultFilter.serviceTypeId) {
       return;
     }
-    const matched = filteredFaultTypeRows.value.some(item => item.id === faultFilter.serviceTypeId);
+    const matched = filteredFaultTypeRows.value.some(
+      (item) => item.id === faultFilter.serviceTypeId
+    );
     if (!matched) {
       faultFilter.serviceTypeId = '';
     }
@@ -763,7 +889,7 @@ watch(
 
 watch(
   () => typeFilter.categoryId,
-  value => {
+  (value) => {
     nextTick(() => {
       typeCategoryTreeRef.value?.setCurrentKey(value || null);
     });
@@ -773,7 +899,7 @@ watch(
 
 watch(
   () => faultFilter.categoryId,
-  value => {
+  (value) => {
     nextTick(() => {
       faultCategoryTreeRef.value?.setCurrentKey(value || null);
     });
@@ -787,7 +913,9 @@ watch(
     if (!faultCopyForm.targetServiceTypeId) {
       return;
     }
-    const matched = filteredFaultCopyTypeRows.value.some(item => item.id === faultCopyForm.targetServiceTypeId);
+    const matched = filteredFaultCopyTypeRows.value.some(
+      (item) => item.id === faultCopyForm.targetServiceTypeId
+    );
     if (!matched) {
       faultCopyForm.targetServiceTypeId = '';
     }
@@ -800,7 +928,11 @@ async function reloadAll() {
 }
 
 async function handleExternalRefresh(event) {
-  if (!event || !event.detail || !String(event.detail.path || '').startsWith('/admin/config/services')) {
+  if (
+    !event ||
+    !event.detail ||
+    !String(event.detail.path || '').startsWith('/admin/config/services')
+  ) {
     return;
   }
   event.detail.handled = true;
@@ -895,9 +1027,10 @@ async function saveCategory() {
       isActive: categoryForm.isActive,
       sortOrder: categoryForm.sortOrder
     };
-    const res = categoryDialogMode.value === 'create'
-      ? await createServiceCategory(payload)
-      : await updateServiceCategory(categoryForm.id, payload);
+    const res =
+      categoryDialogMode.value === 'create'
+        ? await createServiceCategory(payload)
+        : await updateServiceCategory(categoryForm.id, payload);
     if (res.code === 200) {
       ElMessage.success('分类保存成功');
       categoryDialogVisible.value = false;
@@ -927,7 +1060,9 @@ async function confirmDeleteCategory(row) {
       ElMessage.error(getDeleteErrorMessage('category', res?.message, res?.code));
     }
   } catch (e) {
-    ElMessage.error(getDeleteErrorMessage('category', getErrorMessageFromException(e), e?.response?.data?.code));
+    ElMessage.error(
+      getDeleteErrorMessage('category', getErrorMessageFromException(e), e?.response?.data?.code)
+    );
   }
 }
 
@@ -1008,9 +1143,10 @@ async function saveType() {
       isActive: typeForm.isActive,
       sortOrder: typeForm.sortOrder
     };
-    const res = typeDialogMode.value === 'create'
-      ? await createServiceType(payload)
-      : await updateServiceType(typeForm.id, payload);
+    const res =
+      typeDialogMode.value === 'create'
+        ? await createServiceType(payload)
+        : await updateServiceType(typeForm.id, payload);
     if (res.code === 200) {
       ElMessage.success('服务类型保存成功');
       typeDialogVisible.value = false;
@@ -1038,11 +1174,13 @@ async function submitTypeCopy() {
   copySaving.value = true;
   try {
     const res = await copyServiceTypes({
-      sourceIds: selectedTypeRows.value.map(item => item.id),
+      sourceIds: selectedTypeRows.value.map((item) => item.id),
       targetType: copyForm.targetType
     });
     if (res.code === 200) {
-      ElMessage.success(`已复制 ${Array.isArray(res.data) ? res.data.length : selectedTypeRows.value.length} 条服务类型`);
+      ElMessage.success(
+        `已复制 ${Array.isArray(res.data) ? res.data.length : selectedTypeRows.value.length} 条服务类型`
+      );
       copyDialogVisible.value = false;
       await reloadTypes();
       await reloadFaults();
@@ -1058,7 +1196,9 @@ async function submitTypeCopy() {
 
 async function confirmDeleteType(row) {
   try {
-    await ElMessageBox.confirm(`确认删除服务类型“${row.name}”吗？`, '删除确认', { type: 'warning' });
+    await ElMessageBox.confirm(`确认删除服务类型“${row.name}”吗？`, '删除确认', {
+      type: 'warning'
+    });
   } catch (e) {
     return;
   }
@@ -1071,7 +1211,9 @@ async function confirmDeleteType(row) {
       ElMessage.error(getDeleteErrorMessage('type', res?.message, res?.code));
     }
   } catch (e) {
-    ElMessage.error(getDeleteErrorMessage('type', getErrorMessageFromException(e), e?.response?.data?.code));
+    ElMessage.error(
+      getDeleteErrorMessage('type', getErrorMessageFromException(e), e?.response?.data?.code)
+    );
   }
 }
 
@@ -1239,9 +1381,11 @@ async function saveFault() {
     ElMessage.warning('请输入故障现象名称');
     return;
   }
-  if (faultForm.estimatedPriceMin != null
-    && faultForm.estimatedPriceMax != null
-    && faultForm.estimatedPriceMin > faultForm.estimatedPriceMax) {
+  if (
+    faultForm.estimatedPriceMin != null &&
+    faultForm.estimatedPriceMax != null &&
+    faultForm.estimatedPriceMin > faultForm.estimatedPriceMax
+  ) {
     ElMessage.warning('最低预估价不能大于最高预估价');
     return;
   }
@@ -1257,9 +1401,10 @@ async function saveFault() {
       isActive: faultForm.isActive,
       sortOrder: faultForm.sortOrder
     };
-    const res = faultDialogMode.value === 'create'
-      ? await createFaultPhenomenon(payload)
-      : await updateFaultPhenomenon(faultForm.id, payload);
+    const res =
+      faultDialogMode.value === 'create'
+        ? await createFaultPhenomenon(payload)
+        : await updateFaultPhenomenon(faultForm.id, payload);
     if (res.code === 200) {
       ElMessage.success('故障现象保存成功');
       faultDialogVisible.value = false;
@@ -1287,11 +1432,13 @@ async function submitFaultCopy() {
   faultCopySaving.value = true;
   try {
     const res = await copyFaultPhenomena({
-      sourceIds: selectedFaultRows.value.map(item => item.id),
+      sourceIds: selectedFaultRows.value.map((item) => item.id),
       targetServiceTypeId: faultCopyForm.targetServiceTypeId
     });
     if (res.code === 200) {
-      ElMessage.success(`已复制 ${Array.isArray(res.data) ? res.data.length : selectedFaultRows.value.length} 条故障现象`);
+      ElMessage.success(
+        `已复制 ${Array.isArray(res.data) ? res.data.length : selectedFaultRows.value.length} 条故障现象`
+      );
       faultCopyDialogVisible.value = false;
       await reloadFaults();
     } else {
@@ -1306,7 +1453,9 @@ async function submitFaultCopy() {
 
 async function confirmDeleteFault(row) {
   try {
-    await ElMessageBox.confirm(`确认删除故障现象“${row.name}”吗？`, '删除确认', { type: 'warning' });
+    await ElMessageBox.confirm(`确认删除故障现象“${row.name}”吗？`, '删除确认', {
+      type: 'warning'
+    });
   } catch (e) {
     return;
   }
@@ -1319,7 +1468,9 @@ async function confirmDeleteFault(row) {
       ElMessage.error(getDeleteErrorMessage('fault', res?.message, res?.code));
     }
   } catch (e) {
-    ElMessage.error(getDeleteErrorMessage('fault', getErrorMessageFromException(e), e?.response?.data?.code));
+    ElMessage.error(
+      getDeleteErrorMessage('fault', getErrorMessageFromException(e), e?.response?.data?.code)
+    );
   }
 }
 
@@ -1414,10 +1565,11 @@ function getErrorMessageFromException(error) {
 function getDeleteErrorMessage(entity, rawMessage, code) {
   const message = String(rawMessage || '');
   const lowerMessage = message.toLowerCase();
-  const isFkError = code === 422
-    || lowerMessage.includes('foreign key')
-    || lowerMessage.includes('constraint')
-    || lowerMessage.includes('integrity');
+  const isFkError =
+    code === 422 ||
+    lowerMessage.includes('foreign key') ||
+    lowerMessage.includes('constraint') ||
+    lowerMessage.includes('integrity');
 
   if (entity === 'category') {
     if (lowerMessage.includes('child categories')) {
@@ -1478,14 +1630,14 @@ function buildCategoryTree(list) {
   const nodeMap = {};
   const roots = [];
 
-  list.forEach(item => {
+  list.forEach((item) => {
     nodeMap[item.id] = {
       ...item,
       children: []
     };
   });
 
-  Object.values(nodeMap).forEach(node => {
+  Object.values(nodeMap).forEach((node) => {
     if (node.parentId && nodeMap[node.parentId]) {
       nodeMap[node.parentId].children.push(node);
     } else {
@@ -1493,7 +1645,7 @@ function buildCategoryTree(list) {
     }
   });
 
-  const sortNodes = nodes => {
+  const sortNodes = (nodes) => {
     nodes.sort((a, b) => {
       const sortA = a.sortOrder ?? 0;
       const sortB = b.sortOrder ?? 0;
@@ -1504,7 +1656,7 @@ function buildCategoryTree(list) {
       const timeB = b.createdTime ?? 0;
       return timeB - timeA;
     });
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       if (node.children && node.children.length) {
         sortNodes(node.children);
       } else {
@@ -1543,10 +1695,11 @@ function addChildrenIds(children, resultSet) {
 }
 
 function markDisabledTreeNodes(nodes, disabledIdSet) {
-  return (nodes || []).map(node => {
-    const children = node.children && node.children.length
-      ? markDisabledTreeNodes(node.children, disabledIdSet)
-      : undefined;
+  return (nodes || []).map((node) => {
+    const children =
+      node.children && node.children.length
+        ? markDisabledTreeNodes(node.children, disabledIdSet)
+        : undefined;
     return {
       ...node,
       disabled: disabledIdSet.has(node.id),
@@ -1556,20 +1709,22 @@ function markDisabledTreeNodes(nodes, disabledIdSet) {
 }
 
 function toParentCascaderOptions(nodes) {
-  return (nodes || []).map(node => ({
+  return (nodes || []).map((node) => ({
     id: node.id,
     name: node.name,
     disabled: !!node.disabled || Number(node.level) >= 3,
-    children: node.children && node.children.length ? toParentCascaderOptions(node.children) : undefined
+    children:
+      node.children && node.children.length ? toParentCascaderOptions(node.children) : undefined
   }));
 }
 
 function toTypeCategoryOptions(nodes) {
-  return (nodes || []).map(node => ({
+  return (nodes || []).map((node) => ({
     id: node.id,
     name: node.name,
     disabled: !!node.disabled || ![2, 3].includes(Number(node.level)),
-    children: node.children && node.children.length ? toTypeCategoryOptions(node.children) : undefined
+    children:
+      node.children && node.children.length ? toTypeCategoryOptions(node.children) : undefined
   }));
 }
 

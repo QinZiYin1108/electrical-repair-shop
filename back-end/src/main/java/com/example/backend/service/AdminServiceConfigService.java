@@ -1,7 +1,7 @@
 package com.example.backend.service;
 
-import com.example.backend.model.admin.AdminFaultPhenomenonCreateRequest;
 import com.example.backend.model.admin.AdminFaultPhenomenonBatchCopyRequest;
+import com.example.backend.model.admin.AdminFaultPhenomenonCreateRequest;
 import com.example.backend.model.admin.AdminFaultPhenomenonResponse;
 import com.example.backend.model.admin.AdminFaultPhenomenonUpdateRequest;
 import com.example.backend.model.admin.AdminServiceCategoryCreateRequest;
@@ -11,9 +11,8 @@ import com.example.backend.model.admin.AdminServiceTypeBatchCopyRequest;
 import com.example.backend.model.admin.AdminServiceTypeCreateRequest;
 import com.example.backend.model.admin.AdminServiceTypeResponse;
 import com.example.backend.model.admin.AdminServiceTypeUpdateRequest;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface AdminServiceConfigService {
 
@@ -21,7 +20,8 @@ public interface AdminServiceConfigService {
 
     AdminServiceCategoryResponse createServiceCategory(AdminServiceCategoryCreateRequest request);
 
-    AdminServiceCategoryResponse updateServiceCategory(String id, AdminServiceCategoryUpdateRequest request);
+    AdminServiceCategoryResponse updateServiceCategory(
+            String id, AdminServiceCategoryUpdateRequest request);
 
     void deleteServiceCategory(String id);
 
@@ -41,9 +41,11 @@ public interface AdminServiceConfigService {
 
     AdminFaultPhenomenonResponse createFaultPhenomenon(AdminFaultPhenomenonCreateRequest request);
 
-    List<AdminFaultPhenomenonResponse> copyFaultPhenomena(AdminFaultPhenomenonBatchCopyRequest request);
+    List<AdminFaultPhenomenonResponse> copyFaultPhenomena(
+            AdminFaultPhenomenonBatchCopyRequest request);
 
-    AdminFaultPhenomenonResponse updateFaultPhenomenon(String id, AdminFaultPhenomenonUpdateRequest request);
+    AdminFaultPhenomenonResponse updateFaultPhenomenon(
+            String id, AdminFaultPhenomenonUpdateRequest request);
 
     void deleteFaultPhenomenon(String id);
 }

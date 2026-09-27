@@ -1,23 +1,59 @@
 package com.example.backend.model.admin;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "管理员用户收货地址Item响应")
 public class AdminUserAddressItemResponse {
 
+    @Schema(description = "ID")
     private String id;
+
+    @Schema(description = "联系名称")
     private String contactName;
+
+    @Schema(description = "联系电话")
     private String contactPhone;
+
+    @Schema(description = "province")
     private String province;
+
+    @Schema(description = "city")
     private String city;
+
+    @Schema(description = "district")
     private String district;
+
+    @Schema(description = "street")
     private String street;
+
+    @Schema(description = "detailed地址")
     private String detailedAddress;
+
+    @Schema(description = "postal编码")
     private String postalCode;
+
+    @Schema(description = "经度")
     private String longitude;
+
+    @Schema(description = "纬度")
     private String latitude;
+
+    @Schema(description = "isDefault")
     private Integer isDefault;
+
+    @Schema(description = "地址类型")
     private Integer addressType;
+
+    @Schema(description = "地址类型名称")
     private String addressTypeName;
+
+    @Schema(description = "full地址")
     private String fullAddress;
+
+    @Schema(description = "创建时间")
     private Long createdTime;
+
+    @Schema(description = "更新时间")
     private Long updatedTime;
 
     public String getId() {

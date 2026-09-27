@@ -1,11 +1,11 @@
 package com.example.backend.controller.user;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.backend.common.ErrorCode;
 import com.example.backend.common.Result;
 import com.example.backend.common.system.SystemConfigRegistry;
 import com.example.backend.entity.AfterSalesApplications;
+import com.example.backend.entity.CancelReasons;
 import com.example.backend.entity.Images;
 import com.example.backend.entity.OrderItems;
 import com.example.backend.entity.PaymentRecords;
@@ -20,23 +20,19 @@ import com.example.backend.security.context.AuthUserContext;
 import com.example.backend.security.model.AccountRole;
 import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.AfterSalesApplicationsService;
+import com.example.backend.service.CancelReasonsService;
 import com.example.backend.service.ImagesService;
 import com.example.backend.service.OrderItemsService;
 import com.example.backend.service.PaymentRecordsService;
 import com.example.backend.service.ProductOrdersService;
 import com.example.backend.service.ReviewsService;
 import com.example.backend.service.SystemConfigsService;
+import com.example.backend.service.UserMallOrderService;
 import com.example.backend.service.VideosService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -48,8 +44,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "用户端/商品订单")
 @RequestMapping("/user/product-orders")
 public class UserProductOrderController {
 
@@ -93,17 +98,20 @@ public class UserProductOrderController {
     private final ImagesService imagesService;
     private final VideosService videosService;
     private final SystemConfigsService systemConfigsService;
+    private final CancelReasonsService cancelReasonsService;
+    private final UserMallOrderService userMallOrderService;
 
     public UserProductOrderController(
-        ProductOrdersService productOrdersService,
-        OrderItemsService orderItemsService,
-        PaymentRecordsService paymentRecordsService,
-        ReviewsService reviewsService,
-        AfterSalesApplicationsService afterSalesApplicationsService,
-        ImagesService imagesService,
-        VideosService videosService,
-        SystemConfigsService systemConfigsService
-    ) {
+            ProductOrdersService productOrdersService,
+            OrderItemsService orderItemsService,
+            PaymentRecordsService paymentRecordsService,
+            ReviewsService reviewsService,
+            AfterSalesApplicationsService afterSalesApplicationsService,
+            ImagesService imagesService,
+            VideosService videosService,
+            SystemConfigsService systemConfigsService,
+            CancelReasonsService cancelReasonsService,
+            UserMallOrderService userMallOrderService) {
         this.productOrdersService = productOrdersService;
         this.orderItemsService = orderItemsService;
         this.paymentRecordsService = paymentRecordsService;
@@ -112,14 +120,17 @@ public class UserProductOrderController {
         this.imagesService = imagesService;
         this.videosService = videosService;
         this.systemConfigsService = systemConfigsService;
+        this.cancelReasonsService = cancelReasonsService;
+        this.userMallOrderService = userMallOrderService;
     }
 
+    @Operation(summary = "查询订单列表")
     @GetMapping("/list")
     public Result<List<UserProductOrderModel.ListItemResponse>> listOrders(
-        @RequestParam(value = "tab", required = false) String tab
-    ) {
+            @RequestParam(value = "tab", required = false) String tab) {
         LoginUserInfo user = requireCurrentUser();
-        List<ProductOrders> orders = productOrdersService.list(buildListQuery(user.getAccountId(), normalizeTab(tab)));
+        List<ProductOrders> orders =
+                productOrdersService.list(buildListQuery(user.getAccountId(), normalizeTab(tab)));
         if (orders.isEmpty()) {
             return Result.success(Collections.emptyList());
         }
@@ -129,10 +140,12 @@ public class UserProductOrderController {
         Map<String, AfterSalesApplications> afterSalesMap = listLatestAfterSalesMap(orders);
         List<UserProductOrderModel.ListItemResponse> items = new ArrayList<>();
         for (ProductOrders order : orders) {
-            List<OrderItems> orderItems = orderItemMap.getOrDefault(order.getId(), Collections.emptyList());
+            List<OrderItems> orderItems =
+                    orderItemMap.getOrDefault(order.getId(), Collections.emptyList());
             Reviews review = reviewMap.get(order.getId());
             AfterSalesApplications afterSalesApplication = afterSalesMap.get(order.getId());
-            UserProductOrderModel.ListItemResponse item = new UserProductOrderModel.ListItemResponse();
+            UserProductOrderModel.ListItemResponse item =
+                    new UserProductOrderModel.ListItemResponse();
             item.setId(order.getId());
             item.setOrderNo(safe(order.getOrderNo()));
             item.setOrderStatus(order.getOrderStatus());
@@ -141,7 +154,8 @@ public class UserProductOrderController {
             item.setPaymentStatusText(getPaymentStatusText(order.getPaymentStatus()));
             item.setDeliveryStatus(order.getDeliveryStatus());
             item.setDeliveryStatusText(getDeliveryStatusText(order.getDeliveryStatus()));
-            item.setFirstProductImage(orderItems.isEmpty() ? "" : safe(orderItems.get(0).getProductImage()));
+            item.setFirstProductImage(
+                    orderItems.isEmpty() ? "" : safe(orderItems.get(0).getProductImage()));
             item.setProductSummary(buildProductSummary(orderItems));
             item.setItemCount(calculateItemCount(orderItems));
             item.setTotalAmount(formatMoney(order.getTotalAmount()));
@@ -154,7 +168,9 @@ public class UserProductOrderController {
             item.setHasReview(review != null);
             item.setReviewId(review == null ? "" : safe(review.getId()));
             item.setCanApplyAfterSales(canUserApplyAfterSales(order, afterSalesApplication));
-            item.setHasAfterSalesEntry(Boolean.TRUE.equals(item.getCanApplyAfterSales()) || afterSalesApplication != null);
+            item.setHasAfterSalesEntry(
+                    Boolean.TRUE.equals(item.getCanApplyAfterSales())
+                            || afterSalesApplication != null);
             item.setAfterSalesTip(buildAfterSalesTip(order, afterSalesApplication));
             item.setAfterSalesApplication(buildAfterSalesSummary(afterSalesApplication));
             items.add(item);
@@ -162,24 +178,28 @@ public class UserProductOrderController {
         return Result.success(items);
     }
 
+    @Operation(summary = "查询详情")
     @GetMapping("/detail")
-    public Result<UserProductOrderModel.DetailResponse> getDetail(@RequestParam("orderId") String orderId) {
+    public Result<UserProductOrderModel.DetailResponse> getDetail(
+            @RequestParam("orderId") String orderId) {
         LoginUserInfo user = requireCurrentUser();
         return Result.success(buildDetailResponse(requireOwnedOrder(orderId, user.getAccountId())));
     }
 
+    @Operation(summary = "查询AfterSales详情")
     @GetMapping("/after-sales/detail")
-    public Result<UserProductOrderModel.AfterSalesDetailResponse> getAfterSalesDetail(@RequestParam("orderId") String orderId) {
+    public Result<UserProductOrderModel.AfterSalesDetailResponse> getAfterSalesDetail(
+            @RequestParam("orderId") String orderId) {
         LoginUserInfo user = requireCurrentUser();
         ProductOrders order = requireOwnedOrder(orderId, user.getAccountId());
         return Result.success(buildAfterSalesDetailResponse(order));
     }
 
+    @Operation(summary = "提交confirmReceipt")
     @PostMapping("/confirm-receipt")
     @Transactional(rollbackFor = Exception.class)
     public Result<UserProductOrderModel.DetailResponse> confirmReceipt(
-        @RequestBody(required = false) UserProductOrderModel.ConfirmReceiptRequest request
-    ) {
+            @RequestBody(required = false) UserProductOrderModel.ConfirmReceiptRequest request) {
         LoginUserInfo user = requireCurrentUser();
         String orderId = request == null ? null : trimToNull(request.getOrderId());
         if (!StringUtils.hasText(orderId)) {
@@ -203,11 +223,75 @@ public class UserProductOrderController {
         return Result.success(buildDetailResponse(requireOwnedOrder(orderId, user.getAccountId())));
     }
 
+    @Operation(summary = "提交注销Order")
+    @PostMapping("/cancel")
+    @Transactional(rollbackFor = Exception.class)
+    public Result<UserProductOrderModel.DetailResponse> cancelOrder(
+            @RequestBody(required = false) UserProductOrderModel.CancelOrderRequest request) {
+        LoginUserInfo user = requireCurrentUser();
+        String orderId = request == null ? null : trimToNull(request.getOrderId());
+        String reasonCode = request == null ? null : trimToNull(request.getReasonCode());
+        String reasonLabel = request == null ? null : trimToNull(request.getReasonLabel());
+        String userRemark = request == null ? null : trimToNull(request.getUserRemark());
+        if (!StringUtils.hasText(orderId)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "订单ID不能为空");
+        }
+        // 商家问题应走售后通道
+        String combinedReason =
+                (reasonLabel != null ? reasonLabel : "")
+                        + " "
+                        + (userRemark != null ? userRemark : "");
+        if (isMerchantIssueReason(combinedReason)) {
+            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "如认为是商家问题，请通过「申请售后」处理，而非取消订单");
+        }
+
+        ProductOrders order = requireOwnedOrder(orderId, user.getAccountId());
+        int orderStatus = safeInt(order.getOrderStatus());
+        // 待支付（未付款）与待发货（已付款）状态允许用户主动取消
+        if (orderStatus != ORDER_STATUS_PENDING_PAYMENT
+                && orderStatus != ORDER_STATUS_PENDING_DELIVERY) {
+            throw new BusinessException(
+                    ErrorCode.BUSINESS_ERROR,
+                    orderStatus == ORDER_STATUS_CANCELED
+                            ? "订单已取消"
+                            : orderStatus == ORDER_STATUS_REFUNDED
+                                    ? "订单已退款"
+                                    : "当前订单状态不支持取消，请走售后通道");
+        }
+        boolean unpaidOrder = orderStatus == ORDER_STATUS_PENDING_PAYMENT;
+
+        long now = System.currentTimeMillis();
+
+        // 写入取消原因记录
+        CancelReasons cr = new CancelReasons();
+        cr.setId(SnowflakeIdUtil.nextCancelReasonId());
+        cr.setOrderId(orderId);
+        cr.setOrderType(ORDER_TYPE_PRODUCT); // 2-商品订单
+        cr.setReasonCode(reasonCode != null ? reasonCode : "other");
+        cr.setReasonLabel(reasonLabel != null ? reasonLabel : "用户取消");
+        cr.setUserRemark(userRemark);
+        cr.setCreatedTime(now);
+        cancelReasonsService.save(cr);
+
+        if (unpaidOrder) {
+            userMallOrderService.releaseUnpaidOrderResources(orderId);
+        }
+        order.setOrderStatus(ORDER_STATUS_CANCELED);
+        order.setCancelReason(reasonLabel != null ? reasonLabel : "用户取消");
+        order.setCancelReasonId(cr.getId());
+        order.setCancelTime(now);
+        order.setUpdatedTime(now);
+        if (!productOrdersService.updateById(order)) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "取消订单失败");
+        }
+        return Result.success(buildDetailResponse(requireOwnedOrder(orderId, user.getAccountId())));
+    }
+
+    @Operation(summary = "提交申请AfterSales")
     @PostMapping("/after-sales/apply")
     @Transactional(rollbackFor = Exception.class)
     public Result<UserProductOrderModel.AfterSalesDetailResponse> applyAfterSales(
-        @RequestBody(required = false) UserProductOrderModel.AfterSalesApplyRequest request
-    ) {
+            @RequestBody(required = false) UserProductOrderModel.AfterSalesApplyRequest request) {
         LoginUserInfo user = requireCurrentUser();
         String orderId = request == null ? null : trimToNull(request.getOrderId());
         if (!StringUtils.hasText(orderId)) {
@@ -217,7 +301,9 @@ public class UserProductOrderController {
         ProductOrders order = requireOwnedOrder(orderId, user.getAccountId());
         AfterSalesApplications latestApplication = getLatestAfterSalesApplication(order.getId());
         if (!canUserApplyAfterSales(order, latestApplication)) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, buildAfterSalesUnavailableMessage(order, latestApplication));
+            throw new BusinessException(
+                    ErrorCode.BUSINESS_ERROR,
+                    buildAfterSalesUnavailableMessage(order, latestApplication));
         }
 
         Integer applicationType = request == null ? null : request.getApplicationType();
@@ -227,8 +313,10 @@ public class UserProductOrderController {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请选择售后原因");
         }
 
-        List<UserAfterSalesSubmitMediaItem> images = normalizeAfterSalesImages(request == null ? null : request.getImages());
-        UserAfterSalesSubmitMediaItem video = normalizeAfterSalesVideo(request == null ? null : request.getVideo());
+        List<UserAfterSalesSubmitMediaItem> images =
+                normalizeAfterSalesImages(request == null ? null : request.getImages());
+        UserAfterSalesSubmitMediaItem video =
+                normalizeAfterSalesVideo(request == null ? null : request.getVideo());
         long now = System.currentTimeMillis();
 
         AfterSalesApplications application = new AfterSalesApplications();
@@ -254,14 +342,15 @@ public class UserProductOrderController {
 
         saveAfterSalesImages(images, application.getId(), user.getAccountId(), now);
         saveAfterSalesVideo(video, application.getId(), user.getAccountId(), now);
-        return Result.success(buildAfterSalesDetailResponse(requireOwnedOrder(orderId, user.getAccountId())));
+        return Result.success(
+                buildAfterSalesDetailResponse(requireOwnedOrder(orderId, user.getAccountId())));
     }
 
+    @Operation(summary = "提交注销AfterSales")
     @PostMapping("/after-sales/cancel")
     @Transactional(rollbackFor = Exception.class)
     public Result<UserProductOrderModel.AfterSalesDetailResponse> cancelAfterSales(
-        @RequestBody(required = false) UserProductOrderModel.AfterSalesCancelRequest request
-    ) {
+            @RequestBody(required = false) UserProductOrderModel.AfterSalesCancelRequest request) {
         LoginUserInfo user = requireCurrentUser();
         String orderId = request == null ? null : trimToNull(request.getOrderId());
         if (!StringUtils.hasText(orderId)) {
@@ -284,33 +373,41 @@ public class UserProductOrderController {
         if (!afterSalesApplicationsService.updateById(application)) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "取消售后申请失败");
         }
-        return Result.success(buildAfterSalesDetailResponse(requireOwnedOrder(orderId, user.getAccountId())));
+        return Result.success(
+                buildAfterSalesDetailResponse(requireOwnedOrder(orderId, user.getAccountId())));
     }
 
     private LambdaQueryWrapper<ProductOrders> buildListQuery(String accountId, String tab) {
-        LambdaQueryWrapper<ProductOrders> wrapper = new LambdaQueryWrapper<ProductOrders>()
-            .eq(ProductOrders::getAccountId, accountId)
-            .eq(ProductOrders::getIsDelete, 0);
+        LambdaQueryWrapper<ProductOrders> wrapper =
+                new LambdaQueryWrapper<ProductOrders>()
+                        .eq(ProductOrders::getAccountId, accountId)
+                        .eq(ProductOrders::getIsDelete, 0);
         if ("pending-delivery".equals(tab)) {
             wrapper.eq(ProductOrders::getOrderStatus, ORDER_STATUS_PENDING_DELIVERY);
         } else if ("pending-receipt".equals(tab)) {
             wrapper.eq(ProductOrders::getOrderStatus, ORDER_STATUS_PENDING_RECEIPT);
         } else if ("finished".equals(tab)) {
-            wrapper.in(ProductOrders::getOrderStatus, ORDER_STATUS_PENDING_REVIEW, ORDER_STATUS_COMPLETED);
+            wrapper.in(
+                    ProductOrders::getOrderStatus,
+                    ORDER_STATUS_PENDING_REVIEW,
+                    ORDER_STATUS_COMPLETED);
         } else if ("closed".equals(tab)) {
             wrapper.in(ProductOrders::getOrderStatus, ORDER_STATUS_CANCELED, ORDER_STATUS_REFUNDED);
         }
         return wrapper.orderByDesc(ProductOrders::getUpdatedTime)
-            .orderByDesc(ProductOrders::getCreatedTime);
+                .orderByDesc(ProductOrders::getCreatedTime);
     }
 
     private UserProductOrderModel.DetailResponse buildDetailResponse(ProductOrders order) {
         List<ProductOrders> orders = Collections.singletonList(order);
         Map<String, List<OrderItems>> orderItemMap = listOrderItemMap(orders);
         Map<String, PaymentRecords> paymentMap = listPaymentMap(orders);
-        Reviews review = reviewsService.getUserProductOrderReviewEntity(order.getId(), order.getAccountId());
-        AfterSalesApplications afterSalesApplication = getLatestAfterSalesApplication(order.getId());
-        List<OrderItems> orderItems = orderItemMap.getOrDefault(order.getId(), Collections.emptyList());
+        Reviews review =
+                reviewsService.getUserProductOrderReviewEntity(order.getId(), order.getAccountId());
+        AfterSalesApplications afterSalesApplication =
+                getLatestAfterSalesApplication(order.getId());
+        List<OrderItems> orderItems =
+                orderItemMap.getOrDefault(order.getId(), Collections.emptyList());
         PaymentRecords payment = paymentMap.get(order.getId());
 
         UserProductOrderModel.DetailResponse response = new UserProductOrderModel.DetailResponse();
@@ -352,10 +449,15 @@ public class UserProductOrderController {
         response.setHasReview(review != null);
         response.setReviewId(review == null ? "" : safe(review.getId()));
         response.setCanApplyAfterSales(canUserApplyAfterSales(order, afterSalesApplication));
-        response.setHasAfterSalesEntry(Boolean.TRUE.equals(response.getCanApplyAfterSales()) || afterSalesApplication != null);
+        response.setHasAfterSalesEntry(
+                Boolean.TRUE.equals(response.getCanApplyAfterSales())
+                        || afterSalesApplication != null);
         response.setAfterSalesTip(buildAfterSalesTip(order, afterSalesApplication));
         response.setAfterSalesApplication(buildAfterSalesSummary(afterSalesApplication));
-        response.setItems(orderItems.stream().map(this::buildOrderItemResponse).collect(Collectors.toCollection(ArrayList::new)));
+        response.setItems(
+                orderItems.stream()
+                        .map(this::buildOrderItemResponse)
+                        .collect(Collectors.toCollection(ArrayList::new)));
         if (payment != null) {
             response.setPaymentNo(safe(payment.getPaymentNo()));
             response.setThirdPartyNo(safe(payment.getThirdPartyNo()));
@@ -368,11 +470,15 @@ public class UserProductOrderController {
         return response;
     }
 
-    private UserProductOrderModel.AfterSalesDetailResponse buildAfterSalesDetailResponse(ProductOrders order) {
+    private UserProductOrderModel.AfterSalesDetailResponse buildAfterSalesDetailResponse(
+            ProductOrders order) {
         AfterSalesApplications application = getLatestAfterSalesApplication(order.getId());
-        List<OrderItems> orderItems = listOrderItemMap(Collections.singletonList(order)).getOrDefault(order.getId(), Collections.emptyList());
+        List<OrderItems> orderItems =
+                listOrderItemMap(Collections.singletonList(order))
+                        .getOrDefault(order.getId(), Collections.emptyList());
 
-        UserProductOrderModel.AfterSalesDetailResponse response = new UserProductOrderModel.AfterSalesDetailResponse();
+        UserProductOrderModel.AfterSalesDetailResponse response =
+                new UserProductOrderModel.AfterSalesDetailResponse();
         response.setOrderId(order.getId());
         response.setOrderNo(safe(order.getOrderNo()));
         response.setOrderStatus(order.getOrderStatus());
@@ -394,7 +500,8 @@ public class UserProductOrderController {
     }
 
     private UserProductOrderModel.OrderItemResponse buildOrderItemResponse(OrderItems item) {
-        UserProductOrderModel.OrderItemResponse response = new UserProductOrderModel.OrderItemResponse();
+        UserProductOrderModel.OrderItemResponse response =
+                new UserProductOrderModel.OrderItemResponse();
         response.setId(item.getId());
         response.setProductId(safe(item.getProductId()));
         response.setProductName(safe(item.getProductName()));
@@ -405,14 +512,17 @@ public class UserProductOrderController {
         return response;
     }
 
-    private UserProductOrderModel.AfterSalesSummary buildAfterSalesSummary(AfterSalesApplications application) {
+    private UserProductOrderModel.AfterSalesSummary buildAfterSalesSummary(
+            AfterSalesApplications application) {
         if (application == null) {
             return null;
         }
-        UserProductOrderModel.AfterSalesSummary summary = new UserProductOrderModel.AfterSalesSummary();
+        UserProductOrderModel.AfterSalesSummary summary =
+                new UserProductOrderModel.AfterSalesSummary();
         summary.setId(application.getId());
         summary.setApplicationType(application.getApplicationType());
-        summary.setApplicationTypeText(getAfterSalesApplicationTypeText(application.getApplicationType()));
+        summary.setApplicationTypeText(
+                getAfterSalesApplicationTypeText(application.getApplicationType()));
         summary.setStatus(application.getStatus());
         summary.setStatusText(getAfterSalesStatusText(application.getStatus()));
         summary.setReason(safe(application.getReason()));
@@ -424,14 +534,17 @@ public class UserProductOrderController {
         return summary;
     }
 
-    private UserProductOrderModel.AfterSalesApplicationDetailResponse buildAfterSalesApplicationDetail(AfterSalesApplications application) {
+    private UserProductOrderModel.AfterSalesApplicationDetailResponse
+            buildAfterSalesApplicationDetail(AfterSalesApplications application) {
         if (application == null) {
             return null;
         }
-        UserProductOrderModel.AfterSalesApplicationDetailResponse detail = new UserProductOrderModel.AfterSalesApplicationDetailResponse();
+        UserProductOrderModel.AfterSalesApplicationDetailResponse detail =
+                new UserProductOrderModel.AfterSalesApplicationDetailResponse();
         detail.setId(application.getId());
         detail.setApplicationType(application.getApplicationType());
-        detail.setApplicationTypeText(getAfterSalesApplicationTypeText(application.getApplicationType()));
+        detail.setApplicationTypeText(
+                getAfterSalesApplicationTypeText(application.getApplicationType()));
         detail.setStatus(application.getStatus());
         detail.setStatusText(getAfterSalesStatusText(application.getStatus()));
         detail.setReason(safe(application.getReason()));
@@ -448,17 +561,20 @@ public class UserProductOrderController {
         return detail;
     }
 
-    private List<UserProductOrderModel.AfterSalesTypeOption> buildAfterSalesTypeOptions(ProductOrders order) {
+    private List<UserProductOrderModel.AfterSalesTypeOption> buildAfterSalesTypeOptions(
+            ProductOrders order) {
         List<UserProductOrderModel.AfterSalesTypeOption> options = new ArrayList<>();
         if (canApplyRefundOnly(order)) {
-            UserProductOrderModel.AfterSalesTypeOption option = new UserProductOrderModel.AfterSalesTypeOption();
+            UserProductOrderModel.AfterSalesTypeOption option =
+                    new UserProductOrderModel.AfterSalesTypeOption();
             option.setValue(AFTER_SALES_TYPE_REFUND);
             option.setLabel("仅退款");
             option.setDescription("订单还未发货，可直接申请退款");
             options.add(option);
         }
         if (canApplyReturnRefund(order)) {
-            UserProductOrderModel.AfterSalesTypeOption option = new UserProductOrderModel.AfterSalesTypeOption();
+            UserProductOrderModel.AfterSalesTypeOption option =
+                    new UserProductOrderModel.AfterSalesTypeOption();
             option.setValue(AFTER_SALES_TYPE_RETURN_REFUND);
             option.setLabel("退货退款");
             option.setDescription("商品已发货后，可提交退货退款申请");
@@ -468,84 +584,108 @@ public class UserProductOrderController {
     }
 
     private Map<String, List<OrderItems>> listOrderItemMap(List<ProductOrders> orders) {
-        Set<String> orderIds = orders.stream()
-            .map(ProductOrders::getId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+        Set<String> orderIds =
+                orders.stream()
+                        .map(ProductOrders::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (orderIds.isEmpty()) {
             return new HashMap<>();
         }
-        return orderItemsService.list(
-            new LambdaQueryWrapper<OrderItems>()
-                .in(OrderItems::getOrderId, orderIds)
-                .eq(OrderItems::getIsDelete, 0)
-                .orderByAsc(OrderItems::getCreatedTime)
-        ).stream().collect(Collectors.groupingBy(OrderItems::getOrderId, LinkedHashMap::new, Collectors.toList()));
+        return orderItemsService
+                .list(
+                        new LambdaQueryWrapper<OrderItems>()
+                                .in(OrderItems::getOrderId, orderIds)
+                                .eq(OrderItems::getIsDelete, 0)
+                                .orderByAsc(OrderItems::getCreatedTime))
+                .stream()
+                .collect(
+                        Collectors.groupingBy(
+                                OrderItems::getOrderId, LinkedHashMap::new, Collectors.toList()));
     }
 
     private Map<String, PaymentRecords> listPaymentMap(List<ProductOrders> orders) {
-        Set<String> orderIds = orders.stream()
-            .map(ProductOrders::getId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+        Set<String> orderIds =
+                orders.stream()
+                        .map(ProductOrders::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (orderIds.isEmpty()) {
             return new HashMap<>();
         }
-        return paymentRecordsService.list(
-            new LambdaQueryWrapper<PaymentRecords>()
-                .in(PaymentRecords::getOrderId, orderIds)
-                .eq(PaymentRecords::getOrderType, ORDER_TYPE_PRODUCT)
-                .eq(PaymentRecords::getIsDelete, 0)
-                .orderByDesc(PaymentRecords::getCreatedTime)
-        ).stream().collect(Collectors.toMap(PaymentRecords::getOrderId, item -> item, (a, b) -> a, LinkedHashMap::new));
+        return paymentRecordsService
+                .list(
+                        new LambdaQueryWrapper<PaymentRecords>()
+                                .in(PaymentRecords::getOrderId, orderIds)
+                                .eq(PaymentRecords::getOrderType, ORDER_TYPE_PRODUCT)
+                                .eq(PaymentRecords::getIsDelete, 0)
+                                .orderByDesc(PaymentRecords::getCreatedTime))
+                .stream()
+                .collect(
+                        Collectors.toMap(
+                                PaymentRecords::getOrderId,
+                                item -> item,
+                                (a, b) -> a,
+                                LinkedHashMap::new));
     }
 
     private Map<String, Reviews> listReviewMap(List<ProductOrders> orders, String accountId) {
-        Set<String> orderIds = orders.stream()
-            .map(ProductOrders::getId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+        Set<String> orderIds =
+                orders.stream()
+                        .map(ProductOrders::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (orderIds.isEmpty() || !StringUtils.hasText(accountId)) {
             return new HashMap<>();
         }
         Map<String, Reviews> reviewMap = new LinkedHashMap<>();
-        reviewsService.list(
-            new LambdaQueryWrapper<Reviews>()
-                .in(Reviews::getOrderId, orderIds)
-                .eq(Reviews::getAccountId, accountId)
-                .eq(Reviews::getOrderType, ORDER_TYPE_PRODUCT)
-                .eq(Reviews::getTargetType, TARGET_TYPE_PRODUCT)
-                .eq(Reviews::getIsDelete, 0)
-                .orderByAsc(Reviews::getCreatedTime)
-        ).forEach(review -> {
-            if (review != null && StringUtils.hasText(review.getOrderId()) && !reviewMap.containsKey(review.getOrderId())) {
-                reviewMap.put(review.getOrderId(), review);
-            }
-        });
+        reviewsService
+                .list(
+                        new LambdaQueryWrapper<Reviews>()
+                                .in(Reviews::getOrderId, orderIds)
+                                .eq(Reviews::getAccountId, accountId)
+                                .eq(Reviews::getOrderType, ORDER_TYPE_PRODUCT)
+                                .eq(Reviews::getTargetType, TARGET_TYPE_PRODUCT)
+                                .eq(Reviews::getIsDelete, 0)
+                                .orderByAsc(Reviews::getCreatedTime))
+                .forEach(
+                        review -> {
+                            if (review != null
+                                    && StringUtils.hasText(review.getOrderId())
+                                    && !reviewMap.containsKey(review.getOrderId())) {
+                                reviewMap.put(review.getOrderId(), review);
+                            }
+                        });
         return reviewMap;
     }
 
-    private Map<String, AfterSalesApplications> listLatestAfterSalesMap(List<ProductOrders> orders) {
-        Set<String> orderIds = orders.stream()
-            .map(ProductOrders::getId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toCollection(LinkedHashSet::new));
+    private Map<String, AfterSalesApplications> listLatestAfterSalesMap(
+            List<ProductOrders> orders) {
+        Set<String> orderIds =
+                orders.stream()
+                        .map(ProductOrders::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
         if (orderIds.isEmpty()) {
             return new HashMap<>();
         }
         Map<String, AfterSalesApplications> result = new LinkedHashMap<>();
-        afterSalesApplicationsService.list(
-            new LambdaQueryWrapper<AfterSalesApplications>()
-                .in(AfterSalesApplications::getOrderId, orderIds)
-                .eq(AfterSalesApplications::getOrderType, ORDER_TYPE_PRODUCT)
-                .eq(AfterSalesApplications::getIsDelete, 0)
-                .orderByDesc(AfterSalesApplications::getUpdatedTime)
-                .orderByDesc(AfterSalesApplications::getCreatedTime)
-        ).forEach(item -> {
-            if (item != null && StringUtils.hasText(item.getOrderId()) && !result.containsKey(item.getOrderId())) {
-                result.put(item.getOrderId(), item);
-            }
-        });
+        afterSalesApplicationsService
+                .list(
+                        new LambdaQueryWrapper<AfterSalesApplications>()
+                                .in(AfterSalesApplications::getOrderId, orderIds)
+                                .eq(AfterSalesApplications::getOrderType, ORDER_TYPE_PRODUCT)
+                                .eq(AfterSalesApplications::getIsDelete, 0)
+                                .orderByDesc(AfterSalesApplications::getUpdatedTime)
+                                .orderByDesc(AfterSalesApplications::getCreatedTime))
+                .forEach(
+                        item -> {
+                            if (item != null
+                                    && StringUtils.hasText(item.getOrderId())
+                                    && !result.containsKey(item.getOrderId())) {
+                                result.put(item.getOrderId(), item);
+                            }
+                        });
         return result;
     }
 
@@ -554,26 +694,25 @@ public class UserProductOrderController {
             return null;
         }
         return afterSalesApplicationsService.getOne(
-            new LambdaQueryWrapper<AfterSalesApplications>()
-                .eq(AfterSalesApplications::getOrderId, orderId)
-                .eq(AfterSalesApplications::getOrderType, ORDER_TYPE_PRODUCT)
-                .eq(AfterSalesApplications::getIsDelete, 0)
-                .orderByDesc(AfterSalesApplications::getUpdatedTime)
-                .orderByDesc(AfterSalesApplications::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+                new LambdaQueryWrapper<AfterSalesApplications>()
+                        .eq(AfterSalesApplications::getOrderId, orderId)
+                        .eq(AfterSalesApplications::getOrderType, ORDER_TYPE_PRODUCT)
+                        .eq(AfterSalesApplications::getIsDelete, 0)
+                        .orderByDesc(AfterSalesApplications::getUpdatedTime)
+                        .orderByDesc(AfterSalesApplications::getCreatedTime)
+                        .last("limit 1"),
+                false);
     }
 
     private ProductOrders requireOwnedOrder(String orderId, String accountId) {
-        ProductOrders order = productOrdersService.getOne(
-            new LambdaQueryWrapper<ProductOrders>()
-                .eq(ProductOrders::getId, orderId)
-                .eq(ProductOrders::getAccountId, accountId)
-                .eq(ProductOrders::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        ProductOrders order =
+                productOrdersService.getOne(
+                        new LambdaQueryWrapper<ProductOrders>()
+                                .eq(ProductOrders::getId, orderId)
+                                .eq(ProductOrders::getAccountId, accountId)
+                                .eq(ProductOrders::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (order == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "商品订单不存在");
         }
@@ -593,19 +732,21 @@ public class UserProductOrderController {
 
     private boolean canConfirmReceipt(ProductOrders order) {
         return order != null
-            && safeInt(order.getOrderStatus()) == ORDER_STATUS_PENDING_RECEIPT
-            && safeInt(order.getPaymentStatus()) == PAYMENT_STATUS_PAID
-            && safeInt(order.getDeliveryStatus()) >= DELIVERY_STATUS_SHIPPED;
+                && safeInt(order.getOrderStatus()) == ORDER_STATUS_PENDING_RECEIPT
+                && safeInt(order.getPaymentStatus()) == PAYMENT_STATUS_PAID
+                && safeInt(order.getDeliveryStatus()) >= DELIVERY_STATUS_SHIPPED;
     }
 
     private boolean canReview(ProductOrders order, Reviews review) {
         int orderStatus = safeInt(order == null ? null : order.getOrderStatus());
         return order != null
-            && review == null
-            && (orderStatus == ORDER_STATUS_PENDING_REVIEW || orderStatus == ORDER_STATUS_COMPLETED);
+                && review == null
+                && (orderStatus == ORDER_STATUS_PENDING_REVIEW
+                        || orderStatus == ORDER_STATUS_COMPLETED);
     }
 
-    private boolean canUserApplyAfterSales(ProductOrders order, AfterSalesApplications latestApplication) {
+    private boolean canUserApplyAfterSales(
+            ProductOrders order, AfterSalesApplications latestApplication) {
         if (order == null || safeInt(order.getPaymentStatus()) != PAYMENT_STATUS_PAID) {
             return false;
         }
@@ -621,8 +762,8 @@ public class UserProductOrderController {
 
     private boolean canApplyRefundOnly(ProductOrders order) {
         return order != null
-            && safeInt(order.getPaymentStatus()) == PAYMENT_STATUS_PAID
-            && safeInt(order.getOrderStatus()) == ORDER_STATUS_PENDING_DELIVERY;
+                && safeInt(order.getPaymentStatus()) == PAYMENT_STATUS_PAID
+                && safeInt(order.getOrderStatus()) == ORDER_STATUS_PENDING_DELIVERY;
     }
 
     private boolean canApplyReturnRefund(ProductOrders order) {
@@ -642,21 +783,23 @@ public class UserProductOrderController {
     private boolean isAfterSalesProcessing(AfterSalesApplications application) {
         int status = safeInt(application == null ? null : application.getStatus());
         return status == AFTER_SALES_STATUS_PENDING
-            || status == AFTER_SALES_STATUS_APPROVED
-            || status == AFTER_SALES_STATUS_PROCESSING;
+                || status == AFTER_SALES_STATUS_APPROVED
+                || status == AFTER_SALES_STATUS_PROCESSING;
     }
 
     private boolean canUserCancelAfterSales(AfterSalesApplications application) {
-        return safeInt(application == null ? null : application.getStatus()) == AFTER_SALES_STATUS_PENDING;
+        return safeInt(application == null ? null : application.getStatus())
+                == AFTER_SALES_STATUS_PENDING;
     }
 
     private boolean isAfterSalesWithinWindow(ProductOrders order) {
         if (order == null) {
             return false;
         }
-        long baseTime = order.getCompletionTime() == null || order.getCompletionTime() <= 0L
-            ? (order.getReceiveTime() == null ? 0L : order.getReceiveTime())
-            : order.getCompletionTime();
+        long baseTime =
+                order.getCompletionTime() == null || order.getCompletionTime() <= 0L
+                        ? (order.getReceiveTime() == null ? 0L : order.getReceiveTime())
+                        : order.getCompletionTime();
         if (baseTime <= 0L) {
             return false;
         }
@@ -677,10 +820,11 @@ public class UserProductOrderController {
     }
 
     private int calculateItemCount(List<OrderItems> orderItems) {
-        return (orderItems == null ? Collections.<OrderItems>emptyList() : orderItems).stream()
-            .map(OrderItems::getQuantity)
-            .filter(item -> item != null && item > 0)
-            .reduce(0, Integer::sum);
+        return (orderItems == null ? Collections.<OrderItems>emptyList() : orderItems)
+                .stream()
+                        .map(OrderItems::getQuantity)
+                        .filter(item -> item != null && item > 0)
+                        .reduce(0, Integer::sum);
     }
 
     private String buildProductSummary(List<OrderItems> orderItems) {
@@ -696,7 +840,8 @@ public class UserProductOrderController {
         return firstName + " 等" + size + "件商品";
     }
 
-    private String buildAfterSalesTip(ProductOrders order, AfterSalesApplications latestApplication) {
+    private String buildAfterSalesTip(
+            ProductOrders order, AfterSalesApplications latestApplication) {
         if (isAfterSalesProcessing(latestApplication)) {
             return "当前已有商品售后申请处理中，请耐心等待";
         }
@@ -713,7 +858,8 @@ public class UserProductOrderController {
         return buildAfterSalesUnavailableMessage(order, latestApplication);
     }
 
-    private String buildAfterSalesUnavailableMessage(ProductOrders order, AfterSalesApplications latestApplication) {
+    private String buildAfterSalesUnavailableMessage(
+            ProductOrders order, AfterSalesApplications latestApplication) {
         if (isAfterSalesProcessing(latestApplication)) {
             return "当前已有商品售后申请处理中";
         }
@@ -739,7 +885,8 @@ public class UserProductOrderController {
         if (status == ORDER_STATUS_PENDING_RECEIPT) {
             return "当前订单可申请退货退款";
         }
-        if ((status == ORDER_STATUS_PENDING_REVIEW || status == ORDER_STATUS_COMPLETED) && !isAfterSalesWithinWindow(order)) {
+        if ((status == ORDER_STATUS_PENDING_REVIEW || status == ORDER_STATUS_COMPLETED)
+                && !isAfterSalesWithinWindow(order)) {
             return "订单完成已超过" + getAfterSalesValidDays() + "天，无法申请售后";
         }
         return "当前订单暂不支持申请售后";
@@ -751,9 +898,9 @@ public class UserProductOrderController {
         }
         String value = tab.trim();
         if ("pending-delivery".equals(value)
-            || "pending-receipt".equals(value)
-            || "finished".equals(value)
-            || "closed".equals(value)) {
+                || "pending-receipt".equals(value)
+                || "finished".equals(value)
+                || "closed".equals(value)) {
             return value;
         }
         return "all";
@@ -864,13 +1011,18 @@ public class UserProductOrderController {
         return "未知状态";
     }
 
-    private List<UserAfterSalesSubmitMediaItem> normalizeAfterSalesImages(List<UserAfterSalesSubmitMediaItem> images) {
+    private List<UserAfterSalesSubmitMediaItem> normalizeAfterSalesImages(
+            List<UserAfterSalesSubmitMediaItem> images) {
         if (images == null || images.isEmpty()) {
             return Collections.emptyList();
         }
-        List<UserAfterSalesSubmitMediaItem> normalized = images.stream()
-            .filter(item -> item != null && StringUtils.hasText(trimToNull(item.getUrl())))
-            .collect(Collectors.toList());
+        List<UserAfterSalesSubmitMediaItem> normalized =
+                images.stream()
+                        .filter(
+                                item ->
+                                        item != null
+                                                && StringUtils.hasText(trimToNull(item.getUrl())))
+                        .collect(Collectors.toList());
         int maxImageCount = getAfterSalesMaxImageCount();
         if (normalized.size() > maxImageCount) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "售后图片最多上传" + maxImageCount + "张");
@@ -878,7 +1030,8 @@ public class UserProductOrderController {
         return normalized;
     }
 
-    private UserAfterSalesSubmitMediaItem normalizeAfterSalesVideo(UserAfterSalesSubmitMediaItem video) {
+    private UserAfterSalesSubmitMediaItem normalizeAfterSalesVideo(
+            UserAfterSalesSubmitMediaItem video) {
         if (video == null || !StringUtils.hasText(trimToNull(video.getUrl()))) {
             return null;
         }
@@ -889,10 +1042,11 @@ public class UserProductOrderController {
         if (images == null || images.isEmpty()) {
             return null;
         }
-        List<String> urls = images.stream()
-            .map(UserAfterSalesSubmitMediaItem::getUrl)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toList());
+        List<String> urls =
+                images.stream()
+                        .map(UserAfterSalesSubmitMediaItem::getUrl)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toList());
         try {
             return urls.isEmpty() ? null : OBJECT_MAPPER.writeValueAsString(urls);
         } catch (Exception exception) {
@@ -901,11 +1055,10 @@ public class UserProductOrderController {
     }
 
     private void saveAfterSalesImages(
-        List<UserAfterSalesSubmitMediaItem> images,
-        String applicationId,
-        String accountId,
-        long now
-    ) {
+            List<UserAfterSalesSubmitMediaItem> images,
+            String applicationId,
+            String accountId,
+            long now) {
         if (images == null || images.isEmpty()) {
             return;
         }
@@ -913,16 +1066,20 @@ public class UserProductOrderController {
             UserAfterSalesSubmitMediaItem image = images.get(index);
             Images entity = new Images();
             String fileUrl = trimToNull(image.getUrl());
-            String fileName = StringUtils.hasText(trimToNull(image.getName()))
-                ? image.getName().trim()
-                : ("after-sales-image-" + (index + 1) + ".jpg");
+            String fileName =
+                    StringUtils.hasText(trimToNull(image.getName()))
+                            ? image.getName().trim()
+                            : ("after-sales-image-" + (index + 1) + ".jpg");
             entity.setId(SnowflakeIdUtil.nextImageId());
             entity.setOriginalName(fileName);
             entity.setFileName(fileName);
             entity.setFilePath(fileUrl);
             entity.setFileUrl(fileUrl);
             entity.setFileSize(image.getFileSize() == null ? 0L : image.getFileSize());
-            entity.setMimeType(StringUtils.hasText(trimToNull(image.getMimeType())) ? image.getMimeType().trim() : "image/jpeg");
+            entity.setMimeType(
+                    StringUtils.hasText(trimToNull(image.getMimeType()))
+                            ? image.getMimeType().trim()
+                            : "image/jpeg");
             entity.setWidth(image.getWidth());
             entity.setHeight(image.getHeight());
             entity.setUploaderId(accountId);
@@ -938,26 +1095,26 @@ public class UserProductOrderController {
     }
 
     private void saveAfterSalesVideo(
-        UserAfterSalesSubmitMediaItem video,
-        String applicationId,
-        String accountId,
-        long now
-    ) {
+            UserAfterSalesSubmitMediaItem video, String applicationId, String accountId, long now) {
         if (video == null || !StringUtils.hasText(trimToNull(video.getUrl()))) {
             return;
         }
         Videos entity = new Videos();
         String fileUrl = trimToNull(video.getUrl());
-        String fileName = StringUtils.hasText(trimToNull(video.getName()))
-            ? video.getName().trim()
-            : "after-sales-video.mp4";
+        String fileName =
+                StringUtils.hasText(trimToNull(video.getName()))
+                        ? video.getName().trim()
+                        : "after-sales-video.mp4";
         entity.setId(SnowflakeIdUtil.nextVideoId());
         entity.setOriginalName(fileName);
         entity.setFileName(fileName);
         entity.setFilePath(fileUrl);
         entity.setFileUrl(fileUrl);
         entity.setFileSize(video.getFileSize() == null ? 0L : video.getFileSize());
-        entity.setMimeType(StringUtils.hasText(trimToNull(video.getMimeType())) ? video.getMimeType().trim() : "video/mp4");
+        entity.setMimeType(
+                StringUtils.hasText(trimToNull(video.getMimeType()))
+                        ? video.getMimeType().trim()
+                        : "video/mp4");
         entity.setDuration(video.getDuration());
         entity.setWidth(video.getWidth());
         entity.setHeight(video.getHeight());
@@ -983,7 +1140,10 @@ public class UserProductOrderController {
             item.setId(image.getId());
             item.setUrl(safe(image.getFileUrl()));
             item.setThumbnailUrl(safe(image.getFileUrl()));
-            item.setName(StringUtils.hasText(image.getOriginalName()) ? image.getOriginalName() : safe(image.getFileName()));
+            item.setName(
+                    StringUtils.hasText(image.getOriginalName())
+                            ? image.getOriginalName()
+                            : safe(image.getFileName()));
             item.setMimeType(safe(image.getMimeType()));
             items.add(item);
         }
@@ -1000,7 +1160,10 @@ public class UserProductOrderController {
             item.setId(video.getId());
             item.setUrl(safe(video.getFileUrl()));
             item.setThumbnailUrl(safe(video.getThumbnailUrl()));
-            item.setName(StringUtils.hasText(video.getOriginalName()) ? video.getOriginalName() : safe(video.getFileName()));
+            item.setName(
+                    StringUtils.hasText(video.getOriginalName())
+                            ? video.getOriginalName()
+                            : safe(video.getFileName()));
             item.setMimeType(safe(video.getMimeType()));
             item.setDuration(video.getDuration());
             items.add(item);
@@ -1013,14 +1176,12 @@ public class UserProductOrderController {
             return Collections.emptyList();
         }
         return toImageItems(
-            imagesService.list(
-                new LambdaQueryWrapper<Images>()
-                    .eq(Images::getBusinessType, AFTER_SALES_BUSINESS_TYPE)
-                    .eq(Images::getBusinessId, applicationId)
-                    .eq(Images::getIsDelete, 0)
-                    .orderByAsc(Images::getCreatedTime)
-            )
-        );
+                imagesService.list(
+                        new LambdaQueryWrapper<Images>()
+                                .eq(Images::getBusinessType, AFTER_SALES_BUSINESS_TYPE)
+                                .eq(Images::getBusinessId, applicationId)
+                                .eq(Images::getIsDelete, 0)
+                                .orderByAsc(Images::getCreatedTime)));
     }
 
     private List<UserOrderMediaItemResponse> listAfterSalesVideos(String applicationId) {
@@ -1028,21 +1189,19 @@ public class UserProductOrderController {
             return Collections.emptyList();
         }
         return toVideoItems(
-            videosService.list(
-                new LambdaQueryWrapper<Videos>()
-                    .eq(Videos::getBusinessType, AFTER_SALES_BUSINESS_TYPE)
-                    .eq(Videos::getBusinessId, applicationId)
-                    .eq(Videos::getIsDelete, 0)
-                    .orderByAsc(Videos::getCreatedTime)
-            )
-        );
+                videosService.list(
+                        new LambdaQueryWrapper<Videos>()
+                                .eq(Videos::getBusinessType, AFTER_SALES_BUSINESS_TYPE)
+                                .eq(Videos::getBusinessId, applicationId)
+                                .eq(Videos::getIsDelete, 0)
+                                .orderByAsc(Videos::getCreatedTime)));
     }
 
     private long getAfterSalesValidDays() {
-        Long value = systemConfigsService.getLongConfig(
-            SystemConfigRegistry.AFTER_SALES_VALID_DAYS,
-            DEFAULT_AFTER_SALES_VALID_DAYS
-        );
+        Long value =
+                systemConfigsService.getLongConfig(
+                        SystemConfigRegistry.AFTER_SALES_VALID_DAYS,
+                        DEFAULT_AFTER_SALES_VALID_DAYS);
         return value == null || value <= 0L ? DEFAULT_AFTER_SALES_VALID_DAYS : value;
     }
 
@@ -1051,15 +1210,17 @@ public class UserProductOrderController {
     }
 
     private int getAfterSalesMaxImageCount() {
-        Integer value = systemConfigsService.getIntegerConfig(
-            SystemConfigRegistry.AFTER_SALES_MAX_IMAGE_COUNT,
-            DEFAULT_MAX_AFTER_SALES_IMAGE_COUNT
-        );
+        Integer value =
+                systemConfigsService.getIntegerConfig(
+                        SystemConfigRegistry.AFTER_SALES_MAX_IMAGE_COUNT,
+                        DEFAULT_MAX_AFTER_SALES_IMAGE_COUNT);
         return value == null || value <= 0 ? DEFAULT_MAX_AFTER_SALES_IMAGE_COUNT : value;
     }
 
     private String formatMoney(BigDecimal value) {
-        return (value == null ? BigDecimal.ZERO : value).setScale(2, RoundingMode.HALF_UP).toPlainString();
+        return (value == null ? BigDecimal.ZERO : value)
+                .setScale(2, RoundingMode.HALF_UP)
+                .toPlainString();
     }
 
     private String trimToNull(String value) {
@@ -1071,6 +1232,25 @@ public class UserProductOrderController {
             return null;
         }
         return trimmed;
+    }
+
+    /** 判断取消原因是否属于商家问题（应引导走售后通道）。 */
+    private boolean isMerchantIssueReason(String reason) {
+        if (!StringUtils.hasText(reason)) {
+            return false;
+        }
+        String lower = reason.toLowerCase();
+        return lower.contains("商家")
+                || lower.contains("师傅")
+                || lower.contains("维修")
+                || lower.contains("服务差")
+                || lower.contains("态度")
+                || lower.contains("质量")
+                || lower.contains("损坏")
+                || lower.contains("弄坏")
+                || lower.contains("技术")
+                || lower.contains("不专业")
+                || lower.contains("乱收费");
     }
 
     private String safe(String value) {

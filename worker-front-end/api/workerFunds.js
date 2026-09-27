@@ -15,3 +15,18 @@ export function listWorkerFundFlows(params) {
   });
 }
 
+export function applyWorkerWithdrawal(data) {
+  return request({
+    url: '/worker/withdrawals/apply',
+    method: 'POST',
+    data: data || {}
+  });
+}
+
+export function listWorkerWithdrawals(params) {
+  return request({
+    url: '/worker/withdrawals/list',
+    method: 'GET',
+    data: params || {}
+  });
+}

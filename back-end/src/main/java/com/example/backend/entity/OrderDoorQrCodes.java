@@ -10,8 +10,7 @@ import lombok.Data;
 @TableName("order_door_qr_codes")
 public class OrderDoorQrCodes {
 
-    @TableId
-    private String id;
+    @TableId private String id;
 
     private String repairOrderId;
 
@@ -35,9 +34,7 @@ public class OrderDoorQrCodes {
 
     private Long updatedTime;
 
-    @Version
-    private Integer version;
+    @Version private Integer version;
 
-    @TableLogic
-    private Integer isDelete;
+    @TableLogic private Integer isDelete;
 }

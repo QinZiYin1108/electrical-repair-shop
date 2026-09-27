@@ -1,13 +1,14 @@
 package com.example.backend.controller.worker;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.example.backend.common.ErrorCode;
 import com.example.backend.common.Result;
 import com.example.backend.entity.AccountCancelRecords;
 import com.example.backend.entity.Images;
 import com.example.backend.entity.RepairOrders;
+import com.example.backend.entity.Stores;
 import com.example.backend.entity.TechnicianAccounts;
-import com.example.backend.entity.TechnicianServiceAreas;
 import com.example.backend.exception.BusinessException;
 import com.example.backend.model.worker.WorkerAccountCancelStatusResponse;
 import com.example.backend.model.worker.WorkerAccountInfoResponse;
@@ -17,11 +18,13 @@ import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.AccountCancelRecordsService;
 import com.example.backend.service.ImagesService;
 import com.example.backend.service.RepairOrdersService;
+import com.example.backend.service.StoresService;
 import com.example.backend.service.SystemConfigsService;
 import com.example.backend.service.TechnicianAccountsService;
-import com.example.backend.service.TechnicianServiceAreasService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import java.math.BigDecimal;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,9 +32,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.math.BigDecimal;
-
 @RestController
+@Tag(name = "师傅端/账号管理")
 @RequestMapping("/worker/account")
 public class WorkerAccountController {
 
@@ -42,59 +44,63 @@ public class WorkerAccountController {
     private static final int DEFAULT_CANCEL_DATA_RETENTION_DAYS = 30;
 
     private final TechnicianAccountsService technicianAccountsService;
-    private final TechnicianServiceAreasService technicianServiceAreasService;
     private final ImagesService imagesService;
     private final RepairOrdersService repairOrdersService;
     private final AccountCancelRecordsService accountCancelRecordsService;
     private final SystemConfigsService systemConfigsService;
+    private final StoresService storesService;
 
     public WorkerAccountController(
-        TechnicianAccountsService technicianAccountsService,
-        TechnicianServiceAreasService technicianServiceAreasService,
-        ImagesService imagesService,
-        RepairOrdersService repairOrdersService,
-        AccountCancelRecordsService accountCancelRecordsService,
-        SystemConfigsService systemConfigsService
-    ) {
+            TechnicianAccountsService technicianAccountsService,
+            ImagesService imagesService,
+            RepairOrdersService repairOrdersService,
+            AccountCancelRecordsService accountCancelRecordsService,
+            SystemConfigsService systemConfigsService,
+            StoresService storesService) {
         this.technicianAccountsService = technicianAccountsService;
-        this.technicianServiceAreasService = technicianServiceAreasService;
         this.imagesService = imagesService;
         this.repairOrdersService = repairOrdersService;
         this.accountCancelRecordsService = accountCancelRecordsService;
         this.systemConfigsService = systemConfigsService;
+        this.storesService = storesService;
     }
 
+    @Operation(summary = "查询CurrentWorker")
     @GetMapping("/me")
     public Result<WorkerAccountInfoResponse> getCurrentWorker() {
         LoginUserInfo user = requireWorker();
         String accountId = user.getAccountId();
         TechnicianAccounts technician = technicianAccountsService.getById(accountId);
-        if (technician == null || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
+        if (technician == null
+                || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "师傅账号不存在");
         }
 
         String avatarUrl = null;
-        Images avatarImage = imagesService.getOne(
-            new LambdaQueryWrapper<Images>()
-                .eq(Images::getBusinessType, "AVATAR")
-                .eq(Images::getBusinessId, accountId)
-                .eq(Images::getIsDelete, 0)
-                .orderByDesc(Images::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+        Images avatarImage =
+                imagesService.getOne(
+                        new LambdaQueryWrapper<Images>()
+                                .eq(Images::getBusinessType, "AVATAR")
+                                .eq(Images::getBusinessId, accountId)
+                                .eq(Images::getIsDelete, 0)
+                                .orderByDesc(Images::getCreatedTime)
+                                .last("limit 1"),
+                        false);
         if (avatarImage != null) {
             avatarUrl = avatarImage.getFileUrl();
         }
 
-        long pendingOrderCount = repairOrdersService.count(
-            new LambdaQueryWrapper<RepairOrders>()
-                .eq(RepairOrders::getTechnicianAccountId, accountId)
-                .eq(RepairOrders::getIsDelete, 0)
-                .in(RepairOrders::getStatus, 2, 3, 4, 5)
-        );
+        long pendingOrderCount =
+                repairOrdersService.count(
+                        new LambdaQueryWrapper<RepairOrders>()
+                                .eq(RepairOrders::getTechnicianAccountId, accountId)
+                                .eq(RepairOrders::getIsDelete, 0)
+                                .in(RepairOrders::getStatus, 2, 3, 4, 5));
 
-        TechnicianServiceAreas area = getDefaultArea(accountId);
+        Stores store = null;
+        if (technician.getStoreId() != null) {
+            store = storesService.getById(technician.getStoreId());
+        }
 
         WorkerAccountInfoResponse response = new WorkerAccountInfoResponse();
         response.setId(technician.getId());
@@ -103,13 +109,21 @@ public class WorkerAccountController {
         response.setAccountStatus(technician.getAccountStatus());
         response.setWorkStatus(technician.getWorkStatus());
         response.setPendingOrderCount((int) pendingOrderCount);
-        response.setAddress(area == null ? null : area.getCenterAddress());
-        response.setLatitude(area == null ? null : area.getCenterLatitude());
-        response.setLongitude(area == null ? null : area.getCenterLongitude());
+        response.setAddress(store == null ? null : store.getAddress());
+        response.setLatitude(store == null ? null : store.getLatitude());
+        response.setLongitude(store == null ? null : store.getLongitude());
         response.setAvatarUrl(avatarUrl);
+        response.setStoreId(technician.getStoreId());
+
+        if (store != null) {
+            response.setStoreName(store.getName());
+            response.setStoreAddress(store.getAddress());
+        }
+
         return Result.success(response);
     }
 
+    @Operation(summary = "查询注销Status")
     @GetMapping("/cancel/status")
     public Result<WorkerAccountCancelStatusResponse> getCancelStatus() {
         LoginUserInfo user = requireWorker();
@@ -126,6 +140,7 @@ public class WorkerAccountController {
         return Result.success(buildCancelStatusResponse(account.getAccountStatus(), state));
     }
 
+    @Operation(summary = "提交申请注销")
     @PostMapping("/cancel/apply")
     public Result<WorkerAccountCancelStatusResponse> applyCancel() {
         LoginUserInfo user = requireWorker();
@@ -169,6 +184,7 @@ public class WorkerAccountController {
         return Result.success(buildCancelStatusResponse(account.getAccountStatus(), newState));
     }
 
+    @Operation(summary = "提交撤销注销")
     @PostMapping("/cancel/revoke")
     public Result<WorkerAccountCancelStatusResponse> revokeCancel() {
         LoginUserInfo user = requireWorker();
@@ -187,13 +203,12 @@ public class WorkerAccountController {
 
         // Mark cancel record as deleted (avoid empty SET clause).
         accountCancelRecordsService.update(
-            null,
-            new UpdateWrapper<AccountCancelRecords>()
-                .set("is_delete", 1)
-                .eq("account_id", accountId)
-                .eq("cancel_type", 1)
-                .eq("is_delete", 0)
-        );
+                null,
+                new UpdateWrapper<AccountCancelRecords>()
+                        .set("is_delete", 1)
+                        .eq("account_id", accountId)
+                        .eq("cancel_type", 1)
+                        .eq("is_delete", 0));
 
         CancelState revoked = new CancelState(false, null, null, false);
         return Result.success(buildCancelStatusResponse(account.getAccountStatus(), revoked));
@@ -211,6 +226,7 @@ public class WorkerAccountController {
         }
     }
 
+    @Operation(summary = "修改编辑WorkStatus")
     @PostMapping("/work-status")
     public Result<Void> updateWorkStatus(@RequestBody UpdateWorkStatusRequest request) {
         if (request == null) {
@@ -224,17 +240,30 @@ public class WorkerAccountController {
 
         String accountId = user.getAccountId();
         TechnicianAccounts technician = technicianAccountsService.getById(accountId);
-        if (technician == null || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
+        if (technician == null
+                || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "师傅账号不存在");
         }
         if (technician.getAccountStatus() == null || technician.getAccountStatus() != 1) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, getAccountStatusBlockedMessage(technician.getAccountStatus()));
+            throw new BusinessException(
+                    ErrorCode.FORBIDDEN,
+                    getAccountStatusBlockedMessage(technician.getAccountStatus()));
         }
 
         if (status == 1) {
-            TechnicianServiceAreas area = getDefaultArea(accountId);
-            if (!hasValidLocation(area)) {
-                throw new BusinessException(ErrorCode.BUSINESS_ERROR, "请先完成定位并填写地址后再上线");
+            // 上线前检查是否已绑定门店且门店可接单
+            if (!technicianAccountsService.canAcceptOrder(accountId)) {
+                throw new BusinessException(ErrorCode.BUSINESS_ERROR, "请先绑定门店后再上线");
+            }
+            // 校验门店定位是否有效
+            String storeId = technician.getStoreId();
+            if (storeId != null) {
+                Stores store = storesService.getById(storeId);
+                if (store == null || !hasValidLocation(store)) {
+                    throw new BusinessException(ErrorCode.BUSINESS_ERROR, "请先完善门店定位信息后再上线");
+                }
+            } else {
+                throw new BusinessException(ErrorCode.BUSINESS_ERROR, "请先绑定门店后再上线");
             }
         }
 
@@ -244,35 +273,24 @@ public class WorkerAccountController {
         return Result.success();
     }
 
-    private TechnicianServiceAreas getDefaultArea(String accountId) {
-        return technicianServiceAreasService.getOne(
-            new LambdaQueryWrapper<TechnicianServiceAreas>()
-                .eq(TechnicianServiceAreas::getTechnicianAccountId, accountId)
-                .eq(TechnicianServiceAreas::getIsDelete, 0)
-                .orderByDesc(TechnicianServiceAreas::getIsDefault)
-                .orderByDesc(TechnicianServiceAreas::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
-    }
-
-    private boolean hasValidLocation(TechnicianServiceAreas area) {
-        if (area == null) {
+    private boolean hasValidLocation(Stores store) {
+        if (store == null) {
             return false;
         }
-        if (!StringUtils.hasText(area.getCenterAddress())) {
+        if (!StringUtils.hasText(store.getAddress())) {
             return false;
         }
-        BigDecimal latitude = area.getCenterLatitude();
-        BigDecimal longitude = area.getCenterLongitude();
+        BigDecimal latitude = store.getLatitude();
+        BigDecimal longitude = store.getLongitude();
         if (latitude == null || longitude == null) {
             return false;
         }
         return latitude.compareTo(BigDecimal.valueOf(-90)) >= 0
-            && latitude.compareTo(BigDecimal.valueOf(90)) <= 0
-            && longitude.compareTo(BigDecimal.valueOf(-180)) >= 0
-            && longitude.compareTo(BigDecimal.valueOf(180)) <= 0
-            && (latitude.compareTo(BigDecimal.ZERO) != 0 || longitude.compareTo(BigDecimal.ZERO) != 0);
+                && latitude.compareTo(BigDecimal.valueOf(90)) <= 0
+                && longitude.compareTo(BigDecimal.valueOf(-180)) >= 0
+                && longitude.compareTo(BigDecimal.valueOf(180)) <= 0
+                && (latitude.compareTo(BigDecimal.ZERO) != 0
+                        || longitude.compareTo(BigDecimal.ZERO) != 0);
     }
 
     private LoginUserInfo requireWorker() {
@@ -297,13 +315,17 @@ public class WorkerAccountController {
         return account;
     }
 
-    private WorkerAccountCancelStatusResponse buildCancelStatusResponse(Integer accountStatus, CancelState state) {
+    private WorkerAccountCancelStatusResponse buildCancelStatusResponse(
+            Integer accountStatus, CancelState state) {
         WorkerAccountCancelStatusResponse resp = new WorkerAccountCancelStatusResponse();
         boolean canceling = state != null && state.canceling;
         resp.setCanceling(canceling);
         resp.setCancelApplyTime(state == null ? null : state.applyTime);
         resp.setCancelDeadlineTime(state == null ? null : state.deadlineTime);
-        boolean canApply = !canceling && safeInt(accountStatus) != ACCOUNT_STATUS_FROZEN && safeInt(accountStatus) != ACCOUNT_STATUS_LEFT;
+        boolean canApply =
+                !canceling
+                        && safeInt(accountStatus) != ACCOUNT_STATUS_FROZEN
+                        && safeInt(accountStatus) != ACCOUNT_STATUS_LEFT;
         resp.setCanApply(canApply);
         resp.setCanRevoke(canceling);
         int cancelGraceDays = getCancelGraceDays();
@@ -320,15 +342,15 @@ public class WorkerAccountController {
     }
 
     private CancelState getCancelState(String technicianAccountId, long now) {
-        AccountCancelRecords record = accountCancelRecordsService.getOne(
-            new LambdaQueryWrapper<AccountCancelRecords>()
-                .eq(AccountCancelRecords::getAccountId, technicianAccountId)
-                .eq(AccountCancelRecords::getCancelType, 1)
-                .eq(AccountCancelRecords::getIsDelete, 0)
-                .orderByDesc(AccountCancelRecords::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+        AccountCancelRecords record =
+                accountCancelRecordsService.getOne(
+                        new LambdaQueryWrapper<AccountCancelRecords>()
+                                .eq(AccountCancelRecords::getAccountId, technicianAccountId)
+                                .eq(AccountCancelRecords::getCancelType, 1)
+                                .eq(AccountCancelRecords::getIsDelete, 0)
+                                .orderByDesc(AccountCancelRecords::getCreatedTime)
+                                .last("limit 1"),
+                        false);
         if (record == null || record.getCreatedTime() == null || record.getCreatedTime() <= 0L) {
             return new CancelState(false, null, null, false);
         }
@@ -351,15 +373,14 @@ public class WorkerAccountController {
 
         // Mark cancel record as system canceled (keep it as main data).
         accountCancelRecordsService.update(
-            null,
-            new UpdateWrapper<AccountCancelRecords>()
-                .set("cancel_type", 2)
-                .set("cancel_time", now)
-                .set("operator_id", "SYSTEM")
-                .eq("account_id", account.getId())
-                .eq("cancel_type", 1)
-                .eq("is_delete", 0)
-        );
+                null,
+                new UpdateWrapper<AccountCancelRecords>()
+                        .set("cancel_type", 2)
+                        .set("cancel_time", now)
+                        .set("operator_id", "SYSTEM")
+                        .eq("account_id", account.getId())
+                        .eq("cancel_type", 1)
+                        .eq("is_delete", 0));
     }
 
     private static final class CancelState {
@@ -381,7 +402,9 @@ public class WorkerAccountController {
     }
 
     private int getCancelGraceDays() {
-        Integer value = systemConfigsService.getIntegerConfig("account.cancel_grace_days", DEFAULT_CANCEL_GRACE_DAYS);
+        Integer value =
+                systemConfigsService.getIntegerConfig(
+                        "account.cancel_grace_days", DEFAULT_CANCEL_GRACE_DAYS);
         return value == null || value <= 0 ? DEFAULT_CANCEL_GRACE_DAYS : value;
     }
 
@@ -390,10 +413,9 @@ public class WorkerAccountController {
     }
 
     private int getCancelDataRetentionDays() {
-        Integer value = systemConfigsService.getIntegerConfig(
-            "account.cancel_data_retention_days",
-            DEFAULT_CANCEL_DATA_RETENTION_DAYS
-        );
+        Integer value =
+                systemConfigsService.getIntegerConfig(
+                        "account.cancel_data_retention_days", DEFAULT_CANCEL_DATA_RETENTION_DAYS);
         return value == null || value <= 0 ? DEFAULT_CANCEL_DATA_RETENTION_DAYS : value;
     }
 

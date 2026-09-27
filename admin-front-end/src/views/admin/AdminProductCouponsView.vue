@@ -35,19 +35,29 @@
         <el-button @click="handleReset">重置</el-button>
       </div>
 
-      <el-table v-loading="loading" :data="list" border class="coupon-table" header-cell-class-name="coupon-table-header">
+      <el-table
+        v-loading="loading"
+        :data="list"
+        border
+        class="coupon-table"
+        header-cell-class-name="coupon-table-header"
+      >
         <el-table-column type="index" label="#" width="60" align="center" />
         <el-table-column label="优惠券信息" min-width="220">
           <template #default="{ row }">
             <div class="stack-text strong">{{ row.name || '-' }}</div>
-            <div class="stack-text muted">{{ row.typeText || '-' }} / {{ row.discountTypeText || '-' }}</div>
+            <div class="stack-text muted">
+              {{ row.typeText || '-' }} / {{ row.discountTypeText || '-' }}
+            </div>
           </template>
         </el-table-column>
         <el-table-column label="优惠规则" min-width="180">
           <template #default="{ row }">
             <div class="stack-text strong">{{ buildDiscountText(row) }}</div>
             <div class="stack-text muted">满 {{ formatMoney(row.minAmount) }} 可用</div>
-            <div v-if="row.maxDiscount" class="stack-text muted">最高减 {{ formatMoney(row.maxDiscount) }}</div>
+            <div v-if="row.maxDiscount" class="stack-text muted">
+              最高减 {{ formatMoney(row.maxDiscount) }}
+            </div>
           </template>
         </el-table-column>
         <el-table-column label="适用范围" min-width="160">
@@ -58,8 +68,12 @@
         </el-table-column>
         <el-table-column label="发放情况" min-width="150">
           <template #default="{ row }">
-            <div class="stack-text strong">已领 {{ row.receiveCount || 0 }} / {{ row.totalCount || 0 }}</div>
-            <div class="stack-text muted">已用 {{ row.usedCount || 0 }}，剩余 {{ row.remainingCount || 0 }}</div>
+            <div class="stack-text strong">
+              已领 {{ row.receiveCount || 0 }} / {{ row.totalCount || 0 }}
+            </div>
+            <div class="stack-text muted">
+              已用 {{ row.usedCount || 0 }}，剩余 {{ row.remainingCount || 0 }}
+            </div>
           </template>
         </el-table-column>
         <el-table-column label="有效期" min-width="180">
@@ -70,12 +84,14 @@
         </el-table-column>
         <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag size="small" :type="Number(row.status) === 1 ? 'success' : 'info'">{{ row.statusText || '-' }}</el-tag>
+            <el-tag size="small" :type="Number(row.status) === 1 ? 'success' : 'info'">{{
+              row.statusText || '-'
+            }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="120" fixed="right" align="center">
           <template #default="{ row }">
-            <el-dropdown trigger="click" @command="command => handleRowCommand(command, row)">
+            <el-dropdown trigger="click" @command="(command) => handleRowCommand(command, row)">
               <el-button size="small" class="action-trigger">
                 操作
                 <el-icon class="el-icon--right"><ArrowDown /></el-icon>
@@ -108,7 +124,12 @@
       </div>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="dialogMode === 'create' ? '新建优惠券' : '编辑优惠券'" width="760px" destroy-on-close>
+    <el-dialog
+      v-model="dialogVisible"
+      :title="dialogMode === 'create' ? '新建优惠券' : '编辑优惠券'"
+      width="760px"
+      destroy-on-close
+    >
       <el-form :model="form" label-width="100px">
         <div class="form-grid">
           <el-form-item label="优惠券名称" required>
@@ -128,13 +149,31 @@
             </el-select>
           </el-form-item>
           <el-form-item :label="form.discountType === 2 ? '折扣值' : '优惠金额'" required>
-            <el-input-number v-model="form.discountValue" :min="0" :precision="2" :step="1" style="width: 100%" />
+            <el-input-number
+              v-model="form.discountValue"
+              :min="0"
+              :precision="2"
+              :step="1"
+              style="width: 100%"
+            />
           </el-form-item>
           <el-form-item label="使用门槛" required>
-            <el-input-number v-model="form.minAmount" :min="0" :precision="2" :step="1" style="width: 100%" />
+            <el-input-number
+              v-model="form.minAmount"
+              :min="0"
+              :precision="2"
+              :step="1"
+              style="width: 100%"
+            />
           </el-form-item>
           <el-form-item label="最高减免">
-            <el-input-number v-model="form.maxDiscount" :min="0" :precision="2" :step="1" style="width: 100%" />
+            <el-input-number
+              v-model="form.maxDiscount"
+              :min="0"
+              :precision="2"
+              :step="1"
+              style="width: 100%"
+            />
           </el-form-item>
           <el-form-item label="发放总量" required>
             <el-input-number v-model="form.totalCount" :min="1" :step="1" style="width: 100%" />
@@ -236,11 +275,7 @@
         <el-form-item v-if="userSearchExecuted" label="搜索结果">
           <div class="grant-search-panel" v-loading="userOptionsLoading">
             <template v-if="userOptions.length">
-              <div
-                v-for="item in userOptions"
-                :key="item.id"
-                class="grant-search-item"
-              >
+              <div v-for="item in userOptions" :key="item.id" class="grant-search-item">
                 <div class="grant-search-main">
                   <div class="grant-search-name">{{ item.username || '未命名用户' }}</div>
                   <div class="grant-search-meta">
@@ -291,7 +326,9 @@
       </el-form>
       <template #footer>
         <el-button @click="grantDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="grantSubmitting" @click="submitGrant">确认发放</el-button>
+        <el-button type="primary" :loading="grantSubmitting" @click="submitGrant"
+          >确认发放</el-button
+        >
       </template>
     </el-dialog>
   </div>
@@ -410,14 +447,10 @@ function buildApplicableDisplay(row) {
     return '适用于全部';
   }
   if (Number(row.applicableType) === 2) {
-    return row.applicableIds
-      .map(id => findCategoryLabel(id) || id)
-      .join('、');
+    return row.applicableIds.map((id) => findCategoryLabel(id) || id).join('、');
   }
   if (Number(row.applicableType) === 3) {
-    return row.applicableIds
-      .map(id => findProductLabel(id) || id)
-      .join('、');
+    return row.applicableIds.map((id) => findProductLabel(id) || id).join('、');
   }
   return buildApplicableIdsText(row.applicableIds);
 }
@@ -524,7 +557,9 @@ function openGrantDialog(row) {
 
 function parseApplicableIds() {
   return Array.isArray(form.applicableIds)
-    ? Array.from(new Set(form.applicableIds.map(item => String(item || '').trim()).filter(Boolean)))
+    ? Array.from(
+        new Set(form.applicableIds.map((item) => String(item || '').trim()).filter(Boolean))
+      )
     : [];
 }
 
@@ -563,9 +598,10 @@ async function submitForm() {
       startTime: Number(form.timeRange[0]),
       endTime: Number(form.timeRange[1])
     };
-    const res = dialogMode.value === 'create'
-      ? await createAdminCoupon(payload)
-      : await updateAdminCoupon(form.id, payload);
+    const res =
+      dialogMode.value === 'create'
+        ? await createAdminCoupon(payload)
+        : await updateAdminCoupon(form.id, payload);
     if (res && res.code === 200) {
       ElMessage.success(dialogMode.value === 'create' ? '优惠券创建成功' : '优惠券更新成功');
       dialogVisible.value = false;
@@ -667,7 +703,7 @@ async function loadUserOptions(search, options = {}) {
     });
     if (res && res.code === 200 && res.data) {
       const items = res.data.list || res.data.records || [];
-      userOptions.value = items.map(item => ({
+      userOptions.value = items.map((item) => ({
         id: item.id,
         username: item.username,
         realName: item.realName || '',
@@ -730,7 +766,7 @@ async function loadProductOptions(keywordValue) {
       keyword: keywordValue || undefined
     });
     if (res && res.code === 200 && Array.isArray(res.data)) {
-      const incoming = res.data.map(item => ({
+      const incoming = res.data.map((item) => ({
         id: item.id,
         label: buildProductOptionLabel(item),
         name: item.name || '',
@@ -753,7 +789,7 @@ function handleProductSearch(value) {
 
 function handleCategoryTreeCheck() {
   const checkedKeys = categoryTreeRef.value?.getCheckedKeys?.(false) || [];
-  form.applicableIds = checkedKeys.map(item => String(item));
+  form.applicableIds = checkedKeys.map((item) => String(item));
 }
 
 function syncCategoryTreeCheckedKeys() {
@@ -770,8 +806,8 @@ function clearCategorySelection() {
 
 function flattenCategoryOptions(nodes, prefix = '') {
   const result = [];
-  (Array.isArray(nodes) ? nodes : []).forEach(node => {
-    const label = prefix ? `${prefix} / ${node.name || node.id}` : (node.name || node.id);
+  (Array.isArray(nodes) ? nodes : []).forEach((node) => {
+    const label = prefix ? `${prefix} / ${node.name || node.id}` : node.name || node.id;
     result.push({
       id: node.id,
       label
@@ -792,7 +828,10 @@ function buildProductOptionLabel(item) {
 
 function mergeOptionsById(existing, incoming) {
   const map = new Map();
-  [...(Array.isArray(existing) ? existing : []), ...(Array.isArray(incoming) ? incoming : [])].forEach(item => {
+  [
+    ...(Array.isArray(existing) ? existing : []),
+    ...(Array.isArray(incoming) ? incoming : [])
+  ].forEach((item) => {
     if (item && item.id) {
       map.set(item.id, item);
     }
@@ -801,12 +840,12 @@ function mergeOptionsById(existing, incoming) {
 }
 
 function findCategoryLabel(id) {
-  const target = categorySelectOptions.value.find(item => item.id === id);
+  const target = categorySelectOptions.value.find((item) => item.id === id);
   return target ? target.label : '';
 }
 
 function findProductLabel(id) {
-  const target = productOptions.value.find(item => item.id === id);
+  const target = productOptions.value.find((item) => item.id === id);
   return target ? target.label : '';
 }
 
@@ -849,7 +888,9 @@ async function submitGrant() {
     });
     if (res && res.code === 200) {
       const data = res.data || {};
-      ElMessage.success(`发放完成：成功 ${data.grantCount || 0} 人，跳过 ${data.skipCount || 0} 人`);
+      ElMessage.success(
+        `发放完成：成功 ${data.grantCount || 0} 人，跳过 ${data.skipCount || 0} 人`
+      );
       grantDialogVisible.value = false;
       loadList();
       return;

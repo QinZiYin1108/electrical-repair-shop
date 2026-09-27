@@ -14,7 +14,10 @@
       <view class="hero-card">
         <view>
           <text class="hero-title">{{ i18n.mySkills }}</text>
-          <text class="hero-subtitle">{{ filteredSkills.length }} {{ i18n.items }} / {{ skills.length }} {{ i18n.total }}</text>
+          <text class="hero-subtitle"
+            >{{ filteredSkills.length }} {{ i18n.items }} / {{ skills.length }}
+            {{ i18n.total }}</text
+          >
         </view>
         <view class="hero-icon">
           <u-icon name="grid" size="24" color="#1677ff" />
@@ -39,11 +42,20 @@
           <view class="tree-section-head" @click="toggleCurrentCategoryTree">
             <text class="tree-section-title">{{ i18n.currentCategoryFilter }}</text>
             <view class="tree-section-toggle">
-              <text class="tree-section-toggle-text">{{ showCurrentCategoryTree ? i18n.collapse : i18n.expand }}</text>
-              <u-icon :name="showCurrentCategoryTree ? 'arrow-up' : 'arrow-down'" size="14" color="#64748b" />
+              <text class="tree-section-toggle-text">{{
+                showCurrentCategoryTree ? i18n.collapse : i18n.expand
+              }}</text>
+              <u-icon
+                :name="showCurrentCategoryTree ? 'arrow-up' : 'arrow-down'"
+                size="14"
+                color="#64748b"
+              />
             </view>
           </view>
-          <view v-if="showCurrentCategoryTree && currentCategoryTree.length" class="tree-wrap current-tree-panel">
+          <view
+            v-if="showCurrentCategoryTree && currentCategoryTree.length"
+            class="tree-wrap current-tree-panel"
+          >
             <view class="tree-col">
               <text class="tree-title">{{ i18n.level1Category }}</text>
               <scroll-view class="tree-scroll" scroll-y>
@@ -110,7 +122,9 @@
               </scroll-view>
             </view>
           </view>
-          <view v-else-if="showCurrentCategoryTree" class="placeholder filter-placeholder">{{ i18n.emptyCurrentCategories }}</view>
+          <view v-else-if="showCurrentCategoryTree" class="placeholder filter-placeholder">{{
+            i18n.emptyCurrentCategories
+          }}</view>
         </view>
       </view>
 
@@ -122,13 +136,11 @@
 
         <view v-if="loadingSkills" class="placeholder">{{ i18n.loading }}</view>
         <view v-else-if="!skills.length" class="placeholder">{{ i18n.emptySkills }}</view>
-        <view v-else-if="!filteredSkills.length" class="placeholder">{{ i18n.emptyFilteredSkills }}</view>
+        <view v-else-if="!filteredSkills.length" class="placeholder">{{
+          i18n.emptyFilteredSkills
+        }}</view>
         <view v-else class="skill-list">
-          <view
-            v-for="skill in filteredSkills"
-            :key="skill.serviceTypeId"
-            class="skill-card"
-          >
+          <view v-for="skill in filteredSkills" :key="skill.serviceTypeId" class="skill-card">
             <view class="skill-card-main">
               <view class="skill-card-top">
                 <text class="skill-name">{{ skill.serviceTypeName || i18n.unknownService }}</text>
@@ -202,8 +214,14 @@
           <view class="tree-section-head" @click="toggleAddCategoryTree">
             <text class="tree-section-title">{{ i18n.addCategoryFilter }}</text>
             <view class="tree-section-toggle">
-              <text class="tree-section-toggle-text">{{ showAddCategoryTree ? i18n.collapse : i18n.expand }}</text>
-              <u-icon :name="showAddCategoryTree ? 'arrow-up' : 'arrow-down'" size="14" color="#64748b" />
+              <text class="tree-section-toggle-text">{{
+                showAddCategoryTree ? i18n.collapse : i18n.expand
+              }}</text>
+              <u-icon
+                :name="showAddCategoryTree ? 'arrow-up' : 'arrow-down'"
+                size="14"
+                color="#64748b"
+              />
             </view>
           </view>
 
@@ -281,13 +299,11 @@
           </view>
 
           <view v-if="loadingAvailable" class="placeholder">{{ i18n.loading }}</view>
-          <view v-else-if="!availableServiceTypes.length" class="placeholder">{{ i18n.emptyAvailable }}</view>
+          <view v-else-if="!availableServiceTypes.length" class="placeholder">{{
+            i18n.emptyAvailable
+          }}</view>
           <checkbox-group v-else @change="onSelectedServiceTypesChange">
-            <label
-              v-for="item in availableServiceTypes"
-              :key="item.id"
-              class="service-row"
-            >
+            <label v-for="item in availableServiceTypes" :key="item.id" class="service-row">
               <view class="service-check">
                 <checkbox
                   :value="item.id"
@@ -297,15 +313,21 @@
               </view>
               <view class="service-main">
                 <text class="service-name">{{ item.name }}</text>
-                <text class="service-meta">{{ item.typeText || formatServiceMode(item.type) }}</text>
-                <text class="service-meta">{{ item.categoryPath || item.categoryName || i18n.uncategorized }}</text>
+                <text class="service-meta">{{
+                  item.typeText || formatServiceMode(item.type)
+                }}</text>
+                <text class="service-meta">{{
+                  item.categoryPath || item.categoryName || i18n.uncategorized
+                }}</text>
               </view>
             </label>
           </checkbox-group>
         </scroll-view>
 
         <view class="popup-footer">
-          <text class="selected-text">{{ i18n.selected }} {{ selectedServiceTypeIds.length }} {{ i18n.items }}</text>
+          <text class="selected-text"
+            >{{ i18n.selected }} {{ selectedServiceTypeIds.length }} {{ i18n.items }}</text
+          >
           <u-button
             class="popup-submit"
             :text="i18n.addSelected"
@@ -378,7 +400,9 @@ const I18N = {
 };
 
 function normalizeText(value) {
-  return String(value || '').trim().toLowerCase();
+  return String(value || '')
+    .trim()
+    .toLowerCase();
 }
 
 function splitCategoryPath(value) {
@@ -415,7 +439,10 @@ function buildCurrentSkillCategoryTree(skills, uncategorizedLabel) {
       let node = nodeMap.get(pathKey);
       if (!node) {
         node = {
-          id: index === segments.length - 1 && skill && skill.categoryId ? skill.categoryId : `path:${pathKey}`,
+          id:
+            index === segments.length - 1 && skill && skill.categoryId
+              ? skill.categoryId
+              : `path:${pathKey}`,
           name: segment,
           pathKey,
           children: []
@@ -440,7 +467,7 @@ function containsCategoryId(nodes, targetId) {
 }
 
 function findCategoryNodeById(nodes, targetId) {
-  for (const node of (Array.isArray(nodes) ? nodes : [])) {
+  for (const node of Array.isArray(nodes) ? nodes : []) {
     if (!node) continue;
     if (node.id === targetId) return node;
     const child = findCategoryNodeById(node.children, targetId);
@@ -505,11 +532,15 @@ export default {
       return Array.isArray(this.currentCategoryTree) ? this.currentCategoryTree : [];
     },
     currentLevel2List() {
-      const current = this.currentLevel1List.find((item) => item.id === this.selectedCurrentLevel1Id);
+      const current = this.currentLevel1List.find(
+        (item) => item.id === this.selectedCurrentLevel1Id
+      );
       return current && Array.isArray(current.children) ? current.children : [];
     },
     currentLevel3List() {
-      const current = this.currentLevel2List.find((item) => item.id === this.selectedCurrentLevel2Id);
+      const current = this.currentLevel2List.find(
+        (item) => item.id === this.selectedCurrentLevel2Id
+      );
       return current && Array.isArray(current.children) ? current.children : [];
     },
     filteredSkills() {
@@ -517,21 +548,24 @@ export default {
       return this.skills.filter((skill) => {
         if (!skill) return false;
         const categoryPath = this.formatSkillCategory(skill);
-        const matchesCategory = !this.selectedCurrentCategoryPath
-          || categoryPath === this.selectedCurrentCategoryPath
-          || categoryPath.startsWith(`${this.selectedCurrentCategoryPath} / `);
+        const matchesCategory =
+          !this.selectedCurrentCategoryPath ||
+          categoryPath === this.selectedCurrentCategoryPath ||
+          categoryPath.startsWith(`${this.selectedCurrentCategoryPath} / `);
         if (!matchesCategory) {
           return false;
         }
         if (!keyword) {
           return true;
         }
-        const searchText = normalizeText([
-          skill.serviceTypeName,
-          skill.categoryName,
-          skill.categoryPath,
-          skill.serviceModeText
-        ].join(' '));
+        const searchText = normalizeText(
+          [
+            skill.serviceTypeName,
+            skill.categoryName,
+            skill.categoryPath,
+            skill.serviceModeText
+          ].join(' ')
+        );
         return searchText.includes(keyword);
       });
     }
@@ -641,7 +675,9 @@ export default {
           if (res && res.code === 200 && Array.isArray(res.data)) {
             this.availableServiceTypes = res.data;
             const availableIds = new Set(res.data.map((item) => item.id));
-            this.selectedServiceTypeIds = this.selectedServiceTypeIds.filter((id) => availableIds.has(id));
+            this.selectedServiceTypeIds = this.selectedServiceTypeIds.filter((id) =>
+              availableIds.has(id)
+            );
             return;
           }
           this.availableServiceTypes = [];
@@ -706,18 +742,27 @@ export default {
         this.selectedCurrentCategoryPath = '';
         return;
       }
-      if (this.selectedCurrentLevel1Id && !containsCategoryId(this.currentCategoryTree, this.selectedCurrentLevel1Id)) {
+      if (
+        this.selectedCurrentLevel1Id &&
+        !containsCategoryId(this.currentCategoryTree, this.selectedCurrentLevel1Id)
+      ) {
         this.selectedCurrentLevel1Id = '';
         this.selectedCurrentLevel2Id = '';
         this.selectedCurrentLevel3Id = '';
         this.selectedCurrentCategoryPath = '';
         return;
       }
-      if (this.selectedCurrentLevel2Id && !containsCategoryId(this.currentCategoryTree, this.selectedCurrentLevel2Id)) {
+      if (
+        this.selectedCurrentLevel2Id &&
+        !containsCategoryId(this.currentCategoryTree, this.selectedCurrentLevel2Id)
+      ) {
         this.selectedCurrentLevel2Id = '';
         this.selectedCurrentLevel3Id = '';
       }
-      if (this.selectedCurrentLevel3Id && !containsCategoryId(this.currentCategoryTree, this.selectedCurrentLevel3Id)) {
+      if (
+        this.selectedCurrentLevel3Id &&
+        !containsCategoryId(this.currentCategoryTree, this.selectedCurrentLevel3Id)
+      ) {
         this.selectedCurrentLevel3Id = '';
       }
     },
@@ -783,14 +828,14 @@ export default {
     },
     onLevel3Select(item) {
       this.selectedLevel3Id = item && item.id ? item.id : '';
-      this.selectedCategoryId = this.selectedLevel3Id || this.selectedLevel2Id || this.selectedLevel1Id;
+      this.selectedCategoryId =
+        this.selectedLevel3Id || this.selectedLevel2Id || this.selectedLevel1Id;
       this.selectedServiceTypeIds = [];
       this.loadAvailableServiceTypes();
     },
     onSelectedServiceTypesChange(event) {
-      this.selectedServiceTypeIds = (event && event.detail && Array.isArray(event.detail.value))
-        ? event.detail.value
-        : [];
+      this.selectedServiceTypeIds =
+        event && event.detail && Array.isArray(event.detail.value) ? event.detail.value : [];
     },
     onBatchAddSkills() {
       if (!this.selectedServiceTypeIds.length || this.adding) return;

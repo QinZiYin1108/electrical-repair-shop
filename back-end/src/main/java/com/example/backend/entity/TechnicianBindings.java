@@ -7,8 +7,7 @@ import lombok.Data;
 @TableName("technician_bindings")
 public class TechnicianBindings {
 
-    @TableId
-    private String id;
+    @TableId private String id;
 
     private String storeId;
 
@@ -27,9 +26,7 @@ public class TechnicianBindings {
 
     private Long updatedTime;
 
-    @Version
-    private Integer version;
+    @Version private Integer version;
 
-    @TableLogic
-    private Integer isDelete;
+    @TableLogic private Integer isDelete;
 }

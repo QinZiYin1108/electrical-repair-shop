@@ -74,7 +74,7 @@ const EMPTY_RECOMMEND = {
   recommendedSecondary: []
 };
 
-const SHARE_TITLE = "安修到家｜家电维修、安装、清洗，一站到家";
+const SHARE_TITLE = "速修派｜家电维修、安装、清洗，一站到家";
 const SHARE_PATH = "/pages/home/index";
 const SHARE_IMAGE = "/assets/logo-full.png";
 

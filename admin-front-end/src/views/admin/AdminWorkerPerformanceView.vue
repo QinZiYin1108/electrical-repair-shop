@@ -92,7 +92,11 @@
         </el-table-column>
         <el-table-column label="完成率" width="150">
           <template #default="{ row }">
-            <el-progress :percentage="normalizePercent(row.completionRate)" :stroke-width="10" :show-text="false" />
+            <el-progress
+              :percentage="normalizePercent(row.completionRate)"
+              :stroke-width="10"
+              :show-text="false"
+            />
             <div class="progress-text">{{ formatPercent(row.completionRate) }}</div>
           </template>
         </el-table-column>
@@ -340,7 +344,11 @@ function goDetail(id) {
 }
 
 async function handleExternalRefresh(event) {
-  if (!event || !event.detail || !String(event.detail.path || '').startsWith('/admin/workers/performance')) {
+  if (
+    !event ||
+    !event.detail ||
+    !String(event.detail.path || '').startsWith('/admin/workers/performance')
+  ) {
     return;
   }
   event.detail.handled = true;

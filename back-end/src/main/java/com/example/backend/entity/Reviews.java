@@ -3,95 +3,57 @@ package com.example.backend.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
-/**
- * 评价表
- * @TableName reviews
- */
-@TableName(value ="reviews")
+/** 评价表 @TableName reviews */
+@TableName(value = "reviews")
 @Data
 public class Reviews {
-    /**
-     * 主键，R+雪花ID
-     */
-    @TableId
-    private String id;
+    /** 主键，R+雪花ID */
+    @TableId private String id;
 
-    /**
-     * 用户账号ID
-     */
+    /** 用户账号ID */
     private String accountId;
 
-    /**
-     * 订单ID
-     */
+    /** 订单ID */
     private String orderId;
 
-    /**
-     * 订单类型：1-维修订单，2-商品订单
-     */
+    /** 订单类型：1-维修订单，2-商品订单 */
     private Integer orderType;
 
-    /**
-     * 评价对象ID（师傅ID或商品ID）
-     */
+    /** 评价对象ID（师傅ID或商品ID） */
     private String targetId;
 
-    /**
-     * 评价对象类型：1-师傅，2-商品
-     */
+    /** 评价对象类型：1-师傅，2-商品，3-门店 */
     private Integer targetType;
 
-    /**
-     * 评分：1-5星
-     */
+    /** 评分：1-5星 */
     private Integer rating;
 
-    /**
-     * 评价内容
-     */
+    /** 评价内容 */
     private String content;
 
-    /**
-     * 是否匿名：0-否，1-是
-     */
+    /** 是否匿名：0-否，1-是 */
     private Integer isAnonymous;
 
-    /**
-     * 状态：1-正常，2-已隐藏
-     */
+    /** 状态：1-正常，2-已隐藏 */
     private Integer status;
 
-    /**
-     * 回复内容
-     */
+    /** 回复内容 */
     private String replyContent;
 
-    /**
-     * 回复时间戳
-     */
+    /** 回复时间戳 */
     private Long replyTime;
 
-    /**
-     * 创建时间戳
-     */
+    /** 创建时间戳 */
     private Long createdTime;
 
-    /**
-     * 更新时间戳
-     */
+    /** 更新时间戳 */
     private Long updatedTime;
 
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
+    /** 乐观锁版本号 */
+    @Version private Integer version;
 
-    /**
-     * 逻辑删除：0-未删除，1-已删除
-     */
-    @TableLogic
-    private Integer isDelete;
+    /** 逻辑删除：0-未删除，1-已删除 */
+    @TableLogic private Integer isDelete;
 
     @Override
     public boolean equals(Object that) {
@@ -106,21 +68,51 @@ public class Reviews {
         }
         Reviews other = (Reviews) that;
         return (this.getId() == null ? other.getId() == null : this.getId().equals(other.getId()))
-            && (this.getAccountId() == null ? other.getAccountId() == null : this.getAccountId().equals(other.getAccountId()))
-            && (this.getOrderId() == null ? other.getOrderId() == null : this.getOrderId().equals(other.getOrderId()))
-            && (this.getOrderType() == null ? other.getOrderType() == null : this.getOrderType().equals(other.getOrderType()))
-            && (this.getTargetId() == null ? other.getTargetId() == null : this.getTargetId().equals(other.getTargetId()))
-            && (this.getTargetType() == null ? other.getTargetType() == null : this.getTargetType().equals(other.getTargetType()))
-            && (this.getRating() == null ? other.getRating() == null : this.getRating().equals(other.getRating()))
-            && (this.getContent() == null ? other.getContent() == null : this.getContent().equals(other.getContent()))
-            && (this.getIsAnonymous() == null ? other.getIsAnonymous() == null : this.getIsAnonymous().equals(other.getIsAnonymous()))
-            && (this.getStatus() == null ? other.getStatus() == null : this.getStatus().equals(other.getStatus()))
-            && (this.getReplyContent() == null ? other.getReplyContent() == null : this.getReplyContent().equals(other.getReplyContent()))
-            && (this.getReplyTime() == null ? other.getReplyTime() == null : this.getReplyTime().equals(other.getReplyTime()))
-            && (this.getCreatedTime() == null ? other.getCreatedTime() == null : this.getCreatedTime().equals(other.getCreatedTime()))
-            && (this.getUpdatedTime() == null ? other.getUpdatedTime() == null : this.getUpdatedTime().equals(other.getUpdatedTime()))
-            && (this.getVersion() == null ? other.getVersion() == null : this.getVersion().equals(other.getVersion()))
-            && (this.getIsDelete() == null ? other.getIsDelete() == null : this.getIsDelete().equals(other.getIsDelete()));
+                && (this.getAccountId() == null
+                        ? other.getAccountId() == null
+                        : this.getAccountId().equals(other.getAccountId()))
+                && (this.getOrderId() == null
+                        ? other.getOrderId() == null
+                        : this.getOrderId().equals(other.getOrderId()))
+                && (this.getOrderType() == null
+                        ? other.getOrderType() == null
+                        : this.getOrderType().equals(other.getOrderType()))
+                && (this.getTargetId() == null
+                        ? other.getTargetId() == null
+                        : this.getTargetId().equals(other.getTargetId()))
+                && (this.getTargetType() == null
+                        ? other.getTargetType() == null
+                        : this.getTargetType().equals(other.getTargetType()))
+                && (this.getRating() == null
+                        ? other.getRating() == null
+                        : this.getRating().equals(other.getRating()))
+                && (this.getContent() == null
+                        ? other.getContent() == null
+                        : this.getContent().equals(other.getContent()))
+                && (this.getIsAnonymous() == null
+                        ? other.getIsAnonymous() == null
+                        : this.getIsAnonymous().equals(other.getIsAnonymous()))
+                && (this.getStatus() == null
+                        ? other.getStatus() == null
+                        : this.getStatus().equals(other.getStatus()))
+                && (this.getReplyContent() == null
+                        ? other.getReplyContent() == null
+                        : this.getReplyContent().equals(other.getReplyContent()))
+                && (this.getReplyTime() == null
+                        ? other.getReplyTime() == null
+                        : this.getReplyTime().equals(other.getReplyTime()))
+                && (this.getCreatedTime() == null
+                        ? other.getCreatedTime() == null
+                        : this.getCreatedTime().equals(other.getCreatedTime()))
+                && (this.getUpdatedTime() == null
+                        ? other.getUpdatedTime() == null
+                        : this.getUpdatedTime().equals(other.getUpdatedTime()))
+                && (this.getVersion() == null
+                        ? other.getVersion() == null
+                        : this.getVersion().equals(other.getVersion()))
+                && (this.getIsDelete() == null
+                        ? other.getIsDelete() == null
+                        : this.getIsDelete().equals(other.getIsDelete()));
     }
 
     @Override

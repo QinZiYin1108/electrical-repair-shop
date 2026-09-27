@@ -39,4 +39,3 @@ export function changeWorkerEmail(data) {
     data: data || {}
   });
 }
-

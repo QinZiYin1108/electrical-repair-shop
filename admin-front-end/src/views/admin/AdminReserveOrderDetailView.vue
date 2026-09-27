@@ -6,7 +6,9 @@
           <div class="hero-topbar">
             <el-button text @click="goBack">返回列表</el-button>
             <div class="hero-tags">
-              <el-tag :type="getStatusTagType(detail.status)" size="large">{{ detail.statusText || '-' }}</el-tag>
+              <el-tag :type="getStatusTagType(detail.status)" size="large">{{
+                detail.statusText || '-'
+              }}</el-tag>
               <el-tag :type="getPaymentTagType(detail.paymentStatus)" size="large" effect="plain">
                 {{ detail.paymentStatusText || '-' }}
               </el-tag>
@@ -37,7 +39,9 @@
           </div>
           <div class="stat-card accent-slate">
             <span class="stat-label">预约时间</span>
-            <strong class="stat-value time-value">{{ formatTime(detail.appointmentTime) || '-' }}</strong>
+            <strong class="stat-value time-value">{{
+              formatTime(detail.appointmentTime) || '-'
+            }}</strong>
             <span class="stat-meta">创建于 {{ formatTime(detail.createdTime) || '-' }}</span>
           </div>
         </div>
@@ -53,7 +57,12 @@
               </div>
             </div>
             <div class="info-grid two-column">
-              <div v-for="item in serviceInfoItems" :key="item.label" class="info-item" :class="{ wide: item.wide }">
+              <div
+                v-for="item in serviceInfoItems"
+                :key="item.label"
+                class="info-item"
+                :class="{ wide: item.wide }"
+              >
                 <span class="info-label">{{ item.label }}</span>
                 <span class="info-value">{{ item.value || '-' }}</span>
               </div>
@@ -128,7 +137,11 @@
                 <div class="fault-header">
                   <div>
                     <div class="fault-title">{{ item.faultPhenomenonName || '未知故障' }}</div>
-                    <div class="fault-desc">{{ item.faultDescription || item.faultPhenomenonDescription || '暂无补充说明' }}</div>
+                    <div class="fault-desc">
+                      {{
+                        item.faultDescription || item.faultPhenomenonDescription || '暂无补充说明'
+                      }}
+                    </div>
                   </div>
                 </div>
                 <div v-if="item.images && item.images.length" class="media-section">
@@ -148,8 +161,17 @@
                 <div v-if="item.videos && item.videos.length" class="media-section">
                   <div class="media-label">视频凭证</div>
                   <div class="video-grid">
-                    <div v-for="media in item.videos" :key="media.id || media.url" class="video-card">
-                      <video class="evidence-video" :src="media.url" :poster="media.thumbnailUrl" controls />
+                    <div
+                      v-for="media in item.videos"
+                      :key="media.id || media.url"
+                      class="video-card"
+                    >
+                      <video
+                        class="evidence-video"
+                        :src="media.url"
+                        :poster="media.thumbnailUrl"
+                        controls
+                      />
                     </div>
                   </div>
                 </div>
@@ -200,8 +222,17 @@
             <div class="media-section top-gap">
               <div class="media-label">检查视频</div>
               <div v-if="detail.inspectionVideos.length" class="video-grid">
-                <div v-for="media in detail.inspectionVideos" :key="media.id || media.url" class="video-card">
-                  <video class="evidence-video" :src="media.url" :poster="media.thumbnailUrl" controls />
+                <div
+                  v-for="media in detail.inspectionVideos"
+                  :key="media.id || media.url"
+                  class="video-card"
+                >
+                  <video
+                    class="evidence-video"
+                    :src="media.url"
+                    :poster="media.thumbnailUrl"
+                    controls
+                  />
                 </div>
               </div>
               <el-empty v-else description="暂无检查视频" :image-size="64" />
@@ -256,7 +287,9 @@
                 :type="getTimelineType(item.status)"
               >
                 <div class="timeline-title">{{ item.statusText || '-' }}</div>
-                <div class="timeline-meta">{{ item.operatorName || '-' }} / {{ formatOperatorType(item.operatorType) }}</div>
+                <div class="timeline-meta">
+                  {{ item.operatorName || '-' }} / {{ formatOperatorType(item.operatorType) }}
+                </div>
                 <div class="timeline-desc">{{ item.description || '-' }}</div>
               </el-timeline-item>
             </el-timeline>

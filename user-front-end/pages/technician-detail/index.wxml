@@ -50,6 +50,10 @@
       <text class="detail-label">{{labels.location}}</text>
       <text class="detail-value">{{detail.locationAddress || "-"}}</text>
     </view>
+    <view class="detail-info" wx:if="{{detail.storeName}}">
+      <text class="detail-label">{{labels.store}}</text>
+      <text class="detail-value">{{detail.storeName}}</text>
+    </view>
     <view class="detail-info">
       <text class="detail-label">{{labels.intro}}</text>
       <text class="detail-value">{{detail.introduction || "-"}}</text>

@@ -15,11 +15,7 @@
         <text class="tip-text">设置每周可接单时间。关闭某一天后，该天将暂停自动接单。</text>
       </view>
 
-      <view
-        v-for="(item, index) in workTimes"
-        :key="item.dayOfWeek"
-        class="day-card"
-      >
+      <view v-for="(item, index) in workTimes" :key="item.dayOfWeek" class="day-card">
         <view class="day-head">
           <text class="day-name">{{ item.dayLabel }}</text>
           <u-switch v-model="item.enabled" />

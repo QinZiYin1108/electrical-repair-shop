@@ -3,71 +3,42 @@ package com.example.backend.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
-/**
- * 订单进度表
- * @TableName order_progress
- */
-@TableName(value ="order_progress")
+/** 订单进度表 @TableName order_progress */
+@TableName(value = "order_progress")
 @Data
 public class OrderProgress {
-    /**
-     * 主键，OP+雪花ID
-     */
-    @TableId
-    private String id;
+    /** 主键，OP+雪花ID */
+    @TableId private String id;
 
-    /**
-     * 订单ID
-     */
+    /** 订单ID */
     private String orderId;
 
-    /**
-     * 状态
-     */
+    /** 状态 */
     private Integer status;
 
-    /**
-     * 状态名称
-     */
+    /** 状态名称 */
     private String statusName;
 
-    /**
-     * 状态描述
-     */
+    /** 状态描述 */
     private String description;
 
-    /**
-     * 操作人ID
-     */
+    /** 操作人ID */
     private String operatorId;
 
-    /**
-     * 操作人类型：1-用户，2-师傅，3-管理员，4-系统
-     */
+    /** 操作人类型：1-用户，2-师傅，3-管理员，4-系统 */
     private Integer operatorType;
 
-    /**
-     * 操作人姓名
-     */
+    /** 操作人姓名 */
     private String operatorName;
 
-
-    /**
-     * 创建时间戳
-     */
+    /** 创建时间戳 */
     private Long createdTime;
 
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
+    /** 乐观锁版本号 */
+    @Version private Integer version;
 
-    /**
-     * 逻辑删除：0-未删除，1-已删除
-     */
-    @TableLogic
-    private Integer isDelete;
+    /** 逻辑删除：0-未删除，1-已删除 */
+    @TableLogic private Integer isDelete;
 
     @Override
     public boolean equals(Object that) {
@@ -82,16 +53,36 @@ public class OrderProgress {
         }
         OrderProgress other = (OrderProgress) that;
         return (this.getId() == null ? other.getId() == null : this.getId().equals(other.getId()))
-            && (this.getOrderId() == null ? other.getOrderId() == null : this.getOrderId().equals(other.getOrderId()))
-            && (this.getStatus() == null ? other.getStatus() == null : this.getStatus().equals(other.getStatus()))
-            && (this.getStatusName() == null ? other.getStatusName() == null : this.getStatusName().equals(other.getStatusName()))
-            && (this.getDescription() == null ? other.getDescription() == null : this.getDescription().equals(other.getDescription()))
-            && (this.getOperatorId() == null ? other.getOperatorId() == null : this.getOperatorId().equals(other.getOperatorId()))
-            && (this.getOperatorType() == null ? other.getOperatorType() == null : this.getOperatorType().equals(other.getOperatorType()))
-            && (this.getOperatorName() == null ? other.getOperatorName() == null : this.getOperatorName().equals(other.getOperatorName()))
-            && (this.getCreatedTime() == null ? other.getCreatedTime() == null : this.getCreatedTime().equals(other.getCreatedTime()))
-            && (this.getVersion() == null ? other.getVersion() == null : this.getVersion().equals(other.getVersion()))
-            && (this.getIsDelete() == null ? other.getIsDelete() == null : this.getIsDelete().equals(other.getIsDelete()));
+                && (this.getOrderId() == null
+                        ? other.getOrderId() == null
+                        : this.getOrderId().equals(other.getOrderId()))
+                && (this.getStatus() == null
+                        ? other.getStatus() == null
+                        : this.getStatus().equals(other.getStatus()))
+                && (this.getStatusName() == null
+                        ? other.getStatusName() == null
+                        : this.getStatusName().equals(other.getStatusName()))
+                && (this.getDescription() == null
+                        ? other.getDescription() == null
+                        : this.getDescription().equals(other.getDescription()))
+                && (this.getOperatorId() == null
+                        ? other.getOperatorId() == null
+                        : this.getOperatorId().equals(other.getOperatorId()))
+                && (this.getOperatorType() == null
+                        ? other.getOperatorType() == null
+                        : this.getOperatorType().equals(other.getOperatorType()))
+                && (this.getOperatorName() == null
+                        ? other.getOperatorName() == null
+                        : this.getOperatorName().equals(other.getOperatorName()))
+                && (this.getCreatedTime() == null
+                        ? other.getCreatedTime() == null
+                        : this.getCreatedTime().equals(other.getCreatedTime()))
+                && (this.getVersion() == null
+                        ? other.getVersion() == null
+                        : this.getVersion().equals(other.getVersion()))
+                && (this.getIsDelete() == null
+                        ? other.getIsDelete() == null
+                        : this.getIsDelete().equals(other.getIsDelete()));
     }
 
     @Override

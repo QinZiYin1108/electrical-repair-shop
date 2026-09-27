@@ -33,12 +33,36 @@ aliyun.oss.access-key-secret=<your-access-key-secret>
 wx.mini.appid=<your-miniapp-appid>
 wx.mini.secret=<your-miniapp-secret>
 
+# 微信支付默认关闭；只有联调真实商户环境时才填写并启用
+payment.wechat.enabled=false
+payment.wechat.app-id=<your-miniapp-appid>
+payment.wechat.merchant-id=<your-wechat-pay-merchant-id>
+payment.wechat.merchant-serial-number=<your-merchant-certificate-serial-number>
+payment.wechat.private-key-path=<absolute-path-to-apiclient-key.pem>
+payment.wechat.api-v3-key=<your-32-character-api-v3-key>
+payment.wechat.notify-url=https://example.com/api/pass/payments/wechat/notify
+payment.wechat.refund-notify-url=https://example.com/api/pass/payments/wechat/refund-notify
+
+# ---- 阿里云 AI 安全护栏（内容安全） ----
+aliyun.access-key-id=<your-access-key-id>
+aliyun.access-key-secret=<your-access-key-secret>
+aliyun.green.endpoint=green-cip.cn-shanghai.aliyuncs.com
+
+# ---- 腾讯云 SMS / FaceID ----
+tencent.sms.secret-id=<your-tencent-secret-id>
+tencent.sms.secret-key=<your-tencent-secret-key>
+tencent.sms.sdk-app-id=<your-sms-sdk-app-id>
+tencent.sms.sign-name=<your-sms-sign-name>
+tencent.sms.login-template-id=<your-login-template-id>
+tencent.sms.reset-password-template-id=<your-reset-password-template-id>
+tencent.sms.change-phone-template-id=<your-change-phone-template-id>
+
 # ---- 腾讯地图 ----
-tencent.map.key=<your-baidu-map-ak>
+tencent.map.key=<your-tencent-map-key>
 
 # ---- 应用 ----
-app.base-url=http://localhost:8080
-app.door-qr.base-url=http://localhost:8080/api/pass/door-qr/scan
+app.base-url=http://localhost:8081
+app.door-qr.base-url=http://localhost:8081/api/pass/door-qr/scan
 
 # ---- 日志 ----
 logging.level.root=info

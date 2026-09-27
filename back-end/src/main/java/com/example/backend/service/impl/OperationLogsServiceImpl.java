@@ -8,6 +8,4 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class OperationLogsServiceImpl extends ServiceImpl<OperationLogsMapper, OperationLogs>
-    implements OperationLogsService {
-}
-
+        implements OperationLogsService {}

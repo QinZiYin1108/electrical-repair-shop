@@ -1,0 +1,123 @@
+<view class="page store-detail-page">
+
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading-shell">
+    <van-loading size="24px" color="#1677ff" />
+    <text class="loading-text">门店信息加载中...</text>
+  </view>
+
+  <block wx:elif="{{detail}}">
+
+    <!-- 门店头部卡片 -->
+    <view class="section-card store-header-card">
+      <view class="store-header">
+        <view class="store-logo-wrap">
+          <image
+            wx:if="{{detail.logoUrl}}"
+            class="store-logo"
+            src="{{detail.logoUrl}}"
+            mode="aspectFill"
+          />
+          <view wx:else class="store-logo-placeholder">
+            <text class="store-logo-text">店</text>
+          </view>
+        </view>
+
+        <view class="store-info">
+          <text class="store-name">{{detail.name}}</text>
+
+          <view class="store-meta-row">
+            <view class="rating-chip {{detail.rating != null ? 'chip-rated' : 'chip-unrated'}}">
+              <text wx:if="{{detail.rating != null}}" class="rating-star">★</text>
+              <text class="rating-text">{{detail.ratingText}}</text>
+              <text wx:if="{{detail.ratingCount > 0}}" class="rating-count">{{detail.ratingCount}}单</text>
+            </view>
+
+            <view class="status-chip {{detail.isOnline === 1 ? 'chip-open' : 'chip-closed'}}">
+              <view class="status-dot"></view>
+              <text class="status-text">{{detail.statusText}}</text>
+            </view>
+          </view>
+
+          <view wx:if="{{detail.address}}" class="store-address-row">
+            <text class="store-address">{{detail.address}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 营业时间 -->
+    <view wx:if="{{detail.businessHours.length}}" class="section-card">
+      <text class="section-title">营业时间</text>
+      <view class="hours-list">
+        <view
+          wx:for="{{detail.businessHours}}"
+          wx:key="dayOfWeek"
+          class="hours-row {{item.isAvailable === 0 ? 'hours-rest' : ''}}"
+        >
+          <text class="hours-day">{{item.dayLabel}}</text>
+          <text wx:if="{{item.isAvailable === 1}}" class="hours-time">{{item.startTime}} - {{item.endTime}}</text>
+          <text wx:else class="hours-rest-text">休息</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 门店简介 -->
+    <view wx:if="{{detail.description}}" class="section-card">
+      <text class="section-title">门店简介</text>
+      <text class="store-desc">{{detail.description}}</text>
+    </view>
+
+    <!-- 门店商品 -->
+    <view class="section-card">
+      <text class="section-title">门店商品</text>
+
+      <view wx:if="{{productsLoading}}" class="products-loading">
+        <van-loading size="20px" color="#1677ff" />
+      </view>
+
+      <view wx:elif="{{products.length}}" class="product-grid">
+        <view
+          wx:for="{{products}}"
+          wx:key="id"
+          class="product-card"
+          data-id="{{item.id}}"
+          bind:tap="onProductTap"
+        >
+          <view class="product-media">
+            <image
+              wx:if="{{item.mainImageUrl}}"
+              class="product-image"
+              src="{{item.mainImageUrl}}"
+              mode="aspectFill"
+            />
+            <view wx:else class="product-image-empty">暂无图片</view>
+            <view class="badge-list">
+              <text wx:if="{{item.isHot}}" class="product-badge badge-hot">热销</text>
+              <text wx:if="{{item.isNew}}" class="product-badge badge-new">新品</text>
+            </view>
+          </view>
+          <view class="product-body">
+            <text class="product-name">{{item.name}}</text>
+            <view class="price-row">
+              <text class="price-current">￥{{item.sellingPriceText}}</text>
+              <text wx:if="{{item.showOriginalPrice}}" class="price-original">￥{{item.originalPriceText}}</text>
+            </view>
+            <text class="product-sales">已售 {{item.salesCount}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view wx:else class="empty-products">
+        <text class="empty-text">暂无在售商品</text>
+      </view>
+    </view>
+
+  </block>
+
+  <!-- 门店不存在 -->
+  <view wx:elif="{{!loading}}" class="loading-shell">
+    <text class="loading-text">门店不存在或已下架</text>
+  </view>
+
+</view>

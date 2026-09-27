@@ -19,16 +19,9 @@ import com.example.backend.service.UserAccountsService;
 import com.example.backend.service.WarrantyCardUsageRecordsService;
 import com.example.backend.service.WarrantyCardsService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -41,12 +34,22 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "管理员端/保修卡管理")
 @RequestMapping("/admin/products/warranty")
 public class AdminWarrantyCardController {
 
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final DateTimeFormatter DATE_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final int STATUS_ACTIVE = 1;
     private static final int USAGE_STATUS_PENDING = 1;
     private static final int USAGE_STATUS_COMPLETED = 2;
@@ -58,11 +61,10 @@ public class AdminWarrantyCardController {
     private final WarrantyCardUsageRecordsService usageRecordsService;
 
     public AdminWarrantyCardController(
-        WarrantyCardsService warrantyCardsService,
-        UserAccountsService userAccountsService,
-        ProductsService productsService,
-        WarrantyCardUsageRecordsService usageRecordsService
-    ) {
+            WarrantyCardsService warrantyCardsService,
+            UserAccountsService userAccountsService,
+            ProductsService productsService,
+            WarrantyCardUsageRecordsService usageRecordsService) {
         this.warrantyCardsService = warrantyCardsService;
         this.userAccountsService = userAccountsService;
         this.productsService = productsService;
@@ -71,26 +73,36 @@ public class AdminWarrantyCardController {
 
     @GetMapping
     public Result<Page<AdminWarrantyCardModel.ListItemResponse>> listCards(
-        @RequestParam(value = "pageNum", defaultValue = "1") long pageNum,
-        @RequestParam(value = "pageSize", defaultValue = "10") long pageSize,
-        @RequestParam(value = "keyword", required = false) String keyword,
-        @RequestParam(value = "warrantyStatus", required = false) Integer warrantyStatus
-    ) {
+            @RequestParam(value = "pageNum", defaultValue = "1") long pageNum,
+            @RequestParam(value = "pageSize", defaultValue = "10") long pageSize,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "warrantyStatus", required = false) Integer warrantyStatus) {
         LoginUserInfo admin = requireAdmin();
         refreshExpiredCards();
-        LambdaQueryWrapper<WarrantyCards> wrapper = new LambdaQueryWrapper<WarrantyCards>()
-            .like(StringUtils.hasText(keyword), WarrantyCards::getCardNo, keyword == null ? null : keyword.trim())
-            .eq(warrantyStatus != null, WarrantyCards::getWarrantyStatus, warrantyStatus)
-            .orderByDesc(WarrantyCards::getUpdatedTime)
-            .orderByDesc(WarrantyCards::getCreatedTime);
+        LambdaQueryWrapper<WarrantyCards> wrapper =
+                new LambdaQueryWrapper<WarrantyCards>()
+                        .like(
+                                StringUtils.hasText(keyword),
+                                WarrantyCards::getCardNo,
+                                keyword == null ? null : keyword.trim())
+                        .eq(
+                                warrantyStatus != null,
+                                WarrantyCards::getWarrantyStatus,
+                                warrantyStatus)
+                        .orderByDesc(WarrantyCards::getUpdatedTime)
+                        .orderByDesc(WarrantyCards::getCreatedTime);
         // 门店管理员：仅查看本门店商品关联的保修卡
         applyStoreFilter(admin, wrapper);
-        Page<WarrantyCards> page = warrantyCardsService.page(new Page<>(Math.max(pageNum, 1L), Math.max(pageSize, 1L)), wrapper);
-        Page<AdminWarrantyCardModel.ListItemResponse> response = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
+        Page<WarrantyCards> page =
+                warrantyCardsService.page(
+                        new Page<>(Math.max(pageNum, 1L), Math.max(pageSize, 1L)), wrapper);
+        Page<AdminWarrantyCardModel.ListItemResponse> response =
+                new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
         response.setRecords(buildListItems(page.getRecords()));
         return Result.success(response);
     }
 
+    @Operation(summary = "查询详情")
     @GetMapping("/{id}")
     public Result<AdminWarrantyCardModel.DetailResponse> getDetail(@PathVariable("id") String id) {
         requireAdmin();
@@ -99,24 +111,31 @@ public class AdminWarrantyCardController {
         return Result.success(toDetail(card));
     }
 
+    @Operation(summary = "查询UsageRecords")
     @GetMapping("/{id}/usage-records")
-    public Result<AdminWarrantyCardModel.UsageRecordListResponse> listUsageRecords(@PathVariable("id") String id) {
+    public Result<AdminWarrantyCardModel.UsageRecordListResponse> listUsageRecords(
+            @PathVariable("id") String id) {
         requireAdmin();
         WarrantyCards card = requireCard(id);
-        AdminWarrantyCardModel.UsageRecordListResponse response = new AdminWarrantyCardModel.UsageRecordListResponse();
+        AdminWarrantyCardModel.UsageRecordListResponse response =
+                new AdminWarrantyCardModel.UsageRecordListResponse();
         response.setItems(buildUsageRecords(card.getId()));
         return Result.success(response);
     }
 
     @PostMapping
-    public Result<Void> createCard(@Valid @RequestBody AdminWarrantyCardModel.CreateRequest request) {
+    public Result<Void> createCard(
+            @Valid @RequestBody AdminWarrantyCardModel.CreateRequest request) {
         requireAdmin();
         UserAccounts user = requireUser(request.getUserId());
         Products product = requireProduct(request.getProductId());
         long now = System.currentTimeMillis();
         LocalDate purchaseDate = parseDate(request.getPurchaseDate(), LocalDate.now());
         LocalDate startDate = parseDate(request.getWarrantyStartDate(), purchaseDate);
-        int warrantyPeriod = request.getWarrantyPeriod() == null ? (product.getWarrantyPeriod() == null ? 0 : product.getWarrantyPeriod()) : request.getWarrantyPeriod();
+        int warrantyPeriod =
+                request.getWarrantyPeriod() == null
+                        ? (product.getWarrantyPeriod() == null ? 0 : product.getWarrantyPeriod())
+                        : request.getWarrantyPeriod();
         if (warrantyPeriod <= 0) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "保修期必须大于0");
         }
@@ -145,17 +164,18 @@ public class AdminWarrantyCardController {
         return Result.success();
     }
 
+    @Operation(summary = "提交processUsageRecord")
     @PostMapping("/usage-records/{recordId}/process")
     public Result<Void> processUsageRecord(
-        @PathVariable("recordId") String recordId,
-        @Valid @RequestBody AdminWarrantyCardModel.ProcessUsageRequest request
-    ) {
+            @PathVariable("recordId") String recordId,
+            @Valid @RequestBody AdminWarrantyCardModel.ProcessUsageRequest request) {
         requireAdmin();
         WarrantyCardUsageRecords record = requireUsageRecord(recordId);
         if (!Objects.equals(record.getStatus(), USAGE_STATUS_PENDING)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "当前申请已处理，请勿重复操作");
         }
-        if (!Objects.equals(request.getStatus(), USAGE_STATUS_COMPLETED) && !Objects.equals(request.getStatus(), USAGE_STATUS_REJECTED)) {
+        if (!Objects.equals(request.getStatus(), USAGE_STATUS_COMPLETED)
+                && !Objects.equals(request.getStatus(), USAGE_STATUS_REJECTED)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "处理结果不合法");
         }
 
@@ -180,44 +200,60 @@ public class AdminWarrantyCardController {
         return Result.success();
     }
 
-    private List<AdminWarrantyCardModel.ListItemResponse> buildListItems(List<WarrantyCards> cards) {
+    private List<AdminWarrantyCardModel.ListItemResponse> buildListItems(
+            List<WarrantyCards> cards) {
         if (cards == null || cards.isEmpty()) {
             return Collections.emptyList();
         }
-        Set<String> userIds = cards.stream().map(WarrantyCards::getUserId).collect(Collectors.toSet());
-        Map<String, UserAccounts> userMap = userAccountsService.list(
-            new LambdaQueryWrapper<UserAccounts>().in(!userIds.isEmpty(), UserAccounts::getId, userIds)
-        ).stream().collect(Collectors.toMap(UserAccounts::getId, item -> item, (a, b) -> a, LinkedHashMap::new));
-        return cards.stream().map(card -> {
-            AdminWarrantyCardModel.DetailResponse detail = toDetail(card);
-            AdminWarrantyCardModel.ListItemResponse item = new AdminWarrantyCardModel.ListItemResponse();
-            UserAccounts user = userMap.get(card.getUserId());
-            item.setId(detail.getId());
-            item.setCardNo(detail.getCardNo());
-            item.setUserId(detail.getUserId());
-            item.setUserName(user == null ? "" : user.getUsername());
-            item.setUserPhone(user == null ? "" : user.getPhone());
-            item.setProductId(detail.getProductId());
-            item.setProductName(detail.getProductName());
-            item.setProductModel(detail.getProductModel());
-            item.setPurchaseDate(detail.getPurchaseDate());
-            item.setWarrantyStartDate(detail.getWarrantyStartDate());
-            item.setWarrantyEndDate(detail.getWarrantyEndDate());
-            item.setWarrantyPeriod(detail.getWarrantyPeriod());
-            item.setWarrantyType(detail.getWarrantyType());
-            item.setWarrantyTypeText(detail.getWarrantyTypeText());
-            item.setWarrantyStatus(detail.getWarrantyStatus());
-            item.setWarrantyStatusText(detail.getWarrantyStatusText());
-            item.setRepairCount(detail.getRepairCount());
-            item.setLastRepairDate(detail.getLastRepairDate());
-            item.setCreatedTime(detail.getCreatedTime());
-            return item;
-        }).collect(Collectors.toList());
+        Set<String> userIds =
+                cards.stream().map(WarrantyCards::getUserId).collect(Collectors.toSet());
+        Map<String, UserAccounts> userMap =
+                userAccountsService
+                        .list(
+                                new LambdaQueryWrapper<UserAccounts>()
+                                        .in(!userIds.isEmpty(), UserAccounts::getId, userIds))
+                        .stream()
+                        .collect(
+                                Collectors.toMap(
+                                        UserAccounts::getId,
+                                        item -> item,
+                                        (a, b) -> a,
+                                        LinkedHashMap::new));
+        return cards.stream()
+                .map(
+                        card -> {
+                            AdminWarrantyCardModel.DetailResponse detail = toDetail(card);
+                            AdminWarrantyCardModel.ListItemResponse item =
+                                    new AdminWarrantyCardModel.ListItemResponse();
+                            UserAccounts user = userMap.get(card.getUserId());
+                            item.setId(detail.getId());
+                            item.setCardNo(detail.getCardNo());
+                            item.setUserId(detail.getUserId());
+                            item.setUserName(user == null ? "" : user.getUsername());
+                            item.setUserPhone(user == null ? "" : user.getPhone());
+                            item.setProductId(detail.getProductId());
+                            item.setProductName(detail.getProductName());
+                            item.setProductModel(detail.getProductModel());
+                            item.setPurchaseDate(detail.getPurchaseDate());
+                            item.setWarrantyStartDate(detail.getWarrantyStartDate());
+                            item.setWarrantyEndDate(detail.getWarrantyEndDate());
+                            item.setWarrantyPeriod(detail.getWarrantyPeriod());
+                            item.setWarrantyType(detail.getWarrantyType());
+                            item.setWarrantyTypeText(detail.getWarrantyTypeText());
+                            item.setWarrantyStatus(detail.getWarrantyStatus());
+                            item.setWarrantyStatusText(detail.getWarrantyStatusText());
+                            item.setRepairCount(detail.getRepairCount());
+                            item.setLastRepairDate(detail.getLastRepairDate());
+                            item.setCreatedTime(detail.getCreatedTime());
+                            return item;
+                        })
+                .collect(Collectors.toList());
     }
 
     private AdminWarrantyCardModel.DetailResponse toDetail(WarrantyCards card) {
         UserAccounts user = userAccountsService.getById(card.getUserId());
-        AdminWarrantyCardModel.DetailResponse response = new AdminWarrantyCardModel.DetailResponse();
+        AdminWarrantyCardModel.DetailResponse response =
+                new AdminWarrantyCardModel.DetailResponse();
         response.setId(card.getId());
         response.setCardNo(card.getCardNo());
         response.setUserId(card.getUserId());
@@ -241,58 +277,71 @@ public class AdminWarrantyCardController {
         return response;
     }
 
-    private List<AdminWarrantyCardModel.UsageRecordResponse> buildUsageRecords(String warrantyCardId) {
-        List<WarrantyCardUsageRecords> records = usageRecordsService.list(
-            new LambdaQueryWrapper<WarrantyCardUsageRecords>()
-                .eq(WarrantyCardUsageRecords::getWarrantyCardId, warrantyCardId)
-                .orderByDesc(WarrantyCardUsageRecords::getCreatedTime)
-        );
+    private List<AdminWarrantyCardModel.UsageRecordResponse> buildUsageRecords(
+            String warrantyCardId) {
+        List<WarrantyCardUsageRecords> records =
+                usageRecordsService.list(
+                        new LambdaQueryWrapper<WarrantyCardUsageRecords>()
+                                .eq(WarrantyCardUsageRecords::getWarrantyCardId, warrantyCardId)
+                                .orderByDesc(WarrantyCardUsageRecords::getCreatedTime));
         if (records.isEmpty()) {
             return Collections.emptyList();
         }
-        Set<String> userIds = records.stream()
-            .map(WarrantyCardUsageRecords::getUserId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
-        Map<String, UserAccounts> userMap = userAccountsService.list(
-            new LambdaQueryWrapper<UserAccounts>().in(!userIds.isEmpty(), UserAccounts::getId, userIds)
-        ).stream().collect(Collectors.toMap(UserAccounts::getId, item -> item, (a, b) -> a, LinkedHashMap::new));
+        Set<String> userIds =
+                records.stream()
+                        .map(WarrantyCardUsageRecords::getUserId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
+        Map<String, UserAccounts> userMap =
+                userAccountsService
+                        .list(
+                                new LambdaQueryWrapper<UserAccounts>()
+                                        .in(!userIds.isEmpty(), UserAccounts::getId, userIds))
+                        .stream()
+                        .collect(
+                                Collectors.toMap(
+                                        UserAccounts::getId,
+                                        item -> item,
+                                        (a, b) -> a,
+                                        LinkedHashMap::new));
 
-        return records.stream().map(record -> {
-            AdminWarrantyCardModel.UsageRecordResponse item = new AdminWarrantyCardModel.UsageRecordResponse();
-            UserAccounts user = userMap.get(record.getUserId());
-            item.setId(record.getId());
-            item.setWarrantyCardId(record.getWarrantyCardId());
-            item.setCardNo(record.getCardNo());
-            item.setUserId(record.getUserId());
-            item.setUserName(user == null ? "" : user.getUsername());
-            item.setUserPhone(user == null ? "" : user.getPhone());
-            item.setProductId(record.getProductId());
-            item.setProductName(record.getProductName());
-            item.setProductModel(record.getProductModel());
-            item.setIssueDescription(record.getIssueDescription());
-            item.setContactName(record.getContactName());
-            item.setContactPhone(record.getContactPhone());
-            item.setStatus(record.getStatus());
-            item.setStatusText(getUsageStatusText(record.getStatus()));
-            item.setProcessRemark(record.getProcessRemark());
-            item.setApplyTime(record.getApplyTime());
-            item.setProcessTime(record.getProcessTime());
-            return item;
-        }).collect(Collectors.toList());
+        return records.stream()
+                .map(
+                        record -> {
+                            AdminWarrantyCardModel.UsageRecordResponse item =
+                                    new AdminWarrantyCardModel.UsageRecordResponse();
+                            UserAccounts user = userMap.get(record.getUserId());
+                            item.setId(record.getId());
+                            item.setWarrantyCardId(record.getWarrantyCardId());
+                            item.setCardNo(record.getCardNo());
+                            item.setUserId(record.getUserId());
+                            item.setUserName(user == null ? "" : user.getUsername());
+                            item.setUserPhone(user == null ? "" : user.getPhone());
+                            item.setProductId(record.getProductId());
+                            item.setProductName(record.getProductName());
+                            item.setProductModel(record.getProductModel());
+                            item.setIssueDescription(record.getIssueDescription());
+                            item.setContactName(record.getContactName());
+                            item.setContactPhone(record.getContactPhone());
+                            item.setStatus(record.getStatus());
+                            item.setStatusText(getUsageStatusText(record.getStatus()));
+                            item.setProcessRemark(record.getProcessRemark());
+                            item.setApplyTime(record.getApplyTime());
+                            item.setProcessTime(record.getProcessTime());
+                            return item;
+                        })
+                .collect(Collectors.toList());
     }
 
     private void refreshExpiredCards() {
         Date today = toDate(LocalDate.now());
         warrantyCardsService.update(
-            new LambdaUpdateWrapper<WarrantyCards>()
-                .eq(WarrantyCards::getWarrantyStatus, STATUS_ACTIVE)
-                .lt(WarrantyCards::getWarrantyEndDate, today)
-                .set(WarrantyCards::getWarrantyStatus, 2)
-                .set(WarrantyCards::getUpdatedTime, System.currentTimeMillis())
-        );
+                new LambdaUpdateWrapper<WarrantyCards>()
+                        .eq(WarrantyCards::getWarrantyStatus, STATUS_ACTIVE)
+                        .lt(WarrantyCards::getWarrantyEndDate, today)
+                        .set(WarrantyCards::getWarrantyStatus, 2)
+                        .set(WarrantyCards::getUpdatedTime, System.currentTimeMillis()));
     }
-
 
     private WarrantyCards requireCard(String id) {
         if (!StringUtils.hasText(id)) {
@@ -406,23 +455,22 @@ public class AdminWarrantyCardController {
         return "BW" + id.substring(2);
     }
 
-    /**
-     * 门店管理员过滤：通过 product_id → products.store_id 关联
-     */
+    /** 门店管理员过滤：通过 product_id → products.store_id 关联 */
     private void applyStoreFilter(LoginUserInfo admin, LambdaQueryWrapper<WarrantyCards> wrapper) {
         if (admin == null || !admin.isStoreAdmin() || !StringUtils.hasText(admin.getStoreId())) {
             return;
         }
-        List<Products> storeProducts = productsService.list(
-            new LambdaQueryWrapper<Products>()
-                .eq(Products::getStoreId, admin.getStoreId())
-                .eq(Products::getIsDelete, 0)
-        );
+        List<Products> storeProducts =
+                productsService.list(
+                        new LambdaQueryWrapper<Products>()
+                                .eq(Products::getStoreId, admin.getStoreId())
+                                .eq(Products::getIsDelete, 0));
         if (storeProducts.isEmpty()) {
             wrapper.eq(WarrantyCards::getId, "-1");
             return;
         }
-        Set<String> productIds = storeProducts.stream().map(Products::getId).collect(Collectors.toSet());
+        Set<String> productIds =
+                storeProducts.stream().map(Products::getId).collect(Collectors.toSet());
         wrapper.in(WarrantyCards::getProductId, productIds);
     }
 

@@ -3,45 +3,27 @@ package com.example.backend.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
-/**
- * 商品收藏表
- * @TableName product_favorites
- */
-@TableName(value ="product_favorites")
+/** 商品收藏表 @TableName product_favorites */
+@TableName(value = "product_favorites")
 @Data
 public class ProductFavorites {
-    /**
-     * 主键，PF+雪花ID
-     */
-    @TableId
-    private String id;
+    /** 主键，PF+雪花ID */
+    @TableId private String id;
 
-    /**
-     * 用户账号ID
-     */
+    /** 用户账号ID */
     private String accountId;
 
-    /**
-     * 商品ID
-     */
+    /** 商品ID */
     private String productId;
 
-    /**
-     * 创建时间戳
-     */
+    /** 创建时间戳 */
     private Long createdTime;
 
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
+    /** 乐观锁版本号 */
+    @Version private Integer version;
 
-    /**
-     * 逻辑删除：0-未删除，1-已删除
-     */
-    @TableLogic
-    private Integer isDelete;
+    /** 逻辑删除：0-未删除，1-已删除 */
+    @TableLogic private Integer isDelete;
 
     @Override
     public boolean equals(Object that) {
@@ -56,11 +38,21 @@ public class ProductFavorites {
         }
         ProductFavorites other = (ProductFavorites) that;
         return (this.getId() == null ? other.getId() == null : this.getId().equals(other.getId()))
-            && (this.getAccountId() == null ? other.getAccountId() == null : this.getAccountId().equals(other.getAccountId()))
-            && (this.getProductId() == null ? other.getProductId() == null : this.getProductId().equals(other.getProductId()))
-            && (this.getCreatedTime() == null ? other.getCreatedTime() == null : this.getCreatedTime().equals(other.getCreatedTime()))
-            && (this.getVersion() == null ? other.getVersion() == null : this.getVersion().equals(other.getVersion()))
-            && (this.getIsDelete() == null ? other.getIsDelete() == null : this.getIsDelete().equals(other.getIsDelete()));
+                && (this.getAccountId() == null
+                        ? other.getAccountId() == null
+                        : this.getAccountId().equals(other.getAccountId()))
+                && (this.getProductId() == null
+                        ? other.getProductId() == null
+                        : this.getProductId().equals(other.getProductId()))
+                && (this.getCreatedTime() == null
+                        ? other.getCreatedTime() == null
+                        : this.getCreatedTime().equals(other.getCreatedTime()))
+                && (this.getVersion() == null
+                        ? other.getVersion() == null
+                        : this.getVersion().equals(other.getVersion()))
+                && (this.getIsDelete() == null
+                        ? other.getIsDelete() == null
+                        : this.getIsDelete().equals(other.getIsDelete()));
     }
 
     @Override

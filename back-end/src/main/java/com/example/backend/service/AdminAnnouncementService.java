@@ -3,9 +3,8 @@ package com.example.backend.service;
 import com.example.backend.model.admin.AdminAnnouncementCreateRequest;
 import com.example.backend.model.admin.AdminAnnouncementResponse;
 import com.example.backend.model.admin.AdminAnnouncementUpdateRequest;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface AdminAnnouncementService {
 
@@ -19,4 +18,3 @@ public interface AdminAnnouncementService {
 
     String uploadAnnouncementImage(String id, MultipartFile file);
 }
-

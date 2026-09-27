@@ -15,7 +15,13 @@
             @keyup.enter="handleSearch"
             @clear="handleSearch"
           />
-          <el-select v-model="status" clearable class="status-select" placeholder="全部状态" @change="handleSearch">
+          <el-select
+            v-model="status"
+            clearable
+            class="status-select"
+            placeholder="全部状态"
+            @change="handleSearch"
+          >
             <el-option
               v-for="item in statusOptions"
               :key="item.value"
@@ -39,7 +45,12 @@
         <el-table-column prop="userName" label="用户" min-width="140" show-overflow-tooltip />
         <el-table-column prop="userPhone" label="用户电话" min-width="140" show-overflow-tooltip />
         <el-table-column prop="technicianName" label="师傅" min-width="120" show-overflow-tooltip />
-        <el-table-column prop="serviceTypeName" label="服务项目" min-width="160" show-overflow-tooltip />
+        <el-table-column
+          prop="serviceTypeName"
+          label="服务项目"
+          min-width="160"
+          show-overflow-tooltip
+        />
         <el-table-column prop="reason" label="申请原因" min-width="200" show-overflow-tooltip />
         <el-table-column label="申请类型" width="100" align="center">
           <template #default="{ row }">
@@ -48,7 +59,9 @@
         </el-table-column>
         <el-table-column label="状态" width="110" align="center">
           <template #default="{ row }">
-            <el-tag size="small" :type="getStatusTagType(row.status)">{{ row.statusText || '-' }}</el-tag>
+            <el-tag size="small" :type="getStatusTagType(row.status)">{{
+              row.statusText || '-'
+            }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="申请时间" min-width="170">

@@ -86,6 +86,13 @@
     <view class="action-bar">
       <view class="action-chip action-chip-secondary" bind:tap="onGoMallTap">{{texts.goMall}}</view>
       <view
+        wx:if="{{detail.canCancel}}"
+        class="action-chip action-chip-secondary"
+        bind:tap="onCancelTap"
+      >
+        {{texts.cancelButton}}
+      </view>
+      <view
         wx:if="{{detail.canConfirmReceipt}}"
         class="action-chip action-chip-primary"
         bind:tap="onConfirmTap"
@@ -105,6 +112,40 @@
         bind:tap="onAfterSalesTap"
       >
         {{detail.afterSalesApplication ? texts.afterSalesViewButton : texts.afterSalesButton}}
+      </view>
+    </view>
+
+    <view wx:if="{{cancelPopupVisible}}" class="modal-mask" catch:tap="onCloseCancelPopup">
+      <view class="action-popup" catch:tap="onPopupInnerTap">
+        <view class="pay-title">{{texts.cancelPopupTitle}}</view>
+        <view class="pay-subtitle">{{texts.cancelPopupSubtitle}}</view>
+        <view wx:if="{{detail.orderNo}}" class="pay-order-no">{{detail.orderNo}}</view>
+        <view class="pay-section-title pay-method-title">{{texts.reasonTitle}}</view>
+        <view class="reason-chip-list">
+          <view
+            wx:for="{{cancelReasonOptions}}"
+            wx:key="code"
+            class="reason-chip {{selectedCancelReason === item.code ? 'reason-chip-active' : ''}}"
+            data-reason="{{item.code}}"
+            bind:tap="onSelectCancelReason"
+          >
+            {{item.label}}
+          </view>
+        </view>
+        <view class="cancel-remark-section">
+          <view class="pay-section-title pay-method-title">{{texts.remarkLabel}}</view>
+          <textarea
+            class="cancel-remark-input"
+            placeholder="{{texts.remarkPlaceholder}}"
+            value="{{cancelRemark}}"
+            maxlength="500"
+            bindinput="onCancelRemarkInput"
+          />
+        </view>
+        <view class="pay-actions">
+          <view class="pay-cancel-btn" bind:tap="onCloseCancelPopup">取消</view>
+          <view class="pay-confirm-btn" bind:tap="onCancelConfirm">{{cancelSubmitting ? texts.cancelSubmitting : texts.submitCancel}}</view>
+        </view>
       </view>
     </view>
   </block>

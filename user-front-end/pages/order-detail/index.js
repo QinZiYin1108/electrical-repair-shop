@@ -9,10 +9,33 @@ const {
   applyUserOrderAfterSales
 } = require('../../api/userOrders');
 const { getUserFundsSummary } = require('../../api/userFunds');
+const {
+  createOrderPaymentIntent,
+  getOrderPaymentStatus
+} = require('../../api/userPayments');
 
 const PAYMENT_METHOD_WECHAT = 1;
 const PAYMENT_METHOD_ALIPAY = 2;
 const PAYMENT_METHOD_WALLET = 5;
+
+function requestWechatPayment(parameters) {
+  const params = parameters || {};
+  return new Promise((resolve, reject) => {
+    wx.requestPayment({
+      timeStamp: String(params.timeStamp || ''),
+      nonceStr: params.nonceStr || '',
+      package: params.package || '',
+      signType: params.signType || 'RSA',
+      paySign: params.paySign || '',
+      success: resolve,
+      fail: reject
+    });
+  });
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 const TEXTS = {
   loading: '正在加载订单详情...',
@@ -75,7 +98,7 @@ const TEXTS = {
   confirmCompletionSubtitle: '确认后订单将直接完成，请确认服务已结束且无误后再操作',
   confirmCompletionSuccess: '订单已完成',
   cancelPopupTitle: '取消订单',
-  cancelPopupSubtitle: '服务费未支付前可自主取消，未上门前会退还上门费。',
+  cancelPopupSubtitle: '服务费未支付前可自主取消，未上门前会退还上门费。如遇商家问题请通过"申请售后"处理。',
   afterSalesPopupTitle: '申请售后',
   afterSalesPopupSubtitle: '仅订单完成后7天内可申请售后，提交后由管理员审核是否退款。',
   reasonTitle: '选择原因',
@@ -92,7 +115,14 @@ const TEXTS = {
   afterSalesRemarkLabel: '处理备注'
 };
 
-const CANCEL_REASON_OPTIONS = ['计划有变', '价格不合适', '预约时间不合适', '问题已解决'];
+const CANCEL_REASON_OPTIONS = [
+  { code: 'temp_busy', label: '临时有事' },
+  { code: 'no_need', label: '不想修了' },
+  { code: 'price_high', label: '价格不合适' },
+  { code: 'duplicate', label: '重复下单' },
+  { code: 'reschedule', label: '改约其他时间' },
+  { code: 'other', label: '其他原因' }
+];
 const AFTER_SALES_REASON_OPTIONS = ['维修后仍有问题', '服务体验不佳', '费用存在争议', '其他'];
 
 function pad(value) {
@@ -398,11 +428,6 @@ function buildPaymentMethodOptions(walletBalanceText) {
       id: PAYMENT_METHOD_WECHAT,
       label: TEXTS.paymentMethodWechat,
       desc: TEXTS.paymentMethodWechatDesc
-    },
-    {
-      id: PAYMENT_METHOD_ALIPAY,
-      label: TEXTS.paymentMethodAlipay,
-      desc: TEXTS.paymentMethodAlipayDesc
     },
     {
       id: PAYMENT_METHOD_WALLET,
@@ -1129,7 +1154,9 @@ Page({
     if (!detail || !detail.id || !detail.canCancel || this.data.actionSubmitting) {
       return;
     }
-    const reason = buildSubmitReason(this.data.selectedCancelReason, this.data.cancelRemark);
+    const selectedCode = this.data.selectedCancelReason;
+    const selectedOption = CANCEL_REASON_OPTIONS.find(o => o.code === selectedCode);
+    const reason = buildSubmitReason(selectedOption ? selectedOption.label : selectedCode, this.data.cancelRemark);
     if (!reason) {
       wx.showToast({
         title: TEXTS.reasonRequired,
@@ -1141,7 +1168,10 @@ Page({
     this.setData({ actionSubmitting: true });
     cancelUserOrder({
       orderId: detail.id,
-      reason
+      reason,
+      reasonCode: selectedCode || 'other',
+      reasonLabel: selectedOption ? selectedOption.label : '',
+      userRemark: (this.data.cancelRemark || '').trim()
     })
       .then((res) => {
         if (!res || res.code !== 200 || !res.data) {
@@ -1233,14 +1263,52 @@ Page({
     });
   },
 
+  async payTailByWechat(orderId) {
+    const resp = await createOrderPaymentIntent({
+      orderId,
+      provider: PAYMENT_METHOD_WECHAT
+    });
+    if (!resp || resp.code !== 200 || !resp.data) {
+      throw new Error((resp && resp.message) || '发起支付失败');
+    }
+    const intent = resp.data;
+    if (!intent.paymentNo || !intent.invokeParameters) {
+      throw new Error('支付参数不完整');
+    }
+    await requestWechatPayment(intent.invokeParameters);
+    const paid = await this.waitForPaymentSuccess(intent.paymentNo);
+    if (!paid) {
+      throw new Error('支付未完成，请稍后在订单详情重试');
+    }
+    return fetchUserOrderDetail(orderId);
+  },
+
+  async waitForPaymentSuccess(paymentNo) {
+    for (let index = 0; index < 5; index += 1) {
+      if (index > 0) {
+        await delay(1000);
+      }
+      const resp = await getOrderPaymentStatus(paymentNo);
+      const status = resp && resp.code === 200 && resp.data ? Number(resp.data.status) : 0;
+      if (status === 3) return true;
+      if (status === 4 || status === 6) return false;
+    }
+    return false;
+  },
+
   onPayConfirm() {
     const detail = this.data.detail;
     if (!detail || !detail.id || !detail.canPayTail || this.data.paying) {
       return;
     }
 
+    const method = Number(this.data.selectedPaymentMethod);
+    if (method === PAYMENT_METHOD_ALIPAY) {
+      wx.showToast({ title: '当前仅支持微信支付或钱包支付', icon: 'none' });
+      return;
+    }
     const payAmount = calculateRemainingAmount(detail);
-    if (this.data.selectedPaymentMethod === PAYMENT_METHOD_WALLET && normalizeMoney(this.data.walletBalanceText) + 0.0001 < payAmount) {
+    if (method === PAYMENT_METHOD_WALLET && normalizeMoney(this.data.walletBalanceText) + 0.0001 < payAmount) {
       wx.showToast({
         title: TEXTS.walletInsufficient,
         icon: 'none'
@@ -1249,10 +1317,11 @@ Page({
     }
 
     this.setData({ paying: true });
-    payUserOrderTail({
-      orderId: detail.id,
-      paymentMethod: this.data.selectedPaymentMethod
-    })
+    const flow =
+      method === PAYMENT_METHOD_WALLET
+        ? payUserOrderTail({ orderId: detail.id, paymentMethod: method })
+        : this.payTailByWechat(detail.id);
+    flow
       .then((res) => {
         if (!res || res.code !== 200 || !res.data) {
           throw new Error((res && res.message) || TEXTS.loadFailed);

@@ -2,9 +2,9 @@
   <div class="admin-layout">
     <header class="admin-header">
       <div class="header-left">
-        <img class="header-logo" :src="brandLogoIcon" alt="安修到家" />
+        <img class="header-logo" :src="brandLogoIcon" alt="速修派" />
         <div class="header-text">
-          <div class="header-title">安修到家管理后台</div>
+          <div class="header-title">速修派管理后台</div>
           <div class="header-subtitle">
             <template v-if="isStoreAdmin && storeName">{{ storeName }}</template>
             <template v-else>欢迎回来，{{ displayName }}</template>
@@ -15,7 +15,14 @@
         <el-button class="header-refresh-btn" circle @click="handlePageRefresh">
           <el-icon><RefreshRight /></el-icon>
         </el-button>
-        <el-button v-if="isStoreAdmin" :type="businessStatus === 1 ? 'success' : 'warning'" plain size="small" :loading="togglingStatus" @click="toggleStoreStatus">
+        <el-button
+          v-if="isStoreAdmin"
+          :type="businessStatus === 1 ? 'success' : 'warning'"
+          plain
+          size="small"
+          :loading="togglingStatus"
+          @click="toggleStoreStatus"
+        >
           {{ businessStatus === 1 ? '营业中' : businessStatus === 2 ? '休息中' : '已关闭' }}
         </el-button>
         <el-dropdown @command="handleUserCommand">
@@ -27,7 +34,9 @@
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="profile">个人中心</el-dropdown-item>
-              <el-dropdown-item v-if="adminStore.adminRole === 2" command="store">门店管理</el-dropdown-item>
+              <el-dropdown-item v-if="adminStore.adminRole === 2" command="store"
+                >门店管理</el-dropdown-item
+              >
               <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -64,7 +73,9 @@
 
           <el-sub-menu index="/admin/products">
             <template #title><span>商品管理</span></template>
-            <el-menu-item v-if="isSuperAdmin" index="/admin/products/categories">商品分类管理</el-menu-item>
+            <el-menu-item v-if="isSuperAdmin" index="/admin/products/categories"
+              >商品分类管理</el-menu-item
+            >
             <el-menu-item index="/admin/products/main">商品信息管理</el-menu-item>
             <el-menu-item index="/admin/products/second-hand">二手商品管理</el-menu-item>
             <el-menu-item index="/admin/products/warranty">保修卡管理</el-menu-item>
@@ -99,6 +110,18 @@
             <el-menu-item index="/admin/system/operation-logs">操作日志</el-menu-item>
             <el-menu-item index="/admin/system/announcements">公告管理</el-menu-item>
             <el-menu-item index="/admin/system/settings">基础设置</el-menu-item>
+          </el-sub-menu>
+
+          <el-sub-menu v-if="isSuperAdmin" index="/admin/operations">
+            <template #title><span>运营管理</span></template>
+            <el-menu-item index="/admin/operations/withdrawals">师傅提现审核</el-menu-item>
+            <el-menu-item index="/admin/operations/notifications">通知 outbox</el-menu-item>
+            <el-menu-item index="/admin/operations/order-sla">订单 SLA</el-menu-item>
+            <el-menu-item index="/admin/operations/support-tickets">客服工单</el-menu-item>
+            <el-menu-item index="/admin/operations/appointment-capacity">预约容量</el-menu-item>
+            <el-menu-item index="/admin/operations/invoices">发票管理</el-menu-item>
+            <el-menu-item index="/admin/operations/finance">财务核算</el-menu-item>
+            <el-menu-item index="/admin/operations/reconciliation">资金对账</el-menu-item>
           </el-sub-menu>
         </el-menu>
       </aside>
@@ -162,7 +185,9 @@ const activeRootMenu = computed(() => {
 
 const displayName = computed(() => adminStore.name || adminStore.email || '管理员');
 const avatarUrl = computed(() => adminStore.avatar);
-const displayInitial = computed(() => (displayName.value ? displayName.value.charAt(0).toUpperCase() : 'A'));
+const displayInitial = computed(() =>
+  displayName.value ? displayName.value.charAt(0).toUpperCase() : 'A'
+);
 
 onMounted(async () => {
   if (!adminStore.loaded) {
@@ -182,7 +207,9 @@ onMounted(async () => {
         businessStatus.value = res.data.businessStatus;
         storeName.value = res.data.name || '';
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      /* ignore */
+    }
   }
 });
 
@@ -199,8 +226,11 @@ async function toggleStoreStatus() {
     });
     businessStatus.value = newStatus;
     ElMessage.success('已切换为' + text);
-  } catch (e) { /* cancel or error */ }
-  finally { togglingStatus.value = false; }
+  } catch (e) {
+    /* cancel or error */
+  } finally {
+    togglingStatus.value = false;
+  }
 }
 
 function handleUserCommand(command) {

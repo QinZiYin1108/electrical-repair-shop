@@ -1,41 +1,41 @@
-const DRAFT_KEY = "order_flow_draft";
+const DRAFT_KEY = 'order_flow_draft';
 
 function createDefaultDraft() {
   return {
     serviceMode: 1,
-    level1Keyword: "",
-    selectedLevel1Id: "",
-    selectedLevel2Id: "",
-    selectedCategoryId: "",
-    selectedCategoryPath: "",
-    selectedServiceTypeId: "",
-    selectedServiceTypeName: "",
-    selectedAddressId: "",
-    selectedAddressText: "",
-    selectedTechnicianId: "",
-    selectedTechnicianName: "",
+    level1Keyword: '',
+    selectedLevel1Id: '',
+    selectedLevel2Id: '',
+    selectedCategoryId: '',
+    selectedCategoryPath: '',
+    selectedServiceTypeId: '',
+    selectedServiceTypeName: '',
+    selectedAddressId: '',
+    selectedAddressText: '',
+    selectedTechnicianId: '',
+    selectedTechnicianName: '',
     selectedFaultIds: [],
     faultNameMap: {},
     faultDetailMap: {},
-    applianceBrand: "",
-    applianceModel: "",
-    purchaseDate: "",
-    editingOrderId: "",
-    editingMode: "",
+    applianceBrand: '',
+    applianceModel: '',
+    purchaseDate: '',
+    editingOrderId: '',
+    editingMode: '',
     canModifyAppointment: true,
-    selectedAppointmentId: "",
-    selectedAppointmentLabel: "",
+    selectedAppointmentId: '',
+    selectedAppointmentLabel: '',
     selectedAppointmentTime: null
   };
 }
 
 function normalizeFaultDetailMap(value) {
-  if (!value || typeof value !== "object") return {};
+  if (!value || typeof value !== 'object') return {};
   const next = {};
   Object.keys(value).forEach((key) => {
     const row = value[key] || {};
     next[key] = {
-      description: row.description || "",
+      description: row.description || '',
       images: Array.isArray(row.images) ? row.images : [],
       video: row.video || null
     };
@@ -44,10 +44,10 @@ function normalizeFaultDetailMap(value) {
 }
 
 function normalizeNameMap(value) {
-  if (!value || typeof value !== "object") return {};
+  if (!value || typeof value !== 'object') return {};
   const next = {};
   Object.keys(value).forEach((key) => {
-    next[key] = value[key] || "";
+    next[key] = value[key] || '';
   });
   return next;
 }
@@ -76,7 +76,7 @@ function saveDraft(draft) {
 
 function getDraft() {
   const cached = wx.getStorageSync(DRAFT_KEY);
-  if (!cached || typeof cached !== "object") {
+  if (!cached || typeof cached !== 'object') {
     return saveDraft(createDefaultDraft());
   }
   return saveDraft(cached);
@@ -95,8 +95,8 @@ function resetDraft() {
 
 function clearEditingState() {
   return patchDraft({
-    editingOrderId: "",
-    editingMode: "",
+    editingOrderId: '',
+    editingMode: '',
     canModifyAppointment: true
   });
 }

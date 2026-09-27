@@ -7,7 +7,9 @@
             <el-button text @click="goBack">返回列表</el-button>
             <span class="title">师傅详情</span>
           </div>
-          <el-button type="primary" :loading="savingBase" @click="saveBaseInfo">保存基础信息</el-button>
+          <el-button type="primary" :loading="savingBase" @click="saveBaseInfo"
+            >保存基础信息</el-button
+          >
         </div>
       </template>
 
@@ -19,8 +21,12 @@
         <div class="summary-main">
           <div class="name-row">
             <span class="name">{{ detail.username || '-' }}</span>
-            <el-tag :type="getAccountStatusTagType(detail.accountStatus)">账号：{{ getAccountStatusText(detail.accountStatus) }}</el-tag>
-            <el-tag :type="getWorkStatusTagType(detail.workStatus)">工作：{{ getWorkStatusText(detail.workStatus) }}</el-tag>
+            <el-tag :type="getAccountStatusTagType(detail.accountStatus)"
+              >账号：{{ getAccountStatusText(detail.accountStatus) }}</el-tag
+            >
+            <el-tag :type="getWorkStatusTagType(detail.workStatus)"
+              >工作：{{ getWorkStatusText(detail.workStatus) }}</el-tag
+            >
             <el-button
               v-if="detail.accountStatus === 1 || detail.accountStatus === 3"
               size="small"
@@ -42,26 +48,58 @@
       <el-form label-width="90px">
         <el-row :gutter="12">
           <el-col :span="12">
-            <el-form-item label="师傅ID"><el-input :model-value="detail.id" disabled /></el-form-item>
-            <el-form-item label="账号名"><el-input v-model="baseForm.username" maxlength="50" /></el-form-item>
-            <el-form-item label="邮箱"><el-input v-model="baseForm.email" maxlength="100" /></el-form-item>
-            <el-form-item label="手机号"><el-input :model-value="detail.phone" disabled /></el-form-item>
-            <el-form-item label="真实姓名"><el-input :model-value="detail.realName || '-'" disabled /></el-form-item>
+            <el-form-item label="师傅ID"
+              ><el-input :model-value="detail.id" disabled
+            /></el-form-item>
+            <el-form-item label="账号名"
+              ><el-input v-model="baseForm.username" maxlength="50"
+            /></el-form-item>
+            <el-form-item label="邮箱"
+              ><el-input v-model="baseForm.email" maxlength="100"
+            /></el-form-item>
+            <el-form-item label="手机号"
+              ><el-input :model-value="detail.phone" disabled
+            /></el-form-item>
+            <el-form-item label="真实姓名"
+              ><el-input :model-value="detail.realName || '-'" disabled
+            /></el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="身份证"><el-input :model-value="detail.idCard || '-'" disabled /></el-form-item>
-            <el-form-item label="性别"><el-input :model-value="getGenderText(detail.gender)" disabled /></el-form-item>
-            <el-form-item label="生日"><el-input :model-value="detail.birthday || '-'" disabled /></el-form-item>
-            <el-form-item label="工龄"><el-input-number v-model="baseForm.workYears" :min="0" :max="60" /></el-form-item>
-            <el-form-item label="学历"><el-input v-model="baseForm.education" maxlength="30" /></el-form-item>
+            <el-form-item label="身份证"
+              ><el-input :model-value="detail.idCard || '-'" disabled
+            /></el-form-item>
+            <el-form-item label="性别"
+              ><el-input :model-value="getGenderText(detail.gender)" disabled
+            /></el-form-item>
+            <el-form-item label="生日"
+              ><el-input :model-value="detail.birthday || '-'" disabled
+            /></el-form-item>
+            <el-form-item label="工龄"
+              ><el-input-number v-model="baseForm.workYears" :min="0" :max="60"
+            /></el-form-item>
+            <el-form-item label="学历"
+              ><el-input v-model="baseForm.education" maxlength="30"
+            /></el-form-item>
           </el-col>
         </el-row>
         <el-form-item label="个人介绍">
-          <el-input v-model="baseForm.introduction" type="textarea" :rows="3" maxlength="500" show-word-limit />
+          <el-input
+            v-model="baseForm.introduction"
+            type="textarea"
+            :rows="3"
+            maxlength="500"
+            show-word-limit
+          />
         </el-form-item>
       </el-form>
 
-      <input ref="avatarInputRef" class="hidden-file" type="file" accept="image/*" @change="handleAvatarFileChange" />
+      <input
+        ref="avatarInputRef"
+        class="hidden-file"
+        type="file"
+        accept="image/*"
+        @change="handleAvatarFileChange"
+      />
     </el-card>
 
     <el-card class="detail-card" shadow="never">
@@ -94,12 +132,19 @@
             @keyup.enter="handleSkillSearch"
             @clear="handleSkillSearch"
           />
-          <el-select v-model="skillQuery.serviceMode" class="input-mode" clearable placeholder="服务方式">
+          <el-select
+            v-model="skillQuery.serviceMode"
+            class="input-mode"
+            clearable
+            placeholder="服务方式"
+          >
             <el-option :value="1" label="上门维修" />
             <el-option :value="2" label="上门安装" />
             <el-option :value="3" label="到店维修" />
           </el-select>
-          <el-button type="primary" :loading="skillSourceLoading" @click="handleSkillSearch">查询</el-button>
+          <el-button type="primary" :loading="skillSourceLoading" @click="handleSkillSearch"
+            >查询</el-button
+          >
         </div>
 
         <div class="skill-source">
@@ -115,11 +160,21 @@
           </div>
           <div class="option-box" v-loading="skillSourceLoading">
             <div class="sub-title">可添加服务类型</div>
-            <el-table :data="availableSkillList" border height="260" @selection-change="onAvailableSkillSelectionChange">
+            <el-table
+              :data="availableSkillList"
+              border
+              height="260"
+              @selection-change="onAvailableSkillSelectionChange"
+            >
               <el-table-column type="selection" width="48" />
               <el-table-column prop="name" label="服务类型" min-width="150" />
               <el-table-column prop="typeText" label="服务方式" width="100" />
-              <el-table-column prop="categoryPath" label="分类路径" min-width="180" show-overflow-tooltip />
+              <el-table-column
+                prop="categoryPath"
+                label="分类路径"
+                min-width="180"
+                show-overflow-tooltip
+              />
             </el-table>
             <div class="add-row">
               <el-button type="primary" :loading="skillSaving" @click="handleBatchAddSkills">
@@ -133,7 +188,12 @@
         <el-table v-loading="skillLoading" :data="skillList" border>
           <el-table-column prop="serviceTypeName" label="服务类型" min-width="150" />
           <el-table-column prop="serviceModeText" label="服务方式" width="100" />
-          <el-table-column prop="categoryPath" label="分类路径" min-width="180" show-overflow-tooltip />
+          <el-table-column
+            prop="categoryPath"
+            label="分类路径"
+            min-width="180"
+            show-overflow-tooltip
+          />
           <el-table-column prop="skillLevelText" label="技能等级" width="100" />
           <el-table-column label="更新时间" min-width="160">
             <template #default="{ row }">{{ formatTime(row.updatedTime) || '-' }}</template>
@@ -148,20 +208,28 @@
 
       <div v-else-if="activePanel === 'policies'" class="panel">
         <div class="toolbar toolbar-right">
-          <el-button type="primary" :loading="savingPolicies" @click="savePolicies">保存计费策略</el-button>
+          <el-button type="primary" :loading="savingPolicies" @click="savePolicies"
+            >保存计费策略</el-button
+          >
         </div>
         <el-table :data="policyForm" border>
           <el-table-column prop="serviceKind" label="服务类型" width="120">
             <template #default="{ row }">{{ getServiceKindText(row.serviceKind) }}</template>
           </el-table-column>
           <el-table-column label="最低上门费(元)" min-width="140">
-            <template #default="{ row }"><el-input-number v-model="row.minVisitFee" :min="0" :precision="2" /></template>
+            <template #default="{ row }"
+              ><el-input-number v-model="row.minVisitFee" :min="0" :precision="2"
+            /></template>
           </el-table-column>
           <el-table-column label="基础半径(km)" min-width="140">
-            <template #default="{ row }"><el-input-number v-model="row.baseRadiusKm" :min="0" :precision="3" /></template>
+            <template #default="{ row }"
+              ><el-input-number v-model="row.baseRadiusKm" :min="0" :precision="3"
+            /></template>
           </el-table-column>
           <el-table-column label="超区每公里(元)" min-width="140">
-            <template #default="{ row }"><el-input-number v-model="row.extraFeePerKm" :min="0" :precision="2" /></template>
+            <template #default="{ row }"
+              ><el-input-number v-model="row.extraFeePerKm" :min="0" :precision="2"
+            /></template>
           </el-table-column>
           <el-table-column label="状态" width="120">
             <template #default="{ row }">
@@ -173,7 +241,9 @@
 
       <div v-else-if="activePanel === 'workTimes'" class="panel">
         <div class="toolbar toolbar-right">
-          <el-button type="primary" :loading="savingWorkTimes" @click="saveWorkTimes">保存工作时间</el-button>
+          <el-button type="primary" :loading="savingWorkTimes" @click="saveWorkTimes"
+            >保存工作时间</el-button
+          >
         </div>
         <el-table :data="workTimeForm" border>
           <el-table-column prop="dayOfWeek" label="星期" width="90">
@@ -181,12 +251,22 @@
           </el-table-column>
           <el-table-column label="开始时间" min-width="170">
             <template #default="{ row }">
-              <el-time-picker v-model="row.startTime" format="HH:mm" value-format="HH:mm" :disabled="row.isAvailable === 0" />
+              <el-time-picker
+                v-model="row.startTime"
+                format="HH:mm"
+                value-format="HH:mm"
+                :disabled="row.isAvailable === 0"
+              />
             </template>
           </el-table-column>
           <el-table-column label="结束时间" min-width="170">
             <template #default="{ row }">
-              <el-time-picker v-model="row.endTime" format="HH:mm" value-format="HH:mm" :disabled="row.isAvailable === 0" />
+              <el-time-picker
+                v-model="row.endTime"
+                format="HH:mm"
+                value-format="HH:mm"
+                :disabled="row.isAvailable === 0"
+              />
             </template>
           </el-table-column>
           <el-table-column label="可接单" width="120">
@@ -199,11 +279,21 @@
 
       <div v-else-if="activePanel === 'serviceArea'" class="panel">
         <el-descriptions :column="2" border>
-          <el-descriptions-item label="区域名称">{{ detail.serviceAreaCenter?.areaName || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="状态">{{ detail.serviceAreaCenter?.isActive === 1 ? '启用' : '禁用' }}</el-descriptions-item>
-          <el-descriptions-item label="中心纬度">{{ detail.serviceAreaCenter?.centerLatitude ?? '-' }}</el-descriptions-item>
-          <el-descriptions-item label="中心经度">{{ detail.serviceAreaCenter?.centerLongitude ?? '-' }}</el-descriptions-item>
-          <el-descriptions-item label="更新时间" :span="2">{{ formatTime(detail.serviceAreaCenter?.updatedTime) || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="区域名称">{{
+            detail.serviceAreaCenter?.areaName || '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="状态">{{
+            detail.serviceAreaCenter?.isActive === 1 ? '启用' : '禁用'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="中心纬度">{{
+            detail.serviceAreaCenter?.centerLatitude ?? '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="中心经度">{{
+            detail.serviceAreaCenter?.centerLongitude ?? '-'
+          }}</el-descriptions-item>
+          <el-descriptions-item label="更新时间" :span="2">{{
+            formatTime(detail.serviceAreaCenter?.updatedTime) || '-'
+          }}</el-descriptions-item>
           <el-descriptions-item label="中心地址" :span="2">
             <span class="long-text">{{ detail.serviceAreaCenter?.centerAddress || '-' }}</span>
           </el-descriptions-item>
@@ -212,14 +302,40 @@
 
       <div v-else class="panel">
         <div class="stats-grid">
-          <div class="stats-item"><div class="stats-label">总订单</div><div class="stats-value">{{ detail.orderStats?.totalCount ?? 0 }}</div></div>
-          <div class="stats-item"><div class="stats-label">待接单</div><div class="stats-value">{{ detail.orderStats?.waitingCount ?? 0 }}</div></div>
-          <div class="stats-item"><div class="stats-label">进行中</div><div class="stats-value">{{ detail.orderStats?.ongoingCount ?? 0 }}</div></div>
-          <div class="stats-item"><div class="stats-label">待支付</div><div class="stats-value">{{ detail.orderStats?.waitingPayCount ?? 0 }}</div></div>
-          <div class="stats-item"><div class="stats-label">已完成</div><div class="stats-value">{{ detail.orderStats?.completedCount ?? 0 }}</div></div>
-          <div class="stats-item"><div class="stats-label">已取消</div><div class="stats-value">{{ detail.orderStats?.canceledCount ?? 0 }}</div></div>
-          <div class="stats-item"><div class="stats-label">已退款</div><div class="stats-value">{{ detail.orderStats?.refundedCount ?? 0 }}</div></div>
-          <div class="stats-item"><div class="stats-label">最近订单</div><div class="stats-value small">{{ formatTime(detail.orderStats?.latestOrderTime) || '-' }}</div></div>
+          <div class="stats-item">
+            <div class="stats-label">总订单</div>
+            <div class="stats-value">{{ detail.orderStats?.totalCount ?? 0 }}</div>
+          </div>
+          <div class="stats-item">
+            <div class="stats-label">待接单</div>
+            <div class="stats-value">{{ detail.orderStats?.waitingCount ?? 0 }}</div>
+          </div>
+          <div class="stats-item">
+            <div class="stats-label">进行中</div>
+            <div class="stats-value">{{ detail.orderStats?.ongoingCount ?? 0 }}</div>
+          </div>
+          <div class="stats-item">
+            <div class="stats-label">待支付</div>
+            <div class="stats-value">{{ detail.orderStats?.waitingPayCount ?? 0 }}</div>
+          </div>
+          <div class="stats-item">
+            <div class="stats-label">已完成</div>
+            <div class="stats-value">{{ detail.orderStats?.completedCount ?? 0 }}</div>
+          </div>
+          <div class="stats-item">
+            <div class="stats-label">已取消</div>
+            <div class="stats-value">{{ detail.orderStats?.canceledCount ?? 0 }}</div>
+          </div>
+          <div class="stats-item">
+            <div class="stats-label">已退款</div>
+            <div class="stats-value">{{ detail.orderStats?.refundedCount ?? 0 }}</div>
+          </div>
+          <div class="stats-item">
+            <div class="stats-label">最近订单</div>
+            <div class="stats-value small">
+              {{ formatTime(detail.orderStats?.latestOrderTime) || '-' }}
+            </div>
+          </div>
         </div>
       </div>
     </el-card>
@@ -324,7 +440,10 @@ const avatarInitial = computed(() => {
 });
 
 const sliderStyle = computed(() => {
-  const index = Math.max(0, panelOptions.findIndex(item => item.key === activePanel.value));
+  const index = Math.max(
+    0,
+    panelOptions.findIndex((item) => item.key === activePanel.value)
+  );
   return {
     width: `${100 / panelOptions.length}%`,
     transform: `translateX(${index * 100}%)`
@@ -450,10 +569,11 @@ function applyDetail(data) {
   baseForm.introduction = detail.introduction;
 
   const policyMap = new Map();
-  detail.visitFeePolicies.forEach(item => {
-    if (item && (item.serviceKind === 1 || item.serviceKind === 2)) policyMap.set(item.serviceKind, item);
+  detail.visitFeePolicies.forEach((item) => {
+    if (item && (item.serviceKind === 1 || item.serviceKind === 2))
+      policyMap.set(item.serviceKind, item);
   });
-  policyForm.value = [1, 2].map(kind => {
+  policyForm.value = [1, 2].map((kind) => {
     const source = policyMap.get(kind);
     if (!source) return defaultPolicy(kind);
     return {
@@ -470,8 +590,14 @@ function applyDetail(data) {
   });
 
   const workTimeMap = new Map();
-  detail.workTimes.forEach(item => {
-    if (item && Number.isInteger(item.dayOfWeek) && item.dayOfWeek >= 1 && item.dayOfWeek <= 7 && !workTimeMap.has(item.dayOfWeek)) {
+  detail.workTimes.forEach((item) => {
+    if (
+      item &&
+      Number.isInteger(item.dayOfWeek) &&
+      item.dayOfWeek >= 1 &&
+      item.dayOfWeek <= 7 &&
+      !workTimeMap.has(item.dayOfWeek)
+    ) {
       workTimeMap.set(item.dayOfWeek, item);
     }
   });
@@ -586,7 +712,7 @@ async function savePolicies() {
   }
   savingPolicies.value = true;
   try {
-    const payload = policyForm.value.map(item => ({
+    const payload = policyForm.value.map((item) => ({
       id: item.id || '',
       serviceKind: item.serviceKind,
       minVisitFee: Number(item.minVisitFee ?? 0),
@@ -621,7 +747,8 @@ function validateWorkTimes() {
   for (const item of workTimeForm.value) {
     const startTime = normalizeTimeValue(item.startTime, '09:00');
     const endTime = normalizeTimeValue(item.endTime, '18:00');
-    if (toMinutes(startTime) >= toMinutes(endTime)) return `${getDayOfWeekText(item.dayOfWeek)}时间区间不合法`;
+    if (toMinutes(startTime) >= toMinutes(endTime))
+      return `${getDayOfWeekText(item.dayOfWeek)}时间区间不合法`;
   }
   return '';
 }
@@ -635,7 +762,7 @@ async function saveWorkTimes() {
   }
   savingWorkTimes.value = true;
   try {
-    const payload = workTimeForm.value.map(item => ({
+    const payload = workTimeForm.value.map((item) => ({
       id: item.id || '',
       dayOfWeek: item.dayOfWeek,
       startTime: `${normalizeTimeValue(item.startTime, '09:00')}:00`,
@@ -690,8 +817,14 @@ async function loadAvailableSkillSources() {
       fetchAdminWorkerSkillCategoryTree(workerId.value, buildSkillParams(false)),
       fetchAdminWorkerSkillServiceTypes(workerId.value, buildSkillParams(true))
     ]);
-    skillCategoryTree.value = categoryRes && categoryRes.code === 200 && Array.isArray(categoryRes.data) ? categoryRes.data : [];
-    availableSkillList.value = serviceTypeRes && serviceTypeRes.code === 200 && Array.isArray(serviceTypeRes.data) ? serviceTypeRes.data : [];
+    skillCategoryTree.value =
+      categoryRes && categoryRes.code === 200 && Array.isArray(categoryRes.data)
+        ? categoryRes.data
+        : [];
+    availableSkillList.value =
+      serviceTypeRes && serviceTypeRes.code === 200 && Array.isArray(serviceTypeRes.data)
+        ? serviceTypeRes.data
+        : [];
     selectedAvailableSkillIds.value = [];
     skillSourceLoaded.value = true;
   } catch {
@@ -715,7 +848,7 @@ async function handleCategorySelect(node) {
 }
 
 function onAvailableSkillSelectionChange(rows) {
-  selectedAvailableSkillIds.value = (rows || []).map(item => item.id).filter(Boolean);
+  selectedAvailableSkillIds.value = (rows || []).map((item) => item.id).filter(Boolean);
 }
 
 async function handleBatchAddSkills() {
@@ -743,7 +876,9 @@ async function handleBatchAddSkills() {
 async function handleRemoveSkill(row) {
   if (!row || !row.serviceTypeId || !workerId.value) return;
   try {
-    await ElMessageBox.confirm(`确认移除技能“${row.serviceTypeName || ''}”吗？`, '提示', { type: 'warning' });
+    await ElMessageBox.confirm(`确认移除技能“${row.serviceTypeName || ''}”吗？`, '提示', {
+      type: 'warning'
+    });
   } catch {
     return;
   }
@@ -819,14 +954,44 @@ useAdminPageRefresh(async () => {
 </script>
 
 <style scoped>
-.worker-detail-page { padding: 16px; box-sizing: border-box; }
-.detail-card { margin-bottom: 16px; }
-.card-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.left-head { display: flex; align-items: center; gap: 8px; }
-.title { font-size: 18px; font-weight: 600; }
-.section-title { font-size: 15px; font-weight: 600; }
-.summary { display: flex; gap: 16px; margin-bottom: 14px; }
-.avatar-wrap { width: 84px; height: 84px; position: relative; cursor: pointer; border-radius: 50%; }
+.worker-detail-page {
+  padding: 16px;
+  box-sizing: border-box;
+}
+.detail-card {
+  margin-bottom: 16px;
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.left-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.title {
+  font-size: 18px;
+  font-weight: 600;
+}
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+.summary {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.avatar-wrap {
+  width: 84px;
+  height: 84px;
+  position: relative;
+  cursor: pointer;
+  border-radius: 50%;
+}
 .avatar-mask {
   position: absolute;
   inset: 0;
@@ -838,11 +1003,29 @@ useAdminPageRefresh(async () => {
   align-items: center;
   justify-content: center;
 }
-.summary-main { flex: 1; }
-.name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.name { font-size: 20px; font-weight: 600; }
-.meta-row { margin-top: 10px; display: flex; gap: 14px; flex-wrap: wrap; color: #606266; }
-.hidden-file { display: none; }
+.summary-main {
+  flex: 1;
+}
+.name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.name {
+  font-size: 20px;
+  font-weight: 600;
+}
+.meta-row {
+  margin-top: 10px;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  color: #606266;
+}
+.hidden-file {
+  display: none;
+}
 
 .slider {
   position: relative;
@@ -853,31 +1036,107 @@ useAdminPageRefresh(async () => {
   overflow: hidden;
   background: #f5f7fa;
 }
-.slider-track { position: absolute; left: 0; top: 0; bottom: 0; background: #409eff; border-radius: 999px; transition: transform 0.25s; }
-.slider-btn { position: relative; z-index: 1; border: none; background: transparent; height: 34px; padding: 0 12px; color: #606266; cursor: pointer; }
-.slider-btn.active { color: #fff; font-weight: 600; }
+.slider-track {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: #409eff;
+  border-radius: 999px;
+  transition: transform 0.25s;
+}
+.slider-btn {
+  position: relative;
+  z-index: 1;
+  border: none;
+  background: transparent;
+  height: 34px;
+  padding: 0 12px;
+  color: #606266;
+  cursor: pointer;
+}
+.slider-btn.active {
+  color: #fff;
+  font-weight: 600;
+}
 
-.panel { min-height: 220px; }
-.toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.toolbar-right { justify-content: flex-end; }
-.input-keyword { width: 280px; }
-.input-mode { width: 140px; }
+.panel {
+  min-height: 220px;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.toolbar-right {
+  justify-content: flex-end;
+}
+.input-keyword {
+  width: 280px;
+}
+.input-mode {
+  width: 140px;
+}
 
-.skill-source { display: grid; grid-template-columns: 240px 1fr; gap: 12px; }
-.tree-box, .option-box { border: 1px solid #ebeef5; border-radius: 10px; padding: 12px; }
-.sub-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
-.add-row { display: flex; justify-content: flex-end; margin-top: 10px; }
-.current-title { margin-top: 12px; }
-.long-text { word-break: break-all; }
+.skill-source {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 12px;
+}
+.tree-box,
+.option-box {
+  border: 1px solid #ebeef5;
+  border-radius: 10px;
+  padding: 12px;
+}
+.sub-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.add-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+.current-title {
+  margin-top: 12px;
+}
+.long-text {
+  word-break: break-all;
+}
 
-.stats-grid { display: grid; grid-template-columns: repeat(4, minmax(130px, 1fr)); gap: 12px; }
-.stats-item { border: 1px solid #ebeef5; border-radius: 8px; padding: 10px; background: #fafafa; }
-.stats-label { color: #909399; font-size: 12px; }
-.stats-value { margin-top: 6px; font-size: 18px; font-weight: 600; }
-.stats-value.small { font-size: 13px; }
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(130px, 1fr));
+  gap: 12px;
+}
+.stats-item {
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fafafa;
+}
+.stats-label {
+  color: #909399;
+  font-size: 12px;
+}
+.stats-value {
+  margin-top: 6px;
+  font-size: 18px;
+  font-weight: 600;
+}
+.stats-value.small {
+  font-size: 13px;
+}
 
 @media (max-width: 1280px) {
-  .skill-source { grid-template-columns: 1fr; }
-  .stats-grid { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+  .skill-source {
+    grid-template-columns: 1fr;
+  }
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
 }
 </style>

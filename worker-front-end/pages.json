@@ -1,21 +1,21 @@
 {
   "pages": [
     {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "师傅首页"
+      }
+    },
+    {
       "path": "pages/login/index",
       "style": {
-        "navigationBarTitleText": "安修到家师傅端"
+        "navigationBarTitleText": "速修派师傅端"
       }
     },
     {
       "path": "pages/protocol/index",
       "style": {
         "navigationBarTitleText": "协议内容"
-      }
-    },
-    {
-      "path": "pages/index/index",
-      "style": {
-        "navigationBarTitleText": "师傅首页"
       }
     },
     {
@@ -126,10 +126,28 @@
         "navigationBarTitleText": "门店绑定"
       }
     },
+    {
+      "path": "pages/report-submit/index",
+      "style": {
+        "navigationBarTitleText": "提交举报"
+      }
+    },
+    {
+      "path": "pages/my-reports/index",
+      "style": {
+        "navigationBarTitleText": "我的举报"
+      }
+    },
+    {
+      "path": "pages/credit-score/index",
+      "style": {
+        "navigationBarTitleText": "信用积分"
+      }
+    }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "安修到家师傅端",
+    "navigationBarTitleText": "速修派师傅端",
     "navigationBarBackgroundColor": "#F8F8F8",
     "backgroundColor": "#F8F8F8",
     "navigationStyle": "custom"

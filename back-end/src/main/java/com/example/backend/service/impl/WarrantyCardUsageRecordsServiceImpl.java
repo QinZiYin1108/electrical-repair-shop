@@ -7,6 +7,6 @@ import com.example.backend.service.WarrantyCardUsageRecordsService;
 import org.springframework.stereotype.Service;
 
 @Service
-public class WarrantyCardUsageRecordsServiceImpl extends ServiceImpl<WarrantyCardUsageRecordsMapper, WarrantyCardUsageRecords>
-    implements WarrantyCardUsageRecordsService {
-}
+public class WarrantyCardUsageRecordsServiceImpl
+        extends ServiceImpl<WarrantyCardUsageRecordsMapper, WarrantyCardUsageRecords>
+        implements WarrantyCardUsageRecordsService {}

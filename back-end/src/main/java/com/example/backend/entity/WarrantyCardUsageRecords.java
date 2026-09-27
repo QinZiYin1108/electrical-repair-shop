@@ -10,8 +10,7 @@ import lombok.Data;
 @TableName("warranty_card_usage_records")
 public class WarrantyCardUsageRecords {
 
-    @TableId
-    private String id;
+    @TableId private String id;
 
     private String warrantyCardId;
 
@@ -43,9 +42,7 @@ public class WarrantyCardUsageRecords {
 
     private Long updatedTime;
 
-    @Version
-    private Integer version;
+    @Version private Integer version;
 
-    @TableLogic
-    private Integer isDelete;
+    @TableLogic private Integer isDelete;
 }

@@ -1,20 +1,19 @@
 package com.example.backend.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.example.backend.entity.Reviews;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.example.backend.entity.Reviews;
 import com.example.backend.model.review.ReviewItemResponse;
 import com.example.backend.model.review.ReviewSubmitRequest;
 import com.example.backend.model.review.ReviewUploadImageResponse;
+import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-
 /**
-* @author Administrator
-* @description 针对表【reviews(评价表)】的数据库操作Service
-* @createDate 2026-03-03 11:26:16
-*/
+ * @author Administrator
+ * @description 针对表【reviews(评价表)】的数据库操作Service
+ * @createDate 2026-03-03 11:26:16
+ */
 public interface ReviewsService extends IService<Reviews> {
 
     Reviews getUserOrderReviewEntity(String orderId, String accountId);
@@ -40,19 +39,19 @@ public interface ReviewsService extends IService<Reviews> {
     ReviewItemResponse replyAdminReview(String reviewId, String replyContent);
 
     Page<ReviewItemResponse> pageAdminReviews(
-        long pageNum,
-        long pageSize,
-        String keyword,
-        Integer reviewType,
-        Integer status,
-        Integer rating,
-        Integer hasReply,
-        java.util.Set<String> targetIds
-    );
+            long pageNum,
+            long pageSize,
+            String keyword,
+            Integer reviewType,
+            Integer status,
+            Integer rating,
+            Integer hasReply,
+            java.util.Set<String> targetIds);
 
     ReviewItemResponse updateAdminReviewStatus(String reviewId, Integer status);
 
-    ReviewUploadImageResponse uploadReviewImage(MultipartFile file, String uploaderId, Integer uploaderType);
+    ReviewUploadImageResponse uploadReviewImage(
+            MultipartFile file, String uploaderId, Integer uploaderType);
 
     void refreshTechnicianRating(String technicianId);
 }

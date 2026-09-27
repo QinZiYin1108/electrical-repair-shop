@@ -19,7 +19,9 @@
             <el-button type="warning" :loading="passwordInitSaving" @click="initPassword">
               {{ text.initPassword }}
             </el-button>
-            <el-button type="primary" :loading="saving" @click="saveInfo">{{ text.saveInfo }}</el-button>
+            <el-button type="primary" :loading="saving" @click="saveInfo">{{
+              text.saveInfo
+            }}</el-button>
           </div>
         </div>
       </template>
@@ -32,7 +34,9 @@
         <div class="summary-main">
           <div class="name-row">
             <span class="name">{{ detail.username || '-' }}</span>
-            <el-tag :type="getStatusTagType(detail.status)">{{ getStatusText(detail.status) }}</el-tag>
+            <el-tag :type="getStatusTagType(detail.status)">{{
+              getStatusText(detail.status)
+            }}</el-tag>
             <el-tag :type="detail.isVerified === 1 ? 'success' : 'info'">
               {{ detail.isVerified === 1 ? text.verified : text.unverified }}
             </el-tag>
@@ -95,7 +99,9 @@
         <div class="card-header card-header--address">
           <div class="address-header">
             <span class="section-title">{{ text.addressList }}</span>
-            <span class="address-count">{{ text.totalPrefix }} {{ addressList.length }} {{ text.totalSuffix }}</span>
+            <span class="address-count"
+              >{{ text.totalPrefix }} {{ addressList.length }} {{ text.totalSuffix }}</span
+            >
           </div>
           <span class="address-hint">{{ text.listHint }}</span>
         </div>
@@ -119,11 +125,16 @@
                   <span class="contact-phone">{{ item.contactPhone || '-' }}</span>
                 </div>
                 <div class="tag-row">
-                  <span v-if="item.isDefault === 1" class="mini-tag mini-tag--default">{{ text.defaultAddress }}</span>
+                  <span v-if="item.isDefault === 1" class="mini-tag mini-tag--default">{{
+                    text.defaultAddress
+                  }}</span>
                   <span class="mini-tag">{{ getAddressTypeText(item) }}</span>
                 </div>
               </div>
-              <div class="time-text">{{ text.updatedTimeLabel }}{{ formatDateTime(item.updatedTime || item.createdTime) }}</div>
+              <div class="time-text">
+                {{ text.updatedTimeLabel
+                }}{{ formatDateTime(item.updatedTime || item.createdTime) }}
+              </div>
             </div>
 
             <div class="address-brief">{{ getFullAddress(item) || '-' }}</div>
@@ -135,8 +146,16 @@
             </div>
 
             <div class="action-row action-row--list">
-              <button type="button" class="mini-action" @click="openAddressDrawer(item, 'view')">{{ text.viewDetail }}</button>
-              <button type="button" class="mini-action mini-action--primary" @click="openAddressDrawer(item, 'edit')">{{ text.editAddress }}</button>
+              <button type="button" class="mini-action" @click="openAddressDrawer(item, 'view')">
+                {{ text.viewDetail }}
+              </button>
+              <button
+                type="button"
+                class="mini-action mini-action--primary"
+                @click="openAddressDrawer(item, 'edit')"
+              >
+                {{ text.editAddress }}
+              </button>
               <button
                 v-if="item.isDefault !== 1"
                 type="button"
@@ -172,13 +191,19 @@
           <div class="drawer-summary">
             <div class="drawer-top-row">
               <div class="drawer-title-wrap">
-                <div class="drawer-name">{{ currentAddress.contactName || text.contactFallback }}</div>
+                <div class="drawer-name">
+                  {{ currentAddress.contactName || text.contactFallback }}
+                </div>
                 <div class="drawer-phone">{{ currentAddress.contactPhone || '-' }}</div>
               </div>
-              <div class="drawer-mode-tag">{{ addressDrawerMode === 'edit' ? text.drawerModeEdit : text.drawerModeView }}</div>
+              <div class="drawer-mode-tag">
+                {{ addressDrawerMode === 'edit' ? text.drawerModeEdit : text.drawerModeView }}
+              </div>
             </div>
             <div class="tag-row tag-row--drawer">
-              <span v-if="currentAddress.isDefault === 1" class="mini-tag mini-tag--default">{{ text.defaultAddress }}</span>
+              <span v-if="currentAddress.isDefault === 1" class="mini-tag mini-tag--default">{{
+                text.defaultAddress
+              }}</span>
               <span class="mini-tag">{{ getAddressTypeText(currentAddress) }}</span>
             </div>
           </div>
@@ -244,7 +269,9 @@
                 </div>
                 <div class="drawer-field">
                   <span class="drawer-label">{{ text.defaultFlag }}</span>
-                  <span class="drawer-value">{{ currentAddress.isDefault === 1 ? text.yes : text.no }}</span>
+                  <span class="drawer-value">{{
+                    currentAddress.isDefault === 1 ? text.yes : text.no
+                  }}</span>
                 </div>
                 <div class="drawer-field">
                   <span class="drawer-label">{{ text.createdTime }}</span>
@@ -278,7 +305,13 @@
               <el-input v-model="addressEditForm.street" maxlength="100" />
             </el-form-item>
             <el-form-item :label="text.detailAddress">
-              <el-input v-model="addressEditForm.detailedAddress" type="textarea" :rows="3" maxlength="500" show-word-limit />
+              <el-input
+                v-model="addressEditForm.detailedAddress"
+                type="textarea"
+                :rows="3"
+                maxlength="500"
+                show-word-limit
+              />
             </el-form-item>
             <el-form-item :label="text.postalCodeLabel">
               <el-input v-model="addressEditForm.postalCode" maxlength="10" />
@@ -308,18 +341,32 @@
         <div class="drawer-footer">
           <template v-if="addressDrawerMode === 'view'">
             <el-button @click="addressDrawerVisible = false">{{ text.closeDrawer }}</el-button>
-            <el-button v-if="currentAddress && currentAddress.isDefault !== 1" @click="setDefaultAddress(currentAddress)">{{ text.setDefault }}</el-button>
-            <el-button type="primary" @click="enterAddressEditMode">{{ text.editInDrawer }}</el-button>
+            <el-button
+              v-if="currentAddress && currentAddress.isDefault !== 1"
+              @click="setDefaultAddress(currentAddress)"
+              >{{ text.setDefault }}</el-button
+            >
+            <el-button type="primary" @click="enterAddressEditMode">{{
+              text.editInDrawer
+            }}</el-button>
           </template>
           <template v-else>
             <el-button @click="exitAddressEditMode">{{ text.cancelEdit }}</el-button>
-            <el-button type="primary" :loading="addressDrawerSaving" @click="saveAddressEdit">{{ text.saveAddress }}</el-button>
+            <el-button type="primary" :loading="addressDrawerSaving" @click="saveAddressEdit">{{
+              text.saveAddress
+            }}</el-button>
           </template>
         </div>
       </template>
     </el-drawer>
 
-    <input ref="avatarInputRef" class="hidden-file" type="file" accept="image/*" @change="handleAvatarChange" />
+    <input
+      ref="avatarInputRef"
+      class="hidden-file"
+      type="file"
+      accept="image/*"
+      @change="handleAvatarChange"
+    />
   </div>
 </template>
 
@@ -530,10 +577,12 @@ const avatarInitial = computed(() => {
 });
 
 const isAnyAddressActionRunning = computed(() => Boolean(addressActionId.value));
-const currentAddress = computed(() => addressList.value.find(item => item.id === selectedAddressId.value) || null);
-const addressDrawerTitle = computed(() => (
+const currentAddress = computed(
+  () => addressList.value.find((item) => item.id === selectedAddressId.value) || null
+);
+const addressDrawerTitle = computed(() =>
   addressDrawerMode.value === 'edit' ? text.drawerEditTitle : text.drawerViewTitle
-));
+);
 
 function isAddressActionPending(id, type) {
   return addressActionId.value === id && addressActionType.value === type;
@@ -568,9 +617,7 @@ function getAddressTypeText(item) {
 function getFullAddress(item) {
   if (!item) return '-';
   if (item.fullAddress) return item.fullAddress;
-  return [item.province, item.city, item.district, item.street]
-    .filter(Boolean)
-    .join('') || '-';
+  return [item.province, item.city, item.district, item.street].filter(Boolean).join('') || '-';
 }
 
 function formatBalance(value) {
@@ -712,8 +759,10 @@ function validateAddressPayload(payload) {
   if (hasLongitude !== hasLatitude) return text.invalidCoordinatePair;
   if (hasLongitude && !Number.isFinite(payload.longitude)) return text.invalidLongitude;
   if (hasLatitude && !Number.isFinite(payload.latitude)) return text.invalidLatitude;
-  if (hasLongitude && (payload.longitude < -180 || payload.longitude > 180)) return text.invalidLongitudeRange;
-  if (hasLatitude && (payload.latitude < -90 || payload.latitude > 90)) return text.invalidLatitudeRange;
+  if (hasLongitude && (payload.longitude < -180 || payload.longitude > 180))
+    return text.invalidLongitudeRange;
+  if (hasLatitude && (payload.latitude < -90 || payload.latitude > 90))
+    return text.invalidLatitudeRange;
   return '';
 }
 
@@ -928,7 +977,11 @@ async function handleAvatarChange(event) {
       await loadDetail();
       return;
     }
-    showUploadErrorDialog((res && res.message) || text.avatarUploadFailed, text.avatarUploadFailed, text.avatarUploadFailed);
+    showUploadErrorDialog(
+      (res && res.message) || text.avatarUploadFailed,
+      text.avatarUploadFailed,
+      text.avatarUploadFailed
+    );
   } catch (error) {
     showUploadErrorDialog(error, text.avatarUploadFailed, text.avatarUploadFailed);
   } finally {
@@ -942,7 +995,7 @@ function goBack() {
 
 watch(
   userId,
-  value => {
+  (value) => {
     if (!value) return;
     loadDetail();
     loadAddresses();
@@ -950,7 +1003,7 @@ watch(
   { immediate: true }
 );
 
-watch(currentAddress, value => {
+watch(currentAddress, (value) => {
   if (!value && addressDrawerVisible.value) {
     addressDrawerVisible.value = false;
   }
@@ -1090,7 +1143,10 @@ useAdminPageRefresh(async () => {
   border-radius: 14px;
   padding: 16px 18px;
   background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 
 .address-item:hover {
@@ -1204,7 +1260,10 @@ useAdminPageRefresh(async () => {
   font-size: 12px;
   line-height: 1;
   cursor: pointer;
-  transition: transform 0.2s ease, opacity 0.2s ease, background 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease,
+    background 0.2s ease;
 }
 
 .mini-action:hover:not(:disabled) {

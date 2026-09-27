@@ -3,95 +3,57 @@ package com.example.backend.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
-/**
- * 站内消息表（用户与师傅）
- * @TableName conversation_messages
- */
-@TableName(value ="conversation_messages")
+/** 站内消息表（用户与师傅） @TableName conversation_messages */
+@TableName(value = "conversation_messages")
 @Data
 public class ConversationMessages {
-    /**
-     * 主键，CM+雪花ID
-     */
-    @TableId
-    private String id;
+    /** 主键，CM+雪花ID */
+    @TableId private String id;
 
-    /**
-     * 会话ID，对应conversation_sessions.id
-     */
+    /** 会话ID，对应conversation_sessions.id */
     private String sessionId;
 
-    /**
-     * 发送人账号ID
-     */
+    /** 发送人账号ID */
     private String senderId;
 
-    /**
-     * 发送人类型：1-用户，2-师傅，3-管理员，4-系统
-     */
+    /** 发送人类型：1-用户，2-师傅，3-管理员，4-系统 */
     private Integer senderType;
 
-    /**
-     * 接收人账号ID
-     */
+    /** 接收人账号ID */
     private String receiverId;
 
-    /**
-     * 接收人类型：1-用户，2-师傅，3-管理员，4-系统
-     */
+    /** 接收人类型：1-用户，2-师傅，3-管理员，4-系统 */
     private Integer receiverType;
 
-    /**
-     * 内容类型：1-文本，2-图片，3-语音，4-系统提示
-     */
+    /** 内容类型：1-文本，2-图片，3-语音，4-系统提示 */
     private Integer contentType;
 
-    /**
-     * 消息内容（文本或JSON）
-     */
+    /** 消息内容（文本或JSON） */
     private String content;
 
-    /**
-     * 扩展字段JSON，如图片URL、语音时长等
-     */
+    /** 扩展字段JSON，如图片URL、语音时长等 */
     private String extraData;
 
-    /**
-     * 发送时间戳
-     */
+    /** 发送时间戳 */
     private Long sendTime;
 
-    /**
-     * 已读时间戳，未读为空
-     */
+    /** 已读时间戳，未读为空 */
     private Long readTime;
 
-    /**
-     * 消息状态：1-正常，2-已撤回，3-已删除
-     */
+    /** 消息状态：1-正常，2-已撤回，3-已删除 */
     private Integer status;
 
-    /**
-     * 创建时间戳
-     */
+    /** 创建时间戳 */
     private Long createdTime;
 
-    /**
-     * 更新时间戳
-     */
+    /** 更新时间戳 */
     private Long updatedTime;
 
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
+    /** 乐观锁版本号 */
+    @Version private Integer version;
 
-    /**
-     * 逻辑删除：0-未删除，1-已删除
-     */
-    @TableLogic
-    private Integer isDelete;
+    /** 逻辑删除：0-未删除，1-已删除 */
+    @TableLogic private Integer isDelete;
 
     @Override
     public boolean equals(Object that) {
@@ -106,21 +68,51 @@ public class ConversationMessages {
         }
         ConversationMessages other = (ConversationMessages) that;
         return (this.getId() == null ? other.getId() == null : this.getId().equals(other.getId()))
-            && (this.getSessionId() == null ? other.getSessionId() == null : this.getSessionId().equals(other.getSessionId()))
-            && (this.getSenderId() == null ? other.getSenderId() == null : this.getSenderId().equals(other.getSenderId()))
-            && (this.getSenderType() == null ? other.getSenderType() == null : this.getSenderType().equals(other.getSenderType()))
-            && (this.getReceiverId() == null ? other.getReceiverId() == null : this.getReceiverId().equals(other.getReceiverId()))
-            && (this.getReceiverType() == null ? other.getReceiverType() == null : this.getReceiverType().equals(other.getReceiverType()))
-            && (this.getContentType() == null ? other.getContentType() == null : this.getContentType().equals(other.getContentType()))
-            && (this.getContent() == null ? other.getContent() == null : this.getContent().equals(other.getContent()))
-            && (this.getExtraData() == null ? other.getExtraData() == null : this.getExtraData().equals(other.getExtraData()))
-            && (this.getSendTime() == null ? other.getSendTime() == null : this.getSendTime().equals(other.getSendTime()))
-            && (this.getReadTime() == null ? other.getReadTime() == null : this.getReadTime().equals(other.getReadTime()))
-            && (this.getStatus() == null ? other.getStatus() == null : this.getStatus().equals(other.getStatus()))
-            && (this.getCreatedTime() == null ? other.getCreatedTime() == null : this.getCreatedTime().equals(other.getCreatedTime()))
-            && (this.getUpdatedTime() == null ? other.getUpdatedTime() == null : this.getUpdatedTime().equals(other.getUpdatedTime()))
-            && (this.getVersion() == null ? other.getVersion() == null : this.getVersion().equals(other.getVersion()))
-            && (this.getIsDelete() == null ? other.getIsDelete() == null : this.getIsDelete().equals(other.getIsDelete()));
+                && (this.getSessionId() == null
+                        ? other.getSessionId() == null
+                        : this.getSessionId().equals(other.getSessionId()))
+                && (this.getSenderId() == null
+                        ? other.getSenderId() == null
+                        : this.getSenderId().equals(other.getSenderId()))
+                && (this.getSenderType() == null
+                        ? other.getSenderType() == null
+                        : this.getSenderType().equals(other.getSenderType()))
+                && (this.getReceiverId() == null
+                        ? other.getReceiverId() == null
+                        : this.getReceiverId().equals(other.getReceiverId()))
+                && (this.getReceiverType() == null
+                        ? other.getReceiverType() == null
+                        : this.getReceiverType().equals(other.getReceiverType()))
+                && (this.getContentType() == null
+                        ? other.getContentType() == null
+                        : this.getContentType().equals(other.getContentType()))
+                && (this.getContent() == null
+                        ? other.getContent() == null
+                        : this.getContent().equals(other.getContent()))
+                && (this.getExtraData() == null
+                        ? other.getExtraData() == null
+                        : this.getExtraData().equals(other.getExtraData()))
+                && (this.getSendTime() == null
+                        ? other.getSendTime() == null
+                        : this.getSendTime().equals(other.getSendTime()))
+                && (this.getReadTime() == null
+                        ? other.getReadTime() == null
+                        : this.getReadTime().equals(other.getReadTime()))
+                && (this.getStatus() == null
+                        ? other.getStatus() == null
+                        : this.getStatus().equals(other.getStatus()))
+                && (this.getCreatedTime() == null
+                        ? other.getCreatedTime() == null
+                        : this.getCreatedTime().equals(other.getCreatedTime()))
+                && (this.getUpdatedTime() == null
+                        ? other.getUpdatedTime() == null
+                        : this.getUpdatedTime().equals(other.getUpdatedTime()))
+                && (this.getVersion() == null
+                        ? other.getVersion() == null
+                        : this.getVersion().equals(other.getVersion()))
+                && (this.getIsDelete() == null
+                        ? other.getIsDelete() == null
+                        : this.getIsDelete().equals(other.getIsDelete()));
     }
 
     @Override

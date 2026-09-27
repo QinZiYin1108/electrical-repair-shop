@@ -1,4 +1,3 @@
-
 package com.example.backend.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -13,6 +12,7 @@ import com.example.backend.entity.ProductCategories;
 import com.example.backend.entity.ProductOrders;
 import com.example.backend.entity.Products;
 import com.example.backend.entity.ShoppingCarts;
+import com.example.backend.entity.Stores;
 import com.example.backend.entity.UserAddresses;
 import com.example.backend.entity.UserCoupons;
 import com.example.backend.entity.WarrantyCards;
@@ -25,12 +25,14 @@ import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.AccountBalancesService;
 import com.example.backend.service.CouponsService;
 import com.example.backend.service.FundFlowsService;
+import com.example.backend.service.InventoryService;
 import com.example.backend.service.OrderItemsService;
 import com.example.backend.service.PaymentRecordsService;
 import com.example.backend.service.ProductCategoriesService;
 import com.example.backend.service.ProductOrdersService;
 import com.example.backend.service.ProductsService;
 import com.example.backend.service.ShoppingCartsService;
+import com.example.backend.service.StoresService;
 import com.example.backend.service.UserAddressesService;
 import com.example.backend.service.UserCouponsService;
 import com.example.backend.service.UserMallOrderService;
@@ -38,10 +40,6 @@ import com.example.backend.service.WarrantyCardsService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -59,6 +57,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 public class UserMallOrderServiceImpl implements UserMallOrderService {
@@ -68,7 +69,10 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
     private static final int ACCOUNT_TYPE_USER = 1;
     private static final int CART_SELECTED = 1;
     private static final int CART_UNSELECTED = 0;
+    private static final int ORDER_STATUS_PENDING_PAYMENT = 1;
     private static final int ORDER_STATUS_PENDING_DELIVERY = 2;
+    private static final int ORDER_STATUS_CANCELED = 6;
+    private static final int PAYMENT_STATUS_PENDING = 1;
     private static final int PAYMENT_STATUS_PAID = 2;
     private static final int DELIVERY_STATUS_PENDING = 1;
     private static final int FLOW_TYPE_EXPENSE = 2;
@@ -104,22 +108,25 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
     private final CouponsService couponsService;
     private final UserCouponsService userCouponsService;
     private final WarrantyCardsService warrantyCardsService;
+    private final StoresService storesService;
+    private final InventoryService inventoryService;
 
     public UserMallOrderServiceImpl(
-        ShoppingCartsService shoppingCartsService,
-        ShoppingCartsMapper shoppingCartsMapper,
-        ProductsService productsService,
-        ProductCategoriesService productCategoriesService,
-        UserAddressesService userAddressesService,
-        ProductOrdersService productOrdersService,
-        OrderItemsService orderItemsService,
-        AccountBalancesService accountBalancesService,
-        FundFlowsService fundFlowsService,
-        PaymentRecordsService paymentRecordsService,
-        CouponsService couponsService,
-        UserCouponsService userCouponsService,
-        WarrantyCardsService warrantyCardsService
-    ) {
+            ShoppingCartsService shoppingCartsService,
+            ShoppingCartsMapper shoppingCartsMapper,
+            ProductsService productsService,
+            ProductCategoriesService productCategoriesService,
+            UserAddressesService userAddressesService,
+            ProductOrdersService productOrdersService,
+            OrderItemsService orderItemsService,
+            AccountBalancesService accountBalancesService,
+            FundFlowsService fundFlowsService,
+            PaymentRecordsService paymentRecordsService,
+            CouponsService couponsService,
+            UserCouponsService userCouponsService,
+            WarrantyCardsService warrantyCardsService,
+            StoresService storesService,
+            InventoryService inventoryService) {
         this.shoppingCartsService = shoppingCartsService;
         this.shoppingCartsMapper = shoppingCartsMapper;
         this.productsService = productsService;
@@ -133,6 +140,8 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
         this.couponsService = couponsService;
         this.userCouponsService = userCouponsService;
         this.warrantyCardsService = warrantyCardsService;
+        this.storesService = storesService;
+        this.inventoryService = inventoryService;
     }
 
     @Override
@@ -143,14 +152,17 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UserMallOrderModel.CartListResponse addCurrentUserCart(UserMallOrderModel.AddCartRequest request) {
+    public UserMallOrderModel.CartListResponse addCurrentUserCart(
+            UserMallOrderModel.AddCartRequest request) {
         LoginUserInfo user = requireCurrentUser();
         String productId = trimToNull(request == null ? null : request.getProductId());
         int quantity = normalizeQuantity(request == null ? null : request.getQuantity());
         Products product = requireProduct(productId);
         validateStock(product, quantity);
 
-        ShoppingCarts existing = shoppingCartsMapper.selectAnyByAccountIdAndProductId(user.getAccountId(), productId);
+        ShoppingCarts existing =
+                shoppingCartsMapper.selectAnyByAccountIdAndProductId(
+                        user.getAccountId(), productId);
         long now = System.currentTimeMillis();
         if (existing == null) {
             ShoppingCarts cart = new ShoppingCarts();
@@ -185,7 +197,8 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UserMallOrderModel.CartListResponse updateCurrentUserCartQuantity(UserMallOrderModel.UpdateCartQuantityRequest request) {
+    public UserMallOrderModel.CartListResponse updateCurrentUserCartQuantity(
+            UserMallOrderModel.UpdateCartQuantityRequest request) {
         LoginUserInfo user = requireCurrentUser();
         String cartId = trimToNull(request == null ? null : request.getCartId());
         int quantity = normalizeQuantity(request == null ? null : request.getQuantity());
@@ -203,7 +216,8 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UserMallOrderModel.CartListResponse toggleCurrentUserCartSelected(UserMallOrderModel.ToggleCartSelectedRequest request) {
+    public UserMallOrderModel.CartListResponse toggleCurrentUserCartSelected(
+            UserMallOrderModel.ToggleCartSelectedRequest request) {
         LoginUserInfo user = requireCurrentUser();
         String cartId = trimToNull(request == null ? null : request.getCartId());
         boolean selected = !Boolean.FALSE.equals(request == null ? null : request.getSelected());
@@ -219,93 +233,112 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UserMallOrderModel.CartListResponse toggleCurrentUserCartSelectedAll(UserMallOrderModel.ToggleAllCartSelectedRequest request) {
+    public UserMallOrderModel.CartListResponse toggleCurrentUserCartSelectedAll(
+            UserMallOrderModel.ToggleAllCartSelectedRequest request) {
         LoginUserInfo user = requireCurrentUser();
         boolean selected = !Boolean.FALSE.equals(request == null ? null : request.getSelected());
         shoppingCartsService.update(
-            new LambdaUpdateWrapper<ShoppingCarts>()
-                .eq(ShoppingCarts::getAccountId, user.getAccountId())
-                .eq(ShoppingCarts::getIsDelete, 0)
-                .set(ShoppingCarts::getSelected, selected ? CART_SELECTED : CART_UNSELECTED)
-                .set(ShoppingCarts::getUpdatedTime, System.currentTimeMillis())
-        );
+                new LambdaUpdateWrapper<ShoppingCarts>()
+                        .eq(ShoppingCarts::getAccountId, user.getAccountId())
+                        .eq(ShoppingCarts::getIsDelete, 0)
+                        .set(ShoppingCarts::getSelected, selected ? CART_SELECTED : CART_UNSELECTED)
+                        .set(ShoppingCarts::getUpdatedTime, System.currentTimeMillis()));
         return buildCartListResponse(user.getAccountId());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UserMallOrderModel.CartListResponse removeCurrentUserCartItems(UserMallOrderModel.RemoveCartItemsRequest request) {
+    public UserMallOrderModel.CartListResponse removeCurrentUserCartItems(
+            UserMallOrderModel.RemoveCartItemsRequest request) {
         LoginUserInfo user = requireCurrentUser();
         List<String> cartIds = normalizeIdList(request == null ? null : request.getCartIds());
         if (cartIds.isEmpty()) {
             return buildCartListResponse(user.getAccountId());
         }
         shoppingCartsService.update(
-            new LambdaUpdateWrapper<ShoppingCarts>()
-                .eq(ShoppingCarts::getAccountId, user.getAccountId())
-                .in(ShoppingCarts::getId, cartIds)
-                .eq(ShoppingCarts::getIsDelete, 0)
-                .set(ShoppingCarts::getIsDelete, 1)
-                .set(ShoppingCarts::getUpdatedTime, System.currentTimeMillis())
-        );
+                new LambdaUpdateWrapper<ShoppingCarts>()
+                        .eq(ShoppingCarts::getAccountId, user.getAccountId())
+                        .in(ShoppingCarts::getId, cartIds)
+                        .eq(ShoppingCarts::getIsDelete, 0)
+                        .set(ShoppingCarts::getIsDelete, 1)
+                        .set(ShoppingCarts::getUpdatedTime, System.currentTimeMillis()));
         return buildCartListResponse(user.getAccountId());
     }
+
     @Override
-    public UserMallOrderModel.AvailableCouponListResponse listCurrentUserAvailableCoupons(UserMallOrderModel.AvailableCouponRequest request) {
+    public UserMallOrderModel.AvailableCouponListResponse listCurrentUserAvailableCoupons(
+            UserMallOrderModel.AvailableCouponRequest request) {
         LoginUserInfo user = requireCurrentUser();
-        CheckoutContext checkoutContext = buildCheckoutContext(
-            resolveSubmitSources(
-                user.getAccountId(),
-                request == null ? Collections.emptyList() : request.getCartIds(),
-                request == null ? Collections.emptyList() : request.getItems()
-            )
-        );
+        CheckoutContext checkoutContext =
+                buildCheckoutContext(
+                        resolveSubmitSources(
+                                user.getAccountId(),
+                                request == null ? Collections.emptyList() : request.getCartIds(),
+                                request == null ? Collections.emptyList() : request.getItems()));
         return buildAvailableCouponResponse(user.getAccountId(), checkoutContext);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UserMallOrderModel.SubmitOrderResponse submitCurrentUserProductOrder(UserMallOrderModel.SubmitOrderRequest request) {
+    public UserMallOrderModel.SubmitOrderResponse submitCurrentUserProductOrder(
+            UserMallOrderModel.SubmitOrderRequest request) {
         LoginUserInfo user = requireCurrentUser();
         String addressId = trimToNull(request == null ? null : request.getAddressId());
         UserAddresses address = requireAddress(user.getAccountId(), addressId);
-        int paymentMethod = normalizePaymentMethod(request == null ? null : request.getPaymentMethod());
+        int paymentMethod =
+                normalizePaymentMethod(request == null ? null : request.getPaymentMethod());
         String remark = trimToNull(request == null ? null : request.getRemark());
+        Long appointmentTime = request == null ? null : request.getAppointmentTime();
 
-        List<CartSubmitSource> sources = resolveSubmitSources(
-            user.getAccountId(),
-            request == null ? Collections.emptyList() : request.getCartIds(),
-            request == null ? Collections.emptyList() : request.getItems()
-        );
+        List<CartSubmitSource> sources =
+                resolveSubmitSources(
+                        user.getAccountId(),
+                        request == null ? Collections.emptyList() : request.getCartIds(),
+                        request == null ? Collections.emptyList() : request.getItems());
         CheckoutContext checkoutContext = buildCheckoutContext(sources);
         if (checkoutContext.sources.isEmpty()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "结算商品不能为空");
         }
 
+        // 履约方式校验：送货上门时检查配送范围和预约时间
+        validateFulfillment(address, checkoutContext, appointmentTime);
+
         long now = System.currentTimeMillis();
         String orderId = SnowflakeIdUtil.nextProductOrderId();
         String orderNo = buildProductOrderNo(now);
-        CouponUsageResult couponUsage = validateSelectedCoupon(
-            user.getAccountId(),
-            request == null ? null : request.getUserCouponId(),
-            checkoutContext,
-            orderId,
-            now
-        );
+        CouponUsageResult couponUsage =
+                validateSelectedCoupon(
+                        user.getAccountId(),
+                        request == null ? null : request.getUserCouponId(),
+                        checkoutContext,
+                        orderId,
+                        now);
 
         BigDecimal discountAmount = couponUsage.discountAmount;
         BigDecimal totalAmount = checkoutContext.totalAmount;
-        BigDecimal actualAmount = totalAmount.subtract(discountAmount).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal actualAmount =
+                totalAmount.subtract(discountAmount).setScale(2, RoundingMode.HALF_UP);
+        boolean needsPayment = actualAmount.compareTo(BigDecimal.ZERO) > 0;
+        boolean externalPay = needsPayment && paymentMethod != PAYMENT_METHOD_WALLET;
         int itemCount = 0;
         List<OrderItems> orderItems = new ArrayList<>();
         List<String> cartIdsToDelete = new ArrayList<>();
 
         for (CartSubmitSource source : checkoutContext.sources) {
-            Products product = requireSubmitProduct(checkoutContext.productMap.get(source.getProductId()));
+            Products product =
+                    requireSubmitProduct(checkoutContext.productMap.get(source.getProductId()));
+            if (!productsService.isPurchasable(product.getId())) {
+                throw new BusinessException(
+                        ErrorCode.BUSINESS_ERROR,
+                        "商品「" + product.getName() + "」暂不可购买（可能已冻结、未审核或已下架）");
+            }
             validateStock(product, source.getQuantity());
 
-            BigDecimal price = defaultAmount(product.getSellingPrice()).setScale(2, RoundingMode.HALF_UP);
-            BigDecimal lineAmount = price.multiply(BigDecimal.valueOf(source.getQuantity())).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal price =
+                    defaultAmount(product.getSellingPrice()).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal lineAmount =
+                    price.multiply(BigDecimal.valueOf(source.getQuantity()))
+                            .setScale(2, RoundingMode.HALF_UP);
             itemCount += source.getQuantity();
 
             OrderItems orderItem = new OrderItems();
@@ -322,12 +355,13 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
             orderItem.setIsDelete(0);
             orderItems.add(orderItem);
 
-            Products updateProduct = new Products();
-            updateProduct.setId(product.getId());
-            updateProduct.setStockQuantity(defaultIfNull(product.getStockQuantity(), 0) - source.getQuantity());
-            updateProduct.setSalesCount(defaultIfNull(product.getSalesCount(), 0) + source.getQuantity());
-            updateProduct.setUpdatedTime(now);
-            productsService.updateById(updateProduct);
+            if (!inventoryService.deductStock(product.getId(), source.getQuantity(), now)) {
+                throw new BusinessException(
+                        ErrorCode.BUSINESS_ERROR, "商品「" + product.getName() + "」库存不足，请减少数量或稍后重试");
+            }
+            if (!externalPay) {
+                inventoryService.increaseSales(product.getId(), source.getQuantity(), now);
+            }
 
             if (StringUtils.hasText(source.getCartId())) {
                 cartIdsToDelete.add(source.getCartId());
@@ -338,8 +372,9 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
         order.setId(orderId);
         order.setOrderNo(orderNo);
         order.setAccountId(user.getAccountId());
-        order.setOrderStatus(ORDER_STATUS_PENDING_DELIVERY);
-        order.setPaymentStatus(PAYMENT_STATUS_PAID);
+        order.setOrderStatus(
+                externalPay ? ORDER_STATUS_PENDING_PAYMENT : ORDER_STATUS_PENDING_DELIVERY);
+        order.setPaymentStatus(externalPay ? PAYMENT_STATUS_PENDING : PAYMENT_STATUS_PAID);
         order.setDeliveryStatus(DELIVERY_STATUS_PENDING);
         order.setTotalAmount(totalAmount);
         order.setProductAmount(checkoutContext.productAmount);
@@ -348,12 +383,21 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
         order.setActualAmount(actualAmount);
         order.setCouponId(couponUsage.couponId);
         order.setPaymentMethod(paymentMethod);
-        order.setPaymentTime(now);
+        order.setPaymentTime(externalPay ? null : now);
         order.setDeliveryAddressId(address.getId());
         order.setDeliveryName(address.getContactName());
         order.setDeliveryPhone(address.getContactPhone());
         order.setDeliveryAddress(buildFullAddress(address));
         order.setRemark(defaultText(remark, ""));
+        // 从首个商品继承履约方式
+        if (!checkoutContext.sources.isEmpty() && !checkoutContext.productMap.isEmpty()) {
+            Products firstProduct =
+                    checkoutContext.productMap.get(checkoutContext.sources.get(0).getProductId());
+            if (firstProduct != null && firstProduct.getFulfillmentType() != null) {
+                order.setFulfillmentType(firstProduct.getFulfillmentType());
+            }
+        }
+        order.setAppointmentTime(appointmentTime);
         order.setCreatedTime(now);
         order.setUpdatedTime(now);
         order.setVersion(0);
@@ -366,21 +410,23 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
         }
 
         markCouponUsed(couponUsage, now);
-        processProductOrderPayment(user.getAccountId(), order, paymentMethod, now);
-        createWarrantyCards(user.getAccountId(), checkoutContext, now);
+        if (!externalPay) {
+            processProductOrderPayment(user.getAccountId(), order, paymentMethod, now);
+            createWarrantyCards(user.getAccountId(), checkoutContext, now);
+        }
 
         if (!cartIdsToDelete.isEmpty()) {
             shoppingCartsService.update(
-                new LambdaUpdateWrapper<ShoppingCarts>()
-                    .eq(ShoppingCarts::getAccountId, user.getAccountId())
-                    .in(ShoppingCarts::getId, cartIdsToDelete)
-                    .eq(ShoppingCarts::getIsDelete, 0)
-                    .set(ShoppingCarts::getIsDelete, 1)
-                    .set(ShoppingCarts::getUpdatedTime, now)
-            );
+                    new LambdaUpdateWrapper<ShoppingCarts>()
+                            .eq(ShoppingCarts::getAccountId, user.getAccountId())
+                            .in(ShoppingCarts::getId, cartIdsToDelete)
+                            .eq(ShoppingCarts::getIsDelete, 0)
+                            .set(ShoppingCarts::getIsDelete, 1)
+                            .set(ShoppingCarts::getUpdatedTime, now));
         }
 
-        UserMallOrderModel.SubmitOrderResponse response = new UserMallOrderModel.SubmitOrderResponse();
+        UserMallOrderModel.SubmitOrderResponse response =
+                new UserMallOrderModel.SubmitOrderResponse();
         response.setOrderId(orderId);
         response.setOrderNo(orderNo);
         response.setItemCount(itemCount);
@@ -391,8 +437,88 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
         return response;
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void releaseUnpaidOrderResources(String orderId) {
+        if (!StringUtils.hasText(orderId)) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        List<OrderItems> items =
+                orderItemsService.list(
+                        new LambdaQueryWrapper<OrderItems>()
+                                .eq(OrderItems::getOrderId, orderId)
+                                .eq(OrderItems::getIsDelete, 0));
+        for (OrderItems item : items) {
+            int quantity = item.getQuantity() == null ? 0 : item.getQuantity();
+            if (quantity > 0) {
+                inventoryService.restoreStock(item.getProductId(), quantity, now);
+            }
+        }
+        restoreCouponForOrder(orderId, now);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int closeTimedOutUnpaidOrders(long now, long timeoutMillis) {
+        if (timeoutMillis <= 0) {
+            return 0;
+        }
+        long deadline = now - timeoutMillis;
+        List<ProductOrders> orders =
+                productOrdersService.list(
+                        new LambdaQueryWrapper<ProductOrders>()
+                                .eq(ProductOrders::getOrderStatus, ORDER_STATUS_PENDING_PAYMENT)
+                                .eq(ProductOrders::getIsDelete, 0)
+                                .lt(ProductOrders::getCreatedTime, deadline));
+        int closed = 0;
+        for (ProductOrders order : orders) {
+            if (order.getPaymentStatus() != null
+                    && order.getPaymentStatus() != PAYMENT_STATUS_PENDING) {
+                continue;
+            }
+            releaseUnpaidOrderResources(order.getId());
+            order.setOrderStatus(ORDER_STATUS_CANCELED);
+            order.setCancelReason("支付超时，系统自动关闭");
+            order.setCancelTime(now);
+            order.setUpdatedTime(now);
+            if (productOrdersService.updateById(order)) {
+                closed++;
+            }
+        }
+        return closed;
+    }
+
+    private void restoreCouponForOrder(String orderId, long now) {
+        UserCoupons userCoupon =
+                userCouponsService.getOne(
+                        new LambdaQueryWrapper<UserCoupons>()
+                                .eq(UserCoupons::getOrderId, orderId)
+                                .eq(UserCoupons::getStatus, USER_COUPON_STATUS_USED)
+                                .last("limit 1"),
+                        false);
+        if (userCoupon == null) {
+            return;
+        }
+        userCoupon.setStatus(USER_COUPON_STATUS_UNUSED);
+        userCoupon.setOrderId(null);
+        userCoupon.setUseTime(null);
+        userCoupon.setUpdatedTime(now);
+        userCouponsService.updateById(userCoupon);
+        if (StringUtils.hasText(userCoupon.getCouponId())) {
+            Coupons coupon = couponsService.getById(userCoupon.getCouponId());
+            if (coupon != null && defaultIfNull(coupon.getUsedCount(), 0) > 0) {
+                coupon.setUsedCount(defaultIfNull(coupon.getUsedCount(), 0) - 1);
+                coupon.setUpdatedTime(now);
+                couponsService.updateById(coupon);
+            }
+        }
+    }
+
     private void createWarrantyCards(String userId, CheckoutContext checkoutContext, long now) {
-        if (!StringUtils.hasText(userId) || checkoutContext == null || checkoutContext.sources.isEmpty()) {
+        if (!StringUtils.hasText(userId)
+                || checkoutContext == null
+                || checkoutContext.sources.isEmpty()) {
             return;
         }
         LocalDate baseDate = Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault()).toLocalDate();
@@ -400,12 +526,17 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
         List<WarrantyCards> cards = new ArrayList<>();
         for (CartSubmitSource source : checkoutContext.sources) {
             Products product = checkoutContext.productMap.get(source.getProductId());
-            int warrantyPeriod = defaultIfNull(product == null ? null : product.getWarrantyPeriod(), 0);
+            int warrantyPeriod =
+                    defaultIfNull(product == null ? null : product.getWarrantyPeriod(), 0);
             if (product == null || warrantyPeriod <= 0) {
                 continue;
             }
             Date warrantyStartDate = purchaseDate;
-            Date warrantyEndDate = Date.from(baseDate.plusMonths(warrantyPeriod).atStartOfDay(ZoneId.systemDefault()).toInstant());
+            Date warrantyEndDate =
+                    Date.from(
+                            baseDate.plusMonths(warrantyPeriod)
+                                    .atStartOfDay(ZoneId.systemDefault())
+                                    .toInstant());
             for (int index = 0; index < source.getQuantity(); index++) {
                 WarrantyCards card = new WarrantyCards();
                 String cardId = SnowflakeIdUtil.nextWarrantyCardId();
@@ -435,38 +566,38 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
     }
 
     private CouponUsageResult validateSelectedCoupon(
-        String accountId,
-        String userCouponId,
-        CheckoutContext checkoutContext,
-        String orderId,
-        long now
-    ) {
+            String accountId,
+            String userCouponId,
+            CheckoutContext checkoutContext,
+            String orderId,
+            long now) {
         CouponUsageResult empty = CouponUsageResult.empty();
         String normalizedUserCouponId = trimToNull(userCouponId);
         if (!StringUtils.hasText(normalizedUserCouponId)) {
             return empty;
         }
         refreshExpiredUserCoupons(accountId, now);
-        UserCoupons userCoupon = userCouponsService.getOne(
-            new LambdaQueryWrapper<UserCoupons>()
-                .eq(UserCoupons::getId, normalizedUserCouponId)
-                .eq(UserCoupons::getUserId, accountId)
-                .eq(UserCoupons::getStatus, USER_COUPON_STATUS_UNUSED)
-                .last("limit 1"),
-            false
-        );
+        UserCoupons userCoupon =
+                userCouponsService.getOne(
+                        new LambdaQueryWrapper<UserCoupons>()
+                                .eq(UserCoupons::getId, normalizedUserCouponId)
+                                .eq(UserCoupons::getUserId, accountId)
+                                .eq(UserCoupons::getStatus, USER_COUPON_STATUS_UNUSED)
+                                .last("limit 1"),
+                        false);
         if (userCoupon == null) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "优惠券不存在或不可用");
         }
-        Coupons coupon = couponsService.getOne(
-            new LambdaQueryWrapper<Coupons>()
-                .eq(Coupons::getId, userCoupon.getCouponId())
-                .last("limit 1"),
-            false
-        );
+        Coupons coupon =
+                couponsService.getOne(
+                        new LambdaQueryWrapper<Coupons>()
+                                .eq(Coupons::getId, userCoupon.getCouponId())
+                                .last("limit 1"),
+                        false);
         CouponPreview preview = buildCouponPreview(userCoupon, coupon, checkoutContext, now);
         if (!preview.available) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, defaultText(preview.reason, "当前优惠券不可用"));
+            throw new BusinessException(
+                    ErrorCode.BUSINESS_ERROR, defaultText(preview.reason, "当前优惠券不可用"));
         }
         CouponUsageResult result = new CouponUsageResult();
         result.userCouponId = userCoupon.getId();
@@ -498,61 +629,79 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新优惠券失败");
         }
     }
+
     private void refreshExpiredUserCoupons(String accountId, long now) {
         if (!StringUtils.hasText(accountId)) {
             return;
         }
         userCouponsService.update(
-            new LambdaUpdateWrapper<UserCoupons>()
-                .eq(UserCoupons::getUserId, accountId)
-                .eq(UserCoupons::getStatus, USER_COUPON_STATUS_UNUSED)
-                .lt(UserCoupons::getExpireTime, now)
-                .set(UserCoupons::getStatus, USER_COUPON_STATUS_EXPIRED)
-                .set(UserCoupons::getUpdatedTime, now)
-        );
+                new LambdaUpdateWrapper<UserCoupons>()
+                        .eq(UserCoupons::getUserId, accountId)
+                        .eq(UserCoupons::getStatus, USER_COUPON_STATUS_UNUSED)
+                        .lt(UserCoupons::getExpireTime, now)
+                        .set(UserCoupons::getStatus, USER_COUPON_STATUS_EXPIRED)
+                        .set(UserCoupons::getUpdatedTime, now));
     }
 
-    private UserMallOrderModel.AvailableCouponListResponse buildAvailableCouponResponse(String accountId, CheckoutContext checkoutContext) {
-        UserMallOrderModel.AvailableCouponListResponse response = new UserMallOrderModel.AvailableCouponListResponse();
+    private UserMallOrderModel.AvailableCouponListResponse buildAvailableCouponResponse(
+            String accountId, CheckoutContext checkoutContext) {
+        UserMallOrderModel.AvailableCouponListResponse response =
+                new UserMallOrderModel.AvailableCouponListResponse();
         response.setBestDiscountAmount(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
         if (checkoutContext == null || checkoutContext.sources.isEmpty()) {
             return response;
         }
         long now = System.currentTimeMillis();
         refreshExpiredUserCoupons(accountId, now);
-        List<UserCoupons> userCouponList = userCouponsService.list(
-            new LambdaQueryWrapper<UserCoupons>()
-                .eq(UserCoupons::getUserId, accountId)
-                .eq(UserCoupons::getStatus, USER_COUPON_STATUS_UNUSED)
-                .orderByAsc(UserCoupons::getExpireTime)
-                .orderByDesc(UserCoupons::getCreatedTime)
-        );
+        List<UserCoupons> userCouponList =
+                userCouponsService.list(
+                        new LambdaQueryWrapper<UserCoupons>()
+                                .eq(UserCoupons::getUserId, accountId)
+                                .eq(UserCoupons::getStatus, USER_COUPON_STATUS_UNUSED)
+                                .orderByAsc(UserCoupons::getExpireTime)
+                                .orderByDesc(UserCoupons::getCreatedTime));
         if (userCouponList.isEmpty()) {
             return response;
         }
-        Set<String> couponIds = userCouponList.stream()
-            .map(UserCoupons::getCouponId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toCollection(LinkedHashSet::new));
-        Map<String, Coupons> couponMap = couponsService.list(
-            new LambdaQueryWrapper<Coupons>()
-                .in(!couponIds.isEmpty(), Coupons::getId, couponIds)
-        ).stream().collect(Collectors.toMap(Coupons::getId, item -> item, (a, b) -> a, LinkedHashMap::new));
+        Set<String> couponIds =
+                userCouponList.stream()
+                        .map(UserCoupons::getCouponId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
+        Map<String, Coupons> couponMap =
+                couponsService
+                        .list(
+                                new LambdaQueryWrapper<Coupons>()
+                                        .in(!couponIds.isEmpty(), Coupons::getId, couponIds))
+                        .stream()
+                        .collect(
+                                Collectors.toMap(
+                                        Coupons::getId,
+                                        item -> item,
+                                        (a, b) -> a,
+                                        LinkedHashMap::new));
 
         List<CouponPreview> previews = new ArrayList<>();
         for (UserCoupons userCoupon : userCouponList) {
-            previews.add(buildCouponPreview(userCoupon, couponMap.get(userCoupon.getCouponId()), checkoutContext, now));
+            previews.add(
+                    buildCouponPreview(
+                            userCoupon,
+                            couponMap.get(userCoupon.getCouponId()),
+                            checkoutContext,
+                            now));
         }
-        previews.sort(Comparator
-            .comparing((CouponPreview item) -> !item.available)
-            .thenComparing(CouponPreview::getDiscountAmount, Comparator.reverseOrder())
-            .thenComparing(CouponPreview::getExpireTime, Comparator.nullsLast(Long::compareTo))
-        );
+        previews.sort(
+                Comparator.comparing((CouponPreview item) -> !item.available)
+                        .thenComparing(CouponPreview::getDiscountAmount, Comparator.reverseOrder())
+                        .thenComparing(
+                                CouponPreview::getExpireTime,
+                                Comparator.nullsLast(Long::compareTo)));
 
         BigDecimal bestDiscount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
         String bestCouponId = "";
         for (CouponPreview preview : previews) {
-            UserMallOrderModel.AvailableCouponItem item = new UserMallOrderModel.AvailableCouponItem();
+            UserMallOrderModel.AvailableCouponItem item =
+                    new UserMallOrderModel.AvailableCouponItem();
             item.setUserCouponId(preview.userCouponId);
             item.setCouponId(preview.couponId);
             item.setName(preview.name);
@@ -576,7 +725,8 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
         return response;
     }
 
-    private CouponPreview buildCouponPreview(UserCoupons userCoupon, Coupons coupon, CheckoutContext checkoutContext, long now) {
+    private CouponPreview buildCouponPreview(
+            UserCoupons userCoupon, Coupons coupon, CheckoutContext checkoutContext, long now) {
         CouponPreview preview = new CouponPreview();
         preview.userCouponId = userCoupon == null ? "" : defaultText(userCoupon.getId(), "");
         preview.couponId = userCoupon == null ? "" : defaultText(userCoupon.getCouponId(), "");
@@ -599,7 +749,8 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
         preview.minAmount = normalizeMoney(coupon.getMinAmount());
         preview.applicableText = buildCouponApplicableText(coupon);
 
-        if (defaultIfNull(userCoupon.getStatus(), USER_COUPON_STATUS_UNUSED) != USER_COUPON_STATUS_UNUSED) {
+        if (defaultIfNull(userCoupon.getStatus(), USER_COUPON_STATUS_UNUSED)
+                != USER_COUPON_STATUS_UNUSED) {
             preview.available = false;
             preview.reason = "该优惠券当前不可用";
             return preview;
@@ -626,26 +777,29 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
         }
         int applicableType = defaultIfNull(coupon.getApplicableType(), COUPON_APPLICABLE_ALL);
         if (applicableType != COUPON_APPLICABLE_ALL
-            && applicableType != COUPON_APPLICABLE_CATEGORY
-            && applicableType != COUPON_APPLICABLE_PRODUCT) {
+                && applicableType != COUPON_APPLICABLE_CATEGORY
+                && applicableType != COUPON_APPLICABLE_PRODUCT) {
             preview.available = false;
             preview.reason = "优惠券适用范围配置错误";
             return preview;
         }
         if (checkoutContext.totalAmount.compareTo(normalizeMoney(coupon.getMinAmount())) < 0) {
             preview.available = false;
-            preview.reason = "订单金额满 " + normalizeMoney(coupon.getMinAmount()).toPlainString() + " 元可用";
+            preview.reason =
+                    "订单金额满 " + normalizeMoney(coupon.getMinAmount()).toPlainString() + " 元可用";
             return preview;
         }
         List<String> applicableIds = parseApplicableIds(coupon.getApplicableIds());
         if (applicableType == COUPON_APPLICABLE_PRODUCT) {
-            if (!applicableIds.isEmpty() && Collections.disjoint(applicableIds, checkoutContext.productIds)) {
+            if (!applicableIds.isEmpty()
+                    && Collections.disjoint(applicableIds, checkoutContext.productIds)) {
                 preview.available = false;
                 preview.reason = "当前商品不支持使用该优惠券";
                 return preview;
             }
         } else if (applicableType == COUPON_APPLICABLE_CATEGORY) {
-            if (!applicableIds.isEmpty() && Collections.disjoint(applicableIds, checkoutContext.categoryIds)) {
+            if (!applicableIds.isEmpty()
+                    && Collections.disjoint(applicableIds, checkoutContext.categoryIds)) {
                 preview.available = false;
                 preview.reason = "当前分类不支持使用该优惠券";
                 return preview;
@@ -677,8 +831,11 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
         } else {
             discountAmount = normalizeMoney(coupon.getDiscountValue());
         }
-        BigDecimal maxDiscount = coupon.getMaxDiscount() == null ? null : normalizeMoney(coupon.getMaxDiscount());
-        if (maxDiscount != null && maxDiscount.compareTo(BigDecimal.ZERO) > 0 && discountAmount.compareTo(maxDiscount) > 0) {
+        BigDecimal maxDiscount =
+                coupon.getMaxDiscount() == null ? null : normalizeMoney(coupon.getMaxDiscount());
+        if (maxDiscount != null
+                && maxDiscount.compareTo(BigDecimal.ZERO) > 0
+                && discountAmount.compareTo(maxDiscount) > 0) {
             discountAmount = maxDiscount;
         }
         if (discountAmount.compareTo(baseAmount) > 0) {
@@ -712,14 +869,16 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
             return "免单";
         }
         if (Objects.equals(coupon.getDiscountType(), COUPON_DISCOUNT_TYPE_PERCENT)) {
-            BigDecimal value = coupon.getDiscountValue() == null ? BigDecimal.TEN : coupon.getDiscountValue();
+            BigDecimal value =
+                    coupon.getDiscountValue() == null ? BigDecimal.TEN : coupon.getDiscountValue();
             return value.stripTrailingZeros().toPlainString() + " 折";
         }
         return "减 " + normalizeMoney(coupon.getDiscountValue()).toPlainString() + " 元";
     }
 
     private String buildCouponApplicableText(Coupons coupon) {
-        List<String> applicableIds = parseApplicableIds(coupon == null ? null : coupon.getApplicableIds());
+        List<String> applicableIds =
+                parseApplicableIds(coupon == null ? null : coupon.getApplicableIds());
         if (coupon == null) {
             return "使用范围以券面说明为准";
         }
@@ -761,6 +920,7 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
             return normalizeIdList(List.of(normalized.split(",")));
         }
     }
+
     private CheckoutContext buildCheckoutContext(List<CartSubmitSource> sources) {
         CheckoutContext context = new CheckoutContext();
         context.sources = sources == null ? new ArrayList<>() : new ArrayList<>(sources);
@@ -770,38 +930,54 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
         if (context.sources.isEmpty()) {
             return context;
         }
-        Set<String> productIds = context.sources.stream()
-            .map(CartSubmitSource::getProductId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toCollection(LinkedHashSet::new));
+        Set<String> productIds =
+                context.sources.stream()
+                        .map(CartSubmitSource::getProductId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
         context.productIds = productIds;
-        context.productMap = productsService.list(
-            new LambdaQueryWrapper<Products>()
-                .in(!productIds.isEmpty(), Products::getId, productIds)
-                .eq(Products::getIsDelete, 0)
-        ).stream().collect(Collectors.toMap(Products::getId, item -> item, (a, b) -> a, LinkedHashMap::new));
+        context.productMap =
+                productsService
+                        .list(
+                                new LambdaQueryWrapper<Products>()
+                                        .in(!productIds.isEmpty(), Products::getId, productIds)
+                                        .eq(Products::getIsDelete, 0))
+                        .stream()
+                        .collect(
+                                Collectors.toMap(
+                                        Products::getId,
+                                        item -> item,
+                                        (a, b) -> a,
+                                        LinkedHashMap::new));
         context.categoryIds = collectCheckoutCategoryIds(context.productMap.values());
         for (CartSubmitSource source : context.sources) {
             Products product = requireSubmitProduct(context.productMap.get(source.getProductId()));
             validateStock(product, source.getQuantity());
-            BigDecimal lineAmount = normalizeMoney(product.getSellingPrice())
-                .multiply(BigDecimal.valueOf(source.getQuantity()))
-                .setScale(2, RoundingMode.HALF_UP);
-            BigDecimal lineShipping = Objects.equals(product.getIsFreeShipping(), 1)
-                ? BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
-                : normalizeMoney(product.getShippingFee());
-            context.productAmount = context.productAmount.add(lineAmount).setScale(2, RoundingMode.HALF_UP);
-            context.shippingFee = context.shippingFee.add(lineShipping).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal lineAmount =
+                    normalizeMoney(product.getSellingPrice())
+                            .multiply(BigDecimal.valueOf(source.getQuantity()))
+                            .setScale(2, RoundingMode.HALF_UP);
+            BigDecimal lineShipping =
+                    Objects.equals(product.getIsFreeShipping(), 1)
+                            ? BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
+                            : normalizeMoney(product.getShippingFee());
+            context.productAmount =
+                    context.productAmount.add(lineAmount).setScale(2, RoundingMode.HALF_UP);
+            context.shippingFee =
+                    context.shippingFee.add(lineShipping).setScale(2, RoundingMode.HALF_UP);
         }
-        context.totalAmount = context.productAmount.add(context.shippingFee).setScale(2, RoundingMode.HALF_UP);
+        context.totalAmount =
+                context.productAmount.add(context.shippingFee).setScale(2, RoundingMode.HALF_UP);
         return context;
     }
 
     private Set<String> collectCheckoutCategoryIds(Collection<Products> products) {
-        Set<String> categoryIds = (products == null ? Collections.<Products>emptyList() : products).stream()
-            .map(Products::getCategoryId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toCollection(LinkedHashSet::new));
+        Set<String> categoryIds =
+                (products == null ? Collections.<Products>emptyList() : products)
+                        .stream()
+                                .map(Products::getCategoryId)
+                                .filter(StringUtils::hasText)
+                                .collect(Collectors.toCollection(LinkedHashSet::new));
         if (categoryIds.isEmpty()) {
             return new LinkedHashSet<>();
         }
@@ -810,11 +986,11 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
         Map<String, ProductCategories> loadedMap = new LinkedHashMap<>();
         Set<String> pending = new LinkedHashSet<>(categoryIds);
         while (!pending.isEmpty()) {
-            List<ProductCategories> categories = productCategoriesService.list(
-                new LambdaQueryWrapper<ProductCategories>()
-                    .in(ProductCategories::getId, pending)
-                    .eq(ProductCategories::getIsDelete, 0)
-            );
+            List<ProductCategories> categories =
+                    productCategoriesService.list(
+                            new LambdaQueryWrapper<ProductCategories>()
+                                    .in(ProductCategories::getId, pending)
+                                    .eq(ProductCategories::getIsDelete, 0));
             if (categories.isEmpty()) {
                 break;
             }
@@ -835,7 +1011,8 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
         return result;
     }
 
-    private void processProductOrderPayment(String accountId, ProductOrders order, int paymentMethod, long now) {
+    private void processProductOrderPayment(
+            String accountId, ProductOrders order, int paymentMethod, long now) {
         if (!StringUtils.hasText(accountId) || order == null) {
             return;
         }
@@ -856,7 +1033,10 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
                 balance.setBalance(balanceAfter);
             }
 
-            balance.setTotalExpense(defaultAmount(balance.getTotalExpense()).add(amount).setScale(2, RoundingMode.HALF_UP));
+            balance.setTotalExpense(
+                    defaultAmount(balance.getTotalExpense())
+                            .add(amount)
+                            .setScale(2, RoundingMode.HALF_UP));
             balance.setUpdatedTime(now);
             if (!accountBalancesService.updateById(balance)) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新用户余额失败");
@@ -905,13 +1085,13 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
     }
 
     private UserMallOrderModel.CartListResponse buildCartListResponse(String accountId) {
-        List<ShoppingCarts> carts = shoppingCartsService.list(
-            new LambdaQueryWrapper<ShoppingCarts>()
-                .eq(ShoppingCarts::getAccountId, accountId)
-                .eq(ShoppingCarts::getIsDelete, 0)
-                .orderByDesc(ShoppingCarts::getUpdatedTime)
-                .orderByDesc(ShoppingCarts::getCreatedTime)
-        );
+        List<ShoppingCarts> carts =
+                shoppingCartsService.list(
+                        new LambdaQueryWrapper<ShoppingCarts>()
+                                .eq(ShoppingCarts::getAccountId, accountId)
+                                .eq(ShoppingCarts::getIsDelete, 0)
+                                .orderByDesc(ShoppingCarts::getUpdatedTime)
+                                .orderByDesc(ShoppingCarts::getCreatedTime));
         UserMallOrderModel.CartListResponse response = new UserMallOrderModel.CartListResponse();
         if (carts.isEmpty()) {
             response.setItems(new ArrayList<>());
@@ -921,16 +1101,27 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
             return response;
         }
 
-        Set<String> productIds = carts.stream()
-            .map(ShoppingCarts::getProductId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toCollection(LinkedHashSet::new));
-        Map<String, Products> productMap = productsService.list(
-            new LambdaQueryWrapper<Products>()
-                .in(Products::getId, productIds)
-                .eq(Products::getStatus, 1)
-                .eq(Products::getIsDelete, 0)
-        ).stream().collect(Collectors.toMap(Products::getId, item -> item, (a, b) -> a, LinkedHashMap::new));
+        Set<String> productIds =
+                carts.stream()
+                        .map(ShoppingCarts::getProductId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
+        Map<String, Products> productMap =
+                productsService
+                        .list(
+                                new LambdaQueryWrapper<Products>()
+                                        .in(Products::getId, productIds)
+                                        .eq(Products::getStatus, 1)
+                                        .eq(Products::getIsFrozen, 0)
+                                        .eq(Products::getAuditStatus, 2)
+                                        .eq(Products::getIsDelete, 0))
+                        .stream()
+                        .collect(
+                                Collectors.toMap(
+                                        Products::getId,
+                                        item -> item,
+                                        (a, b) -> a,
+                                        LinkedHashMap::new));
 
         List<UserMallOrderModel.CartItem> items = new ArrayList<>();
         int selectedCount = 0;
@@ -953,7 +1144,9 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
             item.setQuantity(defaultIfNull(cart.getQuantity(), 1));
             item.setSelected(defaultIfNull(cart.getSelected(), CART_SELECTED));
             item.setStockQuantity(defaultIfNull(product.getStockQuantity(), 0));
-            item.setLineAmount(item.getSellingPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+            item.setFulfillmentType(product.getFulfillmentType());
+            item.setLineAmount(
+                    item.getSellingPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
             items.add(item);
             if (Objects.equals(item.getSelected(), CART_SELECTED)) {
                 selectedCount += item.getQuantity();
@@ -968,47 +1161,67 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
     }
 
     private List<CartSubmitSource> resolveSubmitSources(
-        String accountId,
-        Collection<String> cartIdValues,
-        List<UserMallOrderModel.SubmitOrderItem> submitItems
-    ) {
+            String accountId,
+            Collection<String> cartIdValues,
+            List<UserMallOrderModel.SubmitOrderItem> submitItems) {
         List<String> cartIds = normalizeIdList(cartIdValues);
         if (!cartIds.isEmpty()) {
-            return shoppingCartsService.list(
-                new LambdaQueryWrapper<ShoppingCarts>()
-                    .eq(ShoppingCarts::getAccountId, accountId)
-                    .in(ShoppingCarts::getId, cartIds)
-                    .eq(ShoppingCarts::getIsDelete, 0)
-            ).stream()
-                .map(item -> new CartSubmitSource(item.getId(), item.getProductId(), defaultIfNull(item.getQuantity(), 1)))
-                .collect(Collectors.toCollection(ArrayList::new));
+            return shoppingCartsService
+                    .list(
+                            new LambdaQueryWrapper<ShoppingCarts>()
+                                    .eq(ShoppingCarts::getAccountId, accountId)
+                                    .in(ShoppingCarts::getId, cartIds)
+                                    .eq(ShoppingCarts::getIsDelete, 0))
+                    .stream()
+                    .map(
+                            item ->
+                                    new CartSubmitSource(
+                                            item.getId(),
+                                            item.getProductId(),
+                                            defaultIfNull(item.getQuantity(), 1)))
+                    .collect(Collectors.toCollection(ArrayList::new));
         }
-        return (submitItems == null ? Collections.<UserMallOrderModel.SubmitOrderItem>emptyList() : submitItems).stream()
-            .filter(Objects::nonNull)
-            .map(item -> new CartSubmitSource("", trimToNull(item.getProductId()), normalizeQuantity(item.getQuantity())))
-            .filter(item -> StringUtils.hasText(item.getProductId()))
-            .collect(Collectors.toCollection(ArrayList::new));
+        return (submitItems == null
+                        ? Collections.<UserMallOrderModel.SubmitOrderItem>emptyList()
+                        : submitItems)
+                .stream()
+                        .filter(Objects::nonNull)
+                        .map(
+                                item ->
+                                        new CartSubmitSource(
+                                                "",
+                                                trimToNull(item.getProductId()),
+                                                normalizeQuantity(item.getQuantity())))
+                        .filter(item -> StringUtils.hasText(item.getProductId()))
+                        .collect(Collectors.toCollection(ArrayList::new));
     }
 
     private Products requireProduct(String productId) {
         if (!StringUtils.hasText(productId)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "商品ID不能为空");
         }
-        Products product = productsService.getOne(
-            new LambdaQueryWrapper<Products>()
-                .eq(Products::getId, productId)
-                .eq(Products::getStatus, 1)
-                .eq(Products::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        Products product =
+                productsService.getOne(
+                        new LambdaQueryWrapper<Products>()
+                                .eq(Products::getId, productId)
+                                .eq(Products::getStatus, 1)
+                                .eq(Products::getIsFrozen, 0)
+                                .eq(Products::getAuditStatus, 2)
+                                .eq(Products::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (product == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "商品不存在或已下架");
         }
         return product;
     }
+
     private Products requireSubmitProduct(Products product) {
-        if (product == null || !Objects.equals(product.getStatus(), 1) || !Objects.equals(product.getIsDelete(), 0)) {
+        if (product == null
+                || !Objects.equals(product.getStatus(), 1)
+                || !Objects.equals(product.getIsDelete(), 0)
+                || Objects.equals(product.getIsFrozen(), 1)
+                || !Objects.equals(product.getAuditStatus(), 2)) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "商品不存在或已下架");
         }
         return product;
@@ -1018,14 +1231,14 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
         if (!StringUtils.hasText(cartId)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "购物车项ID不能为空");
         }
-        ShoppingCarts cart = shoppingCartsService.getOne(
-            new LambdaQueryWrapper<ShoppingCarts>()
-                .eq(ShoppingCarts::getId, cartId)
-                .eq(ShoppingCarts::getAccountId, accountId)
-                .eq(ShoppingCarts::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        ShoppingCarts cart =
+                shoppingCartsService.getOne(
+                        new LambdaQueryWrapper<ShoppingCarts>()
+                                .eq(ShoppingCarts::getId, cartId)
+                                .eq(ShoppingCarts::getAccountId, accountId)
+                                .eq(ShoppingCarts::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (cart == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "购物车项不存在");
         }
@@ -1036,14 +1249,14 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
         if (!StringUtils.hasText(addressId)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "收货地址不能为空");
         }
-        UserAddresses address = userAddressesService.getOne(
-            new LambdaQueryWrapper<UserAddresses>()
-                .eq(UserAddresses::getId, addressId)
-                .eq(UserAddresses::getAccountId, accountId)
-                .eq(UserAddresses::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        UserAddresses address =
+                userAddressesService.getOne(
+                        new LambdaQueryWrapper<UserAddresses>()
+                                .eq(UserAddresses::getId, addressId)
+                                .eq(UserAddresses::getAccountId, accountId)
+                                .eq(UserAddresses::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (address == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "收货地址不存在");
         }
@@ -1054,6 +1267,111 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
         if (defaultIfNull(product.getStockQuantity(), 0) < quantity) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "商品库存不足");
         }
+    }
+
+    /** 履约方式校验：送货上门时检查配送范围、商品履约一致性，需要预约时校验预约时间。 */
+    private void validateFulfillment(
+            UserAddresses address, CheckoutContext checkoutContext, Long appointmentTime) {
+        if (checkoutContext == null
+                || checkoutContext.sources.isEmpty()
+                || checkoutContext.productMap.isEmpty()) {
+            return;
+        }
+        // 取首个商品判断履约方式（同一订单商品履约方式应一致）
+        String firstProductId = checkoutContext.sources.get(0).getProductId();
+        Products firstProduct = checkoutContext.productMap.get(firstProductId);
+        if (firstProduct == null || firstProduct.getFulfillmentType() == null) {
+            return; // 未设置履约方式，不做校验
+        }
+        int fulfillmentType = firstProduct.getFulfillmentType();
+
+        // 校验同一订单中所有商品履约方式一致
+        for (CartSubmitSource source : checkoutContext.sources) {
+            Products product = checkoutContext.productMap.get(source.getProductId());
+            if (product != null
+                    && product.getFulfillmentType() != null
+                    && product.getFulfillmentType() != fulfillmentType) {
+                throw new BusinessException(ErrorCode.BUSINESS_ERROR, "同一订单中商品履约方式不一致，请分开下单");
+            }
+        }
+
+        if (fulfillmentType == 2) {
+            // 送货上门：校验配送范围
+            if (firstProduct.getDeliveryRangeKm() != null
+                    && firstProduct.getDeliveryRangeKm().compareTo(BigDecimal.ZERO) > 0) {
+                // 获取门店坐标
+                String storeId = firstProduct.getStoreId();
+                if (!StringUtils.hasText(storeId)) {
+                    throw new BusinessException(
+                            ErrorCode.BUSINESS_ERROR,
+                            "商品「" + firstProduct.getName() + "」未绑定门店，暂不支持配送");
+                }
+                Stores store = storesService.getById(storeId);
+                if (store == null || store.getLatitude() == null || store.getLongitude() == null) {
+                    throw new BusinessException(
+                            ErrorCode.BUSINESS_ERROR,
+                            "商品「" + firstProduct.getName() + "」所属门店未设置定位，暂不支持配送");
+                }
+                if (address.getLatitude() == null || address.getLongitude() == null) {
+                    throw new BusinessException(ErrorCode.BUSINESS_ERROR, "收货地址未设置坐标，请重新添加收货地址");
+                }
+                BigDecimal distanceKm =
+                        calculateDistanceKm(
+                                address.getLatitude(), address.getLongitude(),
+                                store.getLatitude(), store.getLongitude());
+                if (distanceKm.compareTo(firstProduct.getDeliveryRangeKm()) > 0) {
+                    throw new BusinessException(
+                            ErrorCode.BUSINESS_ERROR,
+                            "收货地址超出配送范围（配送范围"
+                                    + firstProduct
+                                            .getDeliveryRangeKm()
+                                            .stripTrailingZeros()
+                                            .toPlainString()
+                                    + "km，当前距离"
+                                    + distanceKm
+                                            .setScale(1, RoundingMode.HALF_UP)
+                                            .stripTrailingZeros()
+                                            .toPlainString()
+                                    + "km）");
+                }
+            }
+
+            // 需要预约时校验预约时间
+            if (firstProduct.getNeedAppointment() != null
+                    && firstProduct.getNeedAppointment() == 1) {
+                if (appointmentTime == null || appointmentTime <= 0) {
+                    throw new BusinessException(ErrorCode.PARAM_ERROR, "该商品需要预约，请选择预约时间");
+                }
+                if (appointmentTime <= System.currentTimeMillis()) {
+                    throw new BusinessException(ErrorCode.PARAM_ERROR, "预约时间不能早于当前时间");
+                }
+            }
+        }
+    }
+
+    /** Haversine 公式计算两点间距离（公里）。 */
+    private BigDecimal calculateDistanceKm(
+            BigDecimal lat1, BigDecimal lon1, BigDecimal lat2, BigDecimal lon2) {
+        if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) {
+            return BigDecimal.ZERO;
+        }
+        double latitude1 = lat1.doubleValue();
+        double longitude1 = lon1.doubleValue();
+        double latitude2 = lat2.doubleValue();
+        double longitude2 = lon2.doubleValue();
+        double dLat = Math.toRadians(latitude2 - latitude1);
+        double dLon = Math.toRadians(longitude2 - longitude1);
+        double rLat1 = Math.toRadians(latitude1);
+        double rLat2 = Math.toRadians(latitude2);
+        double a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                        + Math.cos(rLat1)
+                                * Math.cos(rLat2)
+                                * Math.sin(dLon / 2)
+                                * Math.sin(dLon / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        double distance = 6371.0088 * c;
+        return BigDecimal.valueOf(distance).setScale(3, RoundingMode.HALF_UP);
     }
 
     private LoginUserInfo requireCurrentUser() {
@@ -1078,22 +1396,22 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
     private int normalizePaymentMethod(Integer paymentMethod) {
         int normalized = paymentMethod == null ? PAYMENT_METHOD_WECHAT : paymentMethod;
         if (normalized != PAYMENT_METHOD_WECHAT
-            && normalized != PAYMENT_METHOD_ALIPAY
-            && normalized != PAYMENT_METHOD_WALLET) {
+                && normalized != PAYMENT_METHOD_ALIPAY
+                && normalized != PAYMENT_METHOD_WALLET) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "支付方式不支持");
         }
         return normalized;
     }
 
     private AccountBalances ensureUserBalance(String accountId, long now) {
-        AccountBalances existing = accountBalancesService.getOne(
-            new LambdaQueryWrapper<AccountBalances>()
-                .eq(AccountBalances::getAccountId, accountId)
-                .eq(AccountBalances::getAccountType, ACCOUNT_TYPE_USER)
-                .eq(AccountBalances::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        AccountBalances existing =
+                accountBalancesService.getOne(
+                        new LambdaQueryWrapper<AccountBalances>()
+                                .eq(AccountBalances::getAccountId, accountId)
+                                .eq(AccountBalances::getAccountType, ACCOUNT_TYPE_USER)
+                                .eq(AccountBalances::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (existing != null) {
             return existing;
         }
@@ -1127,7 +1445,10 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
     }
 
     private String buildThirdPartyNo(String paymentNo, int paymentMethod) {
-        String prefix = paymentMethod == PAYMENT_METHOD_ALIPAY ? "ALI" : paymentMethod == PAYMENT_METHOD_WALLET ? "WLT" : "WX";
+        String prefix =
+                paymentMethod == PAYMENT_METHOD_ALIPAY
+                        ? "ALI"
+                        : paymentMethod == PAYMENT_METHOD_WALLET ? "WLT" : "WX";
         return prefix + compactTradeNo(paymentNo);
     }
 
@@ -1164,18 +1485,18 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
             return new ArrayList<>();
         }
         return values.stream()
-            .map(UserMallOrderServiceImpl::trimToNull)
-            .filter(StringUtils::hasText)
-            .distinct()
-            .collect(Collectors.toCollection(ArrayList::new));
+                .map(UserMallOrderServiceImpl::trimToNull)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     private String buildFullAddress(UserAddresses address) {
         return defaultText(address.getProvince(), "")
-            + defaultText(address.getCity(), "")
-            + defaultText(address.getDistrict(), "")
-            + defaultText(address.getStreet(), "")
-            + defaultText(address.getDetailedAddress(), "");
+                + defaultText(address.getCity(), "")
+                + defaultText(address.getDistrict(), "")
+                + defaultText(address.getStreet(), "")
+                + defaultText(address.getDetailedAddress(), "");
     }
 
     private String buildProductOrderNo(long now) {
@@ -1194,7 +1515,9 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
             return null;
         }
         String trimmed = value.trim();
-        if (trimmed.isEmpty() || "null".equalsIgnoreCase(trimmed) || "undefined".equalsIgnoreCase(trimmed)) {
+        if (trimmed.isEmpty()
+                || "null".equalsIgnoreCase(trimmed)
+                || "undefined".equalsIgnoreCase(trimmed)) {
             return null;
         }
         return trimmed;
@@ -1265,7 +1588,9 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
         private String applicableText;
 
         public BigDecimal getDiscountAmount() {
-            return discountAmount == null ? BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP) : discountAmount;
+            return discountAmount == null
+                    ? BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
+                    : discountAmount;
         }
 
         public Long getExpireTime() {
@@ -1291,4 +1616,3 @@ public class UserMallOrderServiceImpl implements UserMallOrderService {
         }
     }
 }
-

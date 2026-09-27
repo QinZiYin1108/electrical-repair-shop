@@ -1,4 +1,4 @@
-const HOME_TAB_URL = "/pages/home/index";
+const HOME_TAB_URL = '/pages/home/index';
 
 function markProgrammaticLeave(page) {
   if (page) {

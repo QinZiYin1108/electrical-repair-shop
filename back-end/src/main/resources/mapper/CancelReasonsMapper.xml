@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.backend.mapper.CancelReasonsMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.backend.entity.CancelReasons">
+            <id property="id" column="id" />
+            <result property="orderId" column="order_id" />
+            <result property="orderType" column="order_type" />
+            <result property="reasonCode" column="reason_code" />
+            <result property="reasonLabel" column="reason_label" />
+            <result property="userRemark" column="user_remark" />
+            <result property="createdTime" column="created_time" />
+            <result property="isDelete" column="is_delete" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,order_id,order_type,reason_code,reason_label,
+        user_remark,created_time,is_delete
+    </sql>
+</mapper>

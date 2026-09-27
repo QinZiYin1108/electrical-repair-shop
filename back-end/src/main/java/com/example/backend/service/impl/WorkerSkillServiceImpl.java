@@ -23,11 +23,6 @@ import com.example.backend.service.TechnicianAccountsService;
 import com.example.backend.service.TechnicianSkillsService;
 import com.example.backend.service.WorkerSkillService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
-import org.springframework.dao.DuplicateKeyException;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -35,6 +30,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 public class WorkerSkillServiceImpl implements WorkerSkillService {
@@ -50,12 +49,11 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
     private final TechnicianAccountsService technicianAccountsService;
 
     public WorkerSkillServiceImpl(
-        TechnicianSkillsService technicianSkillsService,
-        TechnicianSkillsMapper technicianSkillsMapper,
-        ServiceTypesService serviceTypesService,
-        ServiceCategoriesService serviceCategoriesService,
-        TechnicianAccountsService technicianAccountsService
-    ) {
+            TechnicianSkillsService technicianSkillsService,
+            TechnicianSkillsMapper technicianSkillsMapper,
+            ServiceTypesService serviceTypesService,
+            ServiceCategoriesService serviceCategoriesService,
+            TechnicianAccountsService technicianAccountsService) {
         this.technicianSkillsService = technicianSkillsService;
         this.technicianSkillsMapper = technicianSkillsMapper;
         this.serviceTypesService = serviceTypesService;
@@ -68,13 +66,13 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
         String accountId = requireWorker().getAccountId();
         requireTechnicianAccount(accountId);
 
-        List<TechnicianSkills> skills = technicianSkillsService.list(
-            new LambdaQueryWrapper<TechnicianSkills>()
-                .eq(TechnicianSkills::getTechnicianAccountId, accountId)
-                .eq(TechnicianSkills::getIsDelete, 0)
-                .orderByDesc(TechnicianSkills::getUpdatedTime)
-                .orderByDesc(TechnicianSkills::getCreatedTime)
-        );
+        List<TechnicianSkills> skills =
+                technicianSkillsService.list(
+                        new LambdaQueryWrapper<TechnicianSkills>()
+                                .eq(TechnicianSkills::getTechnicianAccountId, accountId)
+                                .eq(TechnicianSkills::getIsDelete, 0)
+                                .orderByDesc(TechnicianSkills::getUpdatedTime)
+                                .orderByDesc(TechnicianSkills::getCreatedTime));
         if (skills == null || skills.isEmpty()) {
             return new ArrayList<>();
         }
@@ -88,11 +86,11 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
 
         Map<String, ServiceTypes> serviceTypeMap = new LinkedHashMap<>();
         if (!serviceTypeIds.isEmpty()) {
-            List<ServiceTypes> serviceTypes = serviceTypesService.list(
-                new LambdaQueryWrapper<ServiceTypes>()
-                    .in(ServiceTypes::getId, serviceTypeIds)
-                    .eq(ServiceTypes::getIsDelete, 0)
-            );
+            List<ServiceTypes> serviceTypes =
+                    serviceTypesService.list(
+                            new LambdaQueryWrapper<ServiceTypes>()
+                                    .in(ServiceTypes::getId, serviceTypeIds)
+                                    .eq(ServiceTypes::getIsDelete, 0));
             for (ServiceTypes serviceType : serviceTypes) {
                 if (serviceType == null || !StringUtils.hasText(serviceType.getId())) {
                     continue;
@@ -102,13 +100,13 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
         }
 
         Map<String, ServiceCategories> categoryMap = new LinkedHashMap<>();
-        List<ServiceCategories> categories = serviceCategoriesService.list(
-            new LambdaQueryWrapper<ServiceCategories>()
-                .eq(ServiceCategories::getIsDelete, 0)
-                .orderByAsc(ServiceCategories::getLevel)
-                .orderByAsc(ServiceCategories::getSortOrder)
-                .orderByAsc(ServiceCategories::getCreatedTime)
-        );
+        List<ServiceCategories> categories =
+                serviceCategoriesService.list(
+                        new LambdaQueryWrapper<ServiceCategories>()
+                                .eq(ServiceCategories::getIsDelete, 0)
+                                .orderByAsc(ServiceCategories::getLevel)
+                                .orderByAsc(ServiceCategories::getSortOrder)
+                                .orderByAsc(ServiceCategories::getCreatedTime));
         for (ServiceCategories category : categories) {
             if (category == null || !StringUtils.hasText(category.getId())) {
                 continue;
@@ -127,11 +125,16 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
             ServiceTypes serviceType = serviceTypeMap.get(skill.getServiceTypeId());
             item.setServiceTypeName(serviceType == null ? "未知服务" : serviceType.getName());
             item.setServiceMode(serviceType == null ? null : serviceType.getType());
-            item.setServiceModeText(resolveServiceModeText(serviceType == null ? null : serviceType.getType()));
+            item.setServiceModeText(
+                    resolveServiceModeText(serviceType == null ? null : serviceType.getType()));
             item.setCategoryId(serviceType == null ? null : serviceType.getCategoryId());
-            ServiceCategories category = serviceType == null ? null : categoryMap.get(serviceType.getCategoryId());
+            ServiceCategories category =
+                    serviceType == null ? null : categoryMap.get(serviceType.getCategoryId());
             item.setCategoryName(category == null ? null : category.getName());
-            item.setCategoryPath(serviceType == null ? "" : buildCategoryPath(serviceType.getCategoryId(), categoryMap));
+            item.setCategoryPath(
+                    serviceType == null
+                            ? ""
+                            : buildCategoryPath(serviceType.getCategoryId(), categoryMap));
             Integer skillLevel = skill.getSkillLevel() == null ? 1 : skill.getSkillLevel();
             item.setSkillLevel(skillLevel);
             item.setSkillLevelText(resolveSkillLevelText(skillLevel));
@@ -142,7 +145,8 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
     }
 
     @Override
-    public List<WorkerSkillCategoryNode> listAvailableCategoryTree(String keyword, Integer serviceMode) {
+    public List<WorkerSkillCategoryNode> listAvailableCategoryTree(
+            String keyword, Integer serviceMode) {
         String accountId = requireWorker().getAccountId();
         requireTechnicianAccount(accountId);
         Integer mode = normalizeServiceMode(serviceMode);
@@ -161,7 +165,8 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
             categoryMap.put(category.getId(), category);
         }
 
-        List<ServiceTypes> availableServiceTypes = listAvailableServiceTypeEntities(accountId, normalizedKeyword, mode);
+        List<ServiceTypes> availableServiceTypes =
+                listAvailableServiceTypeEntities(accountId, normalizedKeyword, mode);
         if (availableServiceTypes.isEmpty()) {
             return new ArrayList<>();
         }
@@ -177,7 +182,8 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
                     break;
                 }
                 ServiceCategories currentCategory = categoryMap.get(currentId);
-                if (currentCategory == null || !StringUtils.hasText(currentCategory.getParentId())) {
+                if (currentCategory == null
+                        || !StringUtils.hasText(currentCategory.getParentId())) {
                     break;
                 }
                 currentId = currentCategory.getParentId();
@@ -203,7 +209,8 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
             childrenByParentId.computeIfAbsent(parentId, key -> new ArrayList<>()).add(category);
         }
 
-        List<ServiceCategories> level1Categories = childrenByParentId.getOrDefault("ROOT", Collections.emptyList());
+        List<ServiceCategories> level1Categories =
+                childrenByParentId.getOrDefault("ROOT", Collections.emptyList());
         List<WorkerSkillCategoryNode> tree = new ArrayList<>();
         for (ServiceCategories level1Category : level1Categories) {
             tree.add(buildCategoryNode(level1Category, childrenByParentId));
@@ -212,7 +219,8 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
     }
 
     @Override
-    public List<WorkerSkillServiceTypeOption> listAvailableServiceTypes(String keyword, Integer serviceMode, String categoryId) {
+    public List<WorkerSkillServiceTypeOption> listAvailableServiceTypes(
+            String keyword, Integer serviceMode, String categoryId) {
         String accountId = requireWorker().getAccountId();
         requireTechnicianAccount(accountId);
 
@@ -220,7 +228,8 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
         String normalizedKeyword = trimToNull(keyword);
         String normalizedCategoryId = trimToNull(categoryId);
 
-        List<ServiceTypes> availableServiceTypes = listAvailableServiceTypeEntities(accountId, normalizedKeyword, mode);
+        List<ServiceTypes> availableServiceTypes =
+                listAvailableServiceTypeEntities(accountId, normalizedKeyword, mode);
         if (availableServiceTypes.isEmpty()) {
             return new ArrayList<>();
         }
@@ -249,7 +258,8 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
             }
             if (filterCategoryIds != null) {
                 String currentCategoryId = trimToNull(serviceType.getCategoryId());
-                if (!StringUtils.hasText(currentCategoryId) || !filterCategoryIds.contains(currentCategoryId)) {
+                if (!StringUtils.hasText(currentCategoryId)
+                        || !filterCategoryIds.contains(currentCategoryId)) {
                     continue;
                 }
             }
@@ -275,7 +285,9 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
     public void addCurrentWorkerSkill(WorkerSkillCreateRequest request) {
         String accountId = requireWorker().getAccountId();
         requireTechnicianAccount(accountId);
-        addSkillInternal(accountId, normalizeServiceTypeId(request == null ? null : request.getServiceTypeId()));
+        addSkillInternal(
+                accountId,
+                normalizeServiceTypeId(request == null ? null : request.getServiceTypeId()));
     }
 
     @Override
@@ -283,7 +295,9 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
     public void batchAddCurrentWorkerSkills(WorkerSkillBatchCreateRequest request) {
         String accountId = requireWorker().getAccountId();
         requireTechnicianAccount(accountId);
-        if (request == null || request.getServiceTypeIds() == null || request.getServiceTypeIds().isEmpty()) {
+        if (request == null
+                || request.getServiceTypeIds() == null
+                || request.getServiceTypeIds().isEmpty()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请选择要添加的技能");
         }
 
@@ -302,21 +316,24 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
     public void deleteCurrentWorkerSkill(WorkerSkillDeleteRequest request) {
         String accountId = requireWorker().getAccountId();
         requireTechnicianAccount(accountId);
-        String serviceTypeId = normalizeServiceTypeId(request == null ? null : request.getServiceTypeId());
-        technicianSkillsMapper.logicalDeleteByTechnicianAndServiceType(accountId, serviceTypeId, System.currentTimeMillis());
+        String serviceTypeId =
+                normalizeServiceTypeId(request == null ? null : request.getServiceTypeId());
+        technicianSkillsMapper.logicalDeleteByTechnicianAndServiceType(
+                accountId, serviceTypeId, System.currentTimeMillis());
     }
 
     private void addSkillInternal(String accountId, String serviceTypeId) {
         requireActiveServiceType(serviceTypeId);
 
-        TechnicianSkills currentSkill = technicianSkillsService.getOne(
-            new LambdaQueryWrapper<TechnicianSkills>()
-                .eq(TechnicianSkills::getTechnicianAccountId, accountId)
-                .eq(TechnicianSkills::getServiceTypeId, serviceTypeId)
-                .eq(TechnicianSkills::getIsDelete, 0),
-            false
-        );
-        if (currentSkill != null && (currentSkill.getIsActive() == null || currentSkill.getIsActive() == 1)) {
+        TechnicianSkills currentSkill =
+                technicianSkillsService.getOne(
+                        new LambdaQueryWrapper<TechnicianSkills>()
+                                .eq(TechnicianSkills::getTechnicianAccountId, accountId)
+                                .eq(TechnicianSkills::getServiceTypeId, serviceTypeId)
+                                .eq(TechnicianSkills::getIsDelete, 0),
+                        false);
+        if (currentSkill != null
+                && (currentSkill.getIsActive() == null || currentSkill.getIsActive() == 1)) {
             return;
         }
 
@@ -329,9 +346,13 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
             return;
         }
 
-        TechnicianSkills anySkill = technicianSkillsMapper.selectAnyByTechnicianAndServiceType(accountId, serviceTypeId);
+        TechnicianSkills anySkill =
+                technicianSkillsMapper.selectAnyByTechnicianAndServiceType(
+                        accountId, serviceTypeId);
         if (anySkill != null) {
-            int restored = technicianSkillsMapper.restoreByTechnicianAndServiceType(accountId, serviceTypeId, now);
+            int restored =
+                    technicianSkillsMapper.restoreByTechnicianAndServiceType(
+                            accountId, serviceTypeId, now);
             if (restored <= 0) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "新增技能失败");
             }
@@ -354,19 +375,22 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "新增技能失败");
             }
         } catch (DuplicateKeyException ex) {
-            int restored = technicianSkillsMapper.restoreByTechnicianAndServiceType(accountId, serviceTypeId, now);
+            int restored =
+                    technicianSkillsMapper.restoreByTechnicianAndServiceType(
+                            accountId, serviceTypeId, now);
             if (restored <= 0) {
                 throw new BusinessException(ErrorCode.BUSINESS_ERROR, "技能已存在");
             }
         }
     }
 
-    private List<ServiceTypes> listAvailableServiceTypeEntities(String accountId, String keyword, Integer serviceMode) {
-        List<TechnicianSkills> existingSkills = technicianSkillsService.list(
-            new LambdaQueryWrapper<TechnicianSkills>()
-                .eq(TechnicianSkills::getTechnicianAccountId, accountId)
-                .eq(TechnicianSkills::getIsDelete, 0)
-        );
+    private List<ServiceTypes> listAvailableServiceTypeEntities(
+            String accountId, String keyword, Integer serviceMode) {
+        List<TechnicianSkills> existingSkills =
+                technicianSkillsService.list(
+                        new LambdaQueryWrapper<TechnicianSkills>()
+                                .eq(TechnicianSkills::getTechnicianAccountId, accountId)
+                                .eq(TechnicianSkills::getIsDelete, 0));
         Set<String> selectedTypeIds = new LinkedHashSet<>();
         for (TechnicianSkills skill : existingSkills) {
             if (skill != null && StringUtils.hasText(skill.getServiceTypeId())) {
@@ -374,19 +398,22 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
             }
         }
 
-        List<ServiceTypes> serviceTypes = serviceTypesService.list(
-            new LambdaQueryWrapper<ServiceTypes>()
-                .eq(ServiceTypes::getIsActive, 1)
-                .eq(ServiceTypes::getIsDelete, 0)
-                .eq(serviceMode != null, ServiceTypes::getType, serviceMode)
-                .and(StringUtils.hasText(keyword), wrapper -> wrapper
-                    .like(ServiceTypes::getName, keyword)
-                    .or()
-                    .like(ServiceTypes::getDescription, keyword)
-                )
-                .orderByAsc(ServiceTypes::getSortOrder)
-                .orderByAsc(ServiceTypes::getCreatedTime)
-        );
+        List<ServiceTypes> serviceTypes =
+                serviceTypesService.list(
+                        new LambdaQueryWrapper<ServiceTypes>()
+                                .eq(ServiceTypes::getIsActive, 1)
+                                .eq(ServiceTypes::getIsDelete, 0)
+                                .eq(serviceMode != null, ServiceTypes::getType, serviceMode)
+                                .and(
+                                        StringUtils.hasText(keyword),
+                                        wrapper ->
+                                                wrapper.like(ServiceTypes::getName, keyword)
+                                                        .or()
+                                                        .like(
+                                                                ServiceTypes::getDescription,
+                                                                keyword))
+                                .orderByAsc(ServiceTypes::getSortOrder)
+                                .orderByAsc(ServiceTypes::getCreatedTime));
 
         List<ServiceTypes> available = new ArrayList<>();
         for (ServiceTypes serviceType : serviceTypes) {
@@ -403,16 +430,16 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
 
     private List<ServiceCategories> listActiveCategories() {
         return serviceCategoriesService.list(
-            new LambdaQueryWrapper<ServiceCategories>()
-                .eq(ServiceCategories::getIsActive, 1)
-                .eq(ServiceCategories::getIsDelete, 0)
-                .orderByAsc(ServiceCategories::getLevel)
-                .orderByAsc(ServiceCategories::getSortOrder)
-                .orderByAsc(ServiceCategories::getCreatedTime)
-        );
+                new LambdaQueryWrapper<ServiceCategories>()
+                        .eq(ServiceCategories::getIsActive, 1)
+                        .eq(ServiceCategories::getIsDelete, 0)
+                        .orderByAsc(ServiceCategories::getLevel)
+                        .orderByAsc(ServiceCategories::getSortOrder)
+                        .orderByAsc(ServiceCategories::getCreatedTime));
     }
 
-    private Set<String> findDescendantCategoryIds(String categoryId, List<ServiceCategories> categories) {
+    private Set<String> findDescendantCategoryIds(
+            String categoryId, List<ServiceCategories> categories) {
         Set<String> descendants = new LinkedHashSet<>();
         if (!StringUtils.hasText(categoryId) || categories == null || categories.isEmpty()) {
             return descendants;
@@ -429,7 +456,9 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
             if (!StringUtils.hasText(parentId)) {
                 continue;
             }
-            childrenByParentId.computeIfAbsent(parentId, key -> new ArrayList<>()).add(category.getId());
+            childrenByParentId
+                    .computeIfAbsent(parentId, key -> new ArrayList<>())
+                    .add(category.getId());
         }
 
         if (!allCategoryIds.contains(categoryId)) {
@@ -443,30 +472,31 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
             if (!descendants.add(currentId)) {
                 continue;
             }
-            List<String> children = childrenByParentId.getOrDefault(currentId, Collections.emptyList());
+            List<String> children =
+                    childrenByParentId.getOrDefault(currentId, Collections.emptyList());
             queue.addAll(children);
         }
         return descendants;
     }
 
     private WorkerSkillCategoryNode buildCategoryNode(
-        ServiceCategories category,
-        Map<String, List<ServiceCategories>> childrenByParentId
-    ) {
+            ServiceCategories category, Map<String, List<ServiceCategories>> childrenByParentId) {
         WorkerSkillCategoryNode node = new WorkerSkillCategoryNode();
         node.setId(category.getId());
         node.setName(category.getName());
         node.setLevel(category.getLevel());
         node.setParentId(category.getParentId());
 
-        List<ServiceCategories> children = childrenByParentId.getOrDefault(category.getId(), Collections.emptyList());
+        List<ServiceCategories> children =
+                childrenByParentId.getOrDefault(category.getId(), Collections.emptyList());
         for (ServiceCategories child : children) {
             node.getChildren().add(buildCategoryNode(child, childrenByParentId));
         }
         return node;
     }
 
-    private String buildCategoryPath(String categoryId, Map<String, ServiceCategories> categoryMap) {
+    private String buildCategoryPath(
+            String categoryId, Map<String, ServiceCategories> categoryMap) {
         if (!StringUtils.hasText(categoryId) || categoryMap == null || categoryMap.isEmpty()) {
             return "";
         }
@@ -492,8 +522,8 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
             return null;
         }
         if (serviceMode == SERVICE_MODE_ONSITE_REPAIR
-            || serviceMode == SERVICE_MODE_ONSITE_INSTALL
-            || serviceMode == SERVICE_MODE_OFFLINE_REPAIR) {
+                || serviceMode == SERVICE_MODE_ONSITE_INSTALL
+                || serviceMode == SERVICE_MODE_OFFLINE_REPAIR) {
             return serviceMode;
         }
         throw new BusinessException(ErrorCode.PARAM_ERROR, "serviceMode 参数错误");
@@ -507,13 +537,13 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
     }
 
     private ServiceTypes requireActiveServiceType(String serviceTypeId) {
-        ServiceTypes serviceType = serviceTypesService.getOne(
-            new LambdaQueryWrapper<ServiceTypes>()
-                .eq(ServiceTypes::getId, serviceTypeId)
-                .eq(ServiceTypes::getIsActive, 1)
-                .eq(ServiceTypes::getIsDelete, 0),
-            false
-        );
+        ServiceTypes serviceType =
+                serviceTypesService.getOne(
+                        new LambdaQueryWrapper<ServiceTypes>()
+                                .eq(ServiceTypes::getId, serviceTypeId)
+                                .eq(ServiceTypes::getIsActive, 1)
+                                .eq(ServiceTypes::getIsDelete, 0),
+                        false);
         if (serviceType == null) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "服务类型不存在或已禁用");
         }
@@ -522,7 +552,8 @@ public class WorkerSkillServiceImpl implements WorkerSkillService {
 
     private TechnicianAccounts requireTechnicianAccount(String accountId) {
         TechnicianAccounts technician = technicianAccountsService.getById(accountId);
-        if (technician == null || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
+        if (technician == null
+                || (technician.getIsDelete() != null && technician.getIsDelete() != 0)) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "师傅账号不存在");
         }
         return technician;

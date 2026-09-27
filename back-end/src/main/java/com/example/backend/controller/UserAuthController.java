@@ -11,7 +11,7 @@ import com.example.backend.entity.UserAccounts;
 import com.example.backend.entity.UserProfiles;
 import com.example.backend.exception.BusinessException;
 import com.example.backend.mapper.UserAccountsMapper;
-import com.example.backend.model.user.UserBindEmailRequest;
+import com.example.backend.model.user.UserBindPhoneRequest;
 import com.example.backend.model.user.UserLoginByPasswordRequest;
 import com.example.backend.model.user.UserLoginResponse;
 import com.example.backend.model.user.UserSendCodeRequest;
@@ -29,8 +29,14 @@ import com.example.backend.service.UserProfilesService;
 import com.example.backend.utils.PasswordUtil;
 import com.example.backend.utils.id.SnowflakeIdUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import java.math.BigDecimal;
+import java.util.Map;
+import java.util.Random;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -40,16 +46,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
-import java.math.BigDecimal;
-import java.util.Map;
-import java.util.Random;
-
 @RestController
+@Tag(name = "公开/登录认证/用户端")
 @RequestMapping("/pass/auth/user")
 public class UserAuthController {
 
-    private static final String USER_BIND_EMAIL_CODE_TYPE = "USER_BIND_EMAIL";
-    private static final String EMAIL_PATTERN = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
+    private static final String USER_BIND_PHONE_CODE_TYPE = "USER_BIND_PHONE";
+    private static final String PHONE_PATTERN = "^1[3-9]\\d{9}$";
 
     private final UserAccountsService userAccountsService;
     private final UserAccountsMapper userAccountsMapper;
@@ -71,16 +74,15 @@ public class UserAuthController {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public UserAuthController(
-        UserAccountsService userAccountsService,
-        UserAccountsMapper userAccountsMapper,
-        UserProfilesService userProfilesService,
-        JwtTokenService jwtTokenService,
-        AuthCodeService authCodeService,
-        AccountCancelRecordsService accountCancelRecordsService,
-        AdminAccountsService adminAccountsService,
-        TechnicianAccountsService technicianAccountsService,
-        HttpServletRequest request
-    ) {
+            UserAccountsService userAccountsService,
+            UserAccountsMapper userAccountsMapper,
+            UserProfilesService userProfilesService,
+            JwtTokenService jwtTokenService,
+            AuthCodeService authCodeService,
+            AccountCancelRecordsService accountCancelRecordsService,
+            AdminAccountsService adminAccountsService,
+            TechnicianAccountsService technicianAccountsService,
+            HttpServletRequest request) {
         this.userAccountsService = userAccountsService;
         this.userAccountsMapper = userAccountsMapper;
         this.userProfilesService = userProfilesService;
@@ -92,11 +94,19 @@ public class UserAuthController {
         this.request = request;
     }
 
+    @Operation(summary = "微信小程序登录")
     @PostMapping("/login")
     @Transactional(rollbackFor = Exception.class)
-    public Result<UserLoginResponse> wxLogin(@Valid @RequestBody UserWxLoginRequest request) {
+    public Result<UserLoginResponse> wxLogin(
+            @Parameter(
+                            description = "微信登录请求（wx.login 返回的 code + 可选 confirmCancel）",
+                            required = true)
+                    @Valid
+                    @RequestBody
+                    UserWxLoginRequest request) {
         WxSessionInfo sessionInfo = resolveWxSession(request.getCode());
-        UserAccounts account = userAccountsMapper.selectByWxOpenidIncludeDeleted(sessionInfo.getOpenid());
+        UserAccounts account =
+                userAccountsMapper.selectByWxOpenidIncludeDeleted(sessionInfo.getOpenid());
         boolean newAccountCreated = false;
 
         if (account == null) {
@@ -107,7 +117,7 @@ public class UserAuthController {
                 throw new BusinessException(ErrorCode.FORBIDDEN, "该微信对应账号已注销，无法登录");
             }
             if (StringUtils.hasText(sessionInfo.getUnionid())
-                && !sessionInfo.getUnionid().equals(account.getWxUnionid())) {
+                    && !sessionInfo.getUnionid().equals(account.getWxUnionid())) {
                 account.setWxUnionid(sessionInfo.getUnionid());
                 account.setUpdatedTime(System.currentTimeMillis());
                 userAccountsService.updateById(account);
@@ -117,42 +127,55 @@ public class UserAuthController {
         return buildLoginResponse(account, request.getConfirmCancel(), newAccountCreated);
     }
 
+    @Operation(summary = "手机号密码登录")
     @PostMapping("/login/password")
-    public Result<UserLoginResponse> loginByPassword(@Valid @RequestBody UserLoginByPasswordRequest request) {
-        String email = safeTrim(request.getEmail());
-        UserAccounts account = userAccountsMapper.selectByEmailIncludeDeleted(email);
+    public Result<UserLoginResponse> loginByPassword(
+            @Parameter(description = "手机号+密码登录请求", required = true) @Valid @RequestBody
+                    UserLoginByPasswordRequest request) {
+        String phone = safeTrim(request.getPhone());
+        UserAccounts account = userAccountsMapper.selectByPhoneIncludeDeleted(phone);
         if (account == null) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "\u90ae\u7bb1\u6216\u8005\u5bc6\u7801\u6709\u8bef");
+            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "手机号或者密码有误");
         }
         if (safeInt(account.getIsDelete()) != 0) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "\u8be5\u90ae\u7bb1\u5bf9\u5e94\u8d26\u53f7\u5df2\u6ce8\u9500\uff0c\u65e0\u6cd5\u767b\u5f55");
+            throw new BusinessException(ErrorCode.FORBIDDEN, "该手机号对应账号已注销，无法登录");
         }
-        if (!StringUtils.hasText(account.getPassword()) || !StringUtils.hasText(account.getSalt())) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "\u90ae\u7bb1\u6216\u8005\u5bc6\u7801\u6709\u8bef");
+        if (!StringUtils.hasText(account.getPassword())
+                || !StringUtils.hasText(account.getSalt())) {
+            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "手机号或者密码有误");
         }
 
-        String expectedHash = PasswordUtil.hashPassword(request.getPassword(), account.getSalt());
-        if (!expectedHash.equals(account.getPassword())) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "\u90ae\u7bb1\u6216\u8005\u5bc6\u7801\u6709\u8bef");
+        if (!PasswordUtil.matches(
+                request.getPassword(), account.getPassword(), account.getSalt())) {
+            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "手机号或者密码有误");
+        }
+        if (PasswordUtil.needsRehash(account.getPassword())) {
+            account.setPassword(
+                    PasswordUtil.hashPassword(request.getPassword(), account.getSalt()));
+            account.setUpdatedTime(System.currentTimeMillis());
+            userAccountsService.updateById(account);
         }
 
         return buildLoginResponse(account, request.getConfirmCancel(), false);
     }
 
-    @PostMapping("/bind-email")
-    public Result<Void> bindEmail(@Valid @RequestBody UserBindEmailRequest request) {
-        String email = safeTrim(request.getEmail());
-        authCodeService.verifyCode(email, USER_BIND_EMAIL_CODE_TYPE, safeTrim(request.getCode()));
+    @Operation(summary = "绑定手机号（已登录用户）")
+    @PostMapping("/bind-phone")
+    public Result<Void> bindPhone(
+            @Parameter(description = "手机号 + 绑定手机号验证码", required = true) @Valid @RequestBody
+                    UserBindPhoneRequest request) {
+        String phone = safeTrim(request.getPhone());
+        authCodeService.verifyCode(phone, USER_BIND_PHONE_CODE_TYPE, safeTrim(request.getCode()));
 
         UserAccounts account = requireCurrentUserAccount();
-        if (StringUtils.hasText(account.getEmail())) {
-            if (email.equalsIgnoreCase(account.getEmail())) {
+        if (StringUtils.hasText(account.getPhone())) {
+            if (phone.equals(account.getPhone())) {
                 return Result.success();
             }
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "当前账号已绑定其他邮箱");
+            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "当前账号已绑定其他手机号");
         }
 
-        ensureEmailAvailable(email, account.getId());
+        ensurePhoneAvailable(phone, account.getId());
         Long now = System.currentTimeMillis();
         Integer version = account.getVersion();
         UpdateWrapper<UserAccounts> wrapper = new UpdateWrapper<>();
@@ -163,7 +186,7 @@ public class UserAuthController {
 
         UserAccounts updateEntity = new UserAccounts();
         updateEntity.setId(account.getId());
-        updateEntity.setEmail(email);
+        updateEntity.setPhone(phone);
         updateEntity.setUpdatedTime(now);
         if (version != null) {
             updateEntity.setVersion(version);
@@ -171,22 +194,22 @@ public class UserAuthController {
 
         boolean ok = userAccountsService.update(updateEntity, wrapper);
         if (!ok) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "邮箱绑定失败，请重试");
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "手机号绑定失败，请重试");
         }
         return Result.success();
     }
 
+    @Operation(summary = "发送绑定手机号验证码")
     @PostMapping("/code/send")
-    public Result<Void> sendBindEmailCode(@Valid @RequestBody UserSendCodeRequest request) {
-        authCodeService.sendCode(request.getEmail(), USER_BIND_EMAIL_CODE_TYPE);
+    public Result<Void> sendBindPhoneCode(
+            @Parameter(description = "目标手机号", required = true) @Valid @RequestBody
+                    UserSendCodeRequest request) {
+        authCodeService.sendCode(request.getPhone(), USER_BIND_PHONE_CODE_TYPE);
         return Result.success();
     }
 
     private Result<UserLoginResponse> buildLoginResponse(
-        UserAccounts account,
-        Boolean confirmCancel,
-        boolean newAccountCreated
-    ) {
+            UserAccounts account, Boolean confirmCancel, boolean newAccountCreated) {
         UserLoginResponse response = new UserLoginResponse();
         response.setNewAccountCreated(newAccountCreated);
 
@@ -199,8 +222,11 @@ public class UserAuthController {
         }
 
         ensureUserProfileExists(account);
-        response.setToken(jwtTokenService.generateToken(account.getId(), AccountRole.USER));
+        response.setToken(
+                jwtTokenService.generateToken(
+                        account.getId(), AccountRole.USER, account.getTokenVersion()));
         fillLoginState(account, response);
+        response.setNeedBindPhone(!response.isPhoneBound());
         return Result.success(response);
     }
 
@@ -235,13 +261,13 @@ public class UserAuthController {
         if (account == null || !StringUtils.hasText(account.getId())) {
             return;
         }
-        UserProfiles profile = userProfilesService.getOne(
-            new LambdaQueryWrapper<UserProfiles>()
-                .eq(UserProfiles::getAccountId, account.getId())
-                .eq(UserProfiles::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        UserProfiles profile =
+                userProfilesService.getOne(
+                        new LambdaQueryWrapper<UserProfiles>()
+                                .eq(UserProfiles::getAccountId, account.getId())
+                                .eq(UserProfiles::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (profile != null) {
             return;
         }
@@ -260,7 +286,8 @@ public class UserAuthController {
         }
     }
 
-    private void handleCancellationBeforeLogin(UserAccounts account, Boolean confirmCancel, UserLoginResponse response) {
+    private void handleCancellationBeforeLogin(
+            UserAccounts account, Boolean confirmCancel, UserLoginResponse response) {
         if (account == null || safeInt(account.getStatus()) != 3) {
             return;
         }
@@ -268,15 +295,15 @@ public class UserAuthController {
             throw new BusinessException(ErrorCode.FORBIDDEN, "账号已注销，无法登录");
         }
 
-        AccountCancelRecords record = accountCancelRecordsService.getOne(
-            new LambdaQueryWrapper<AccountCancelRecords>()
-                .eq(AccountCancelRecords::getAccountId, account.getId())
-                .eq(AccountCancelRecords::getCancelType, 1)
-                .eq(AccountCancelRecords::getIsDelete, 0)
-                .orderByDesc(AccountCancelRecords::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+        AccountCancelRecords record =
+                accountCancelRecordsService.getOne(
+                        new LambdaQueryWrapper<AccountCancelRecords>()
+                                .eq(AccountCancelRecords::getAccountId, account.getId())
+                                .eq(AccountCancelRecords::getCancelType, 1)
+                                .eq(AccountCancelRecords::getIsDelete, 0)
+                                .orderByDesc(AccountCancelRecords::getCreatedTime)
+                                .last("limit 1"),
+                        false);
         if (record == null || record.getCreatedTime() == null || record.getCreatedTime() <= 0L) {
             return;
         }
@@ -303,13 +330,12 @@ public class UserAuthController {
         userAccountsService.updateById(account);
 
         accountCancelRecordsService.update(
-            null,
-            new UpdateWrapper<AccountCancelRecords>()
-                .set("is_delete", 1)
-                .eq("account_id", account.getId())
-                .eq("is_delete", 0)
-                .eq("cancel_type", 1)
-        );
+                null,
+                new UpdateWrapper<AccountCancelRecords>()
+                        .set("is_delete", 1)
+                        .eq("account_id", account.getId())
+                        .eq("is_delete", 0)
+                        .eq("cancel_type", 1));
         response.setCancelRevoked(true);
     }
 
@@ -324,68 +350,69 @@ public class UserAuthController {
         userAccountsService.updateById(account);
 
         accountCancelRecordsService.update(
-            null,
-            new UpdateWrapper<AccountCancelRecords>()
-                .set("cancel_type", 2)
-                .set("cancel_time", now)
-                .set("operator_id", "SYSTEM")
-                .eq("account_id", account.getId())
-                .eq("cancel_type", 1)
-                .eq("is_delete", 0)
-        );
+                null,
+                new UpdateWrapper<AccountCancelRecords>()
+                        .set("cancel_type", 2)
+                        .set("cancel_time", now)
+                        .set("operator_id", "SYSTEM")
+                        .eq("account_id", account.getId())
+                        .eq("cancel_type", 1)
+                        .eq("is_delete", 0));
     }
 
     private void fillLoginState(UserAccounts account, UserLoginResponse response) {
         if (account == null || response == null) {
             return;
         }
-        response.setEmailBound(StringUtils.hasText(account.getEmail()));
+        response.setPhoneBound(StringUtils.hasText(account.getPhone()));
         response.setWechatBound(StringUtils.hasText(account.getWxOpenid()));
         response.setPasswordSet(
-            StringUtils.hasText(account.getPassword()) && StringUtils.hasText(account.getSalt())
-        );
+                StringUtils.hasText(account.getPassword())
+                        && StringUtils.hasText(account.getSalt()));
     }
 
-    private void ensureEmailAvailable(String email, String currentAccountId) {
-        String normalizedEmail = safeTrim(email);
-        if (!StringUtils.hasText(normalizedEmail) || !normalizedEmail.matches(EMAIL_PATTERN)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "邮箱格式不正确");
+    private void ensurePhoneAvailable(String phone, String currentAccountId) {
+        String normalizedPhone = safeTrim(phone);
+        if (!StringUtils.hasText(normalizedPhone) || !normalizedPhone.matches(PHONE_PATTERN)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "手机号格式不正确");
         }
 
-        UserAccounts userExists = userAccountsMapper.selectByEmailIncludeDeleted(normalizedEmail);
+        UserAccounts userExists = userAccountsMapper.selectByPhoneIncludeDeleted(normalizedPhone);
         if (userExists != null && !userExists.getId().equals(currentAccountId)) {
             if (safeInt(userExists.getIsDelete()) != 0) {
-                throw new BusinessException(ErrorCode.FORBIDDEN, "该邮箱对应账号已注销，暂时无法使用");
+                throw new BusinessException(ErrorCode.FORBIDDEN, "该手机号对应账号已注销，暂时无法使用");
             }
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "该邮箱已被注册");
+            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "该手机号已被注册");
         }
 
-        TechnicianAccounts technicianExists = technicianAccountsService.getOne(
-            new LambdaQueryWrapper<TechnicianAccounts>()
-                .eq(TechnicianAccounts::getEmail, normalizedEmail)
-                .eq(TechnicianAccounts::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        TechnicianAccounts technicianExists =
+                technicianAccountsService.getOne(
+                        new LambdaQueryWrapper<TechnicianAccounts>()
+                                .eq(TechnicianAccounts::getPhone, normalizedPhone)
+                                .eq(TechnicianAccounts::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (technicianExists != null) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "该邮箱已被其他账号使用");
+            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "该手机号已被其他账号使用");
         }
 
-        AdminAccounts adminExists = adminAccountsService.getOne(
-            new LambdaQueryWrapper<AdminAccounts>()
-                .eq(AdminAccounts::getEmail, normalizedEmail)
-                .eq(AdminAccounts::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        AdminAccounts adminExists =
+                adminAccountsService.getOne(
+                        new LambdaQueryWrapper<AdminAccounts>()
+                                .eq(AdminAccounts::getPhone, normalizedPhone)
+                                .eq(AdminAccounts::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (adminExists != null) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "该邮箱已被其他账号使用");
+            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "该手机号已被其他账号使用");
         }
     }
 
     private UserAccounts requireCurrentUserAccount() {
         LoginUserInfo userInfo = AuthUserContext.get();
-        if (userInfo == null || userInfo.getRole() != AccountRole.USER || !StringUtils.hasText(userInfo.getAccountId())) {
+        if (userInfo == null
+                || userInfo.getRole() != AccountRole.USER
+                || !StringUtils.hasText(userInfo.getAccountId())) {
             String authHeader = request.getHeader("Authorization");
             if (!StringUtils.hasText(authHeader) || !authHeader.startsWith("Bearer ")) {
                 throw new BusinessException(ErrorCode.UNAUTHORIZED, "未登录");
@@ -393,7 +420,8 @@ public class UserAuthController {
             userInfo = jwtTokenService.parseToken(authHeader.substring(7));
         }
 
-        if (userInfo.getRole() != AccountRole.USER || !StringUtils.hasText(userInfo.getAccountId())) {
+        if (userInfo.getRole() != AccountRole.USER
+                || !StringUtils.hasText(userInfo.getAccountId())) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作");
         }
 
@@ -408,11 +436,15 @@ public class UserAuthController {
     }
 
     private WxSessionInfo resolveWxSession(String code) {
-        String url = "https://api.weixin.qq.com/sns/jscode2session"
-            + "?appid=" + appid
-            + "&secret=" + secret
-            + "&js_code=" + code
-            + "&grant_type=authorization_code";
+        String url =
+                "https://api.weixin.qq.com/sns/jscode2session"
+                        + "?appid="
+                        + appid
+                        + "&secret="
+                        + secret
+                        + "&js_code="
+                        + code
+                        + "&grant_type=authorization_code";
         String responseBody;
         try {
             responseBody = restTemplate.getForObject(url, String.class);

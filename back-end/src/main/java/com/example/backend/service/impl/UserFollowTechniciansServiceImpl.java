@@ -7,7 +7,6 @@ import com.example.backend.service.UserFollowTechniciansService;
 import org.springframework.stereotype.Service;
 
 @Service
-public class UserFollowTechniciansServiceImpl extends ServiceImpl<UserFollowTechniciansMapper, UserFollowTechnicians>
-    implements UserFollowTechniciansService {
-}
-
+public class UserFollowTechniciansServiceImpl
+        extends ServiceImpl<UserFollowTechniciansMapper, UserFollowTechnicians>
+        implements UserFollowTechniciansService {}

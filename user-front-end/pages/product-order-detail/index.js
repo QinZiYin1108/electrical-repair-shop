@@ -1,7 +1,8 @@
 const router = require('../../utils/router');
 const {
   fetchUserProductOrderDetail,
-  confirmUserProductOrderReceipt
+  confirmUserProductOrderReceipt,
+  cancelUserProductOrder
 } = require('../../api/userProductOrders');
 
 const TEXTS = {
@@ -17,8 +18,27 @@ const TEXTS = {
   confirmButton: "确认收货",
   confirming: "确认中...",
   confirmSuccess: "已确认收货",
-  goMall: "继续逛商城"
+  goMall: "继续逛商城",
+  cancelButton: "取消订单",
+  cancelPopupTitle: "取消订单",
+  cancelPopupSubtitle: "待发货的商品订单可取消。如遇商家问题请走售后通道。",
+  reasonTitle: "选择原因",
+  reasonRequired: "请先选择或填写原因",
+  remarkPlaceholder: "补充说明（选填）",
+  remarkLabel: "补充说明",
+  submitCancel: "确认取消",
+  cancelSuccess: "订单已取消",
+  cancelSubmitting: "提交中..."
 };
+
+const CANCEL_REASON_OPTIONS = [
+  { code: 'temp_busy', label: '临时有事' },
+  { code: 'no_need', label: '不想修了' },
+  { code: 'price_high', label: '价格不合适' },
+  { code: 'duplicate', label: '重复下单' },
+  { code: 'reschedule', label: '改约其他时间' },
+  { code: 'other', label: '其他原因' }
+];
 
 function pad(value) {
   return value < 10 ? `0${value}` : `${value}`;
@@ -112,6 +132,9 @@ function mapDetail(data) {
   detail.afterSalesTip = detail.afterSalesTip || "";
   detail.afterSalesApplication = detail.afterSalesApplication || null;
   detail.hasReviewEntry = detail.canReview || detail.hasReview;
+  detail.canCancel = Number(detail.orderStatus) === 2;
+  detail.cancelReason = detail.cancelReason || '';
+  detail.cancelTime = detail.cancelTime || 0;
   detail.items = (Array.isArray(detail.items) ? detail.items : []).map((item) => ({
     id: item.id || "",
     productId: item.productId || "",
@@ -134,7 +157,12 @@ Page({
     shippingRows: [],
     amountRows: [],
     extraRows: [],
-    confirming: false
+    confirming: false,
+    cancelPopupVisible: false,
+    cancelReasonOptions: CANCEL_REASON_OPTIONS,
+    selectedCancelReason: '',
+    cancelRemark: '',
+    cancelSubmitting: false
   },
 
   onLoad(options) {
@@ -297,7 +325,79 @@ Page({
       .finally(() => {
         this.setData({ confirming: false });
       });
-  }
+  },
+
+  onCancelTap() {
+    const detail = this.data.detail || {};
+    if (!detail.id || !detail.canCancel || this.data.cancelSubmitting) {
+      return;
+    }
+    this.setData({
+      cancelPopupVisible: true,
+      selectedCancelReason: '',
+      cancelRemark: '',
+      cancelSubmitting: false
+    });
+  },
+
+  onCloseCancelPopup() {
+    if (this.data.cancelSubmitting) {
+      return;
+    }
+    this.setData({ cancelPopupVisible: false });
+  },
+
+  onSelectCancelReason(e) {
+    this.setData({
+      selectedCancelReason: e.currentTarget.dataset.reason || ''
+    });
+  },
+
+  onCancelRemarkInput(e) {
+    this.setData({ cancelRemark: e.detail.value || '' });
+  },
+
+  onCancelConfirm() {
+    const detail = this.data.detail || {};
+    if (!detail.id || !detail.canCancel || this.data.cancelSubmitting) {
+      return;
+    }
+    const selectedCode = this.data.selectedCancelReason;
+    const selectedOption = CANCEL_REASON_OPTIONS.find(o => o.code === selectedCode);
+    const reasonLabel = selectedOption ? selectedOption.label : '';
+    const userRemark = (this.data.cancelRemark || '').trim();
+    if (!selectedCode) {
+      wx.showToast({ title: TEXTS.reasonRequired, icon: 'none' });
+      return;
+    }
+
+    this.setData({ cancelSubmitting: true });
+    cancelUserProductOrder({
+      orderId: detail.id,
+      reasonCode: selectedCode,
+      reasonLabel: reasonLabel,
+      userRemark: userRemark
+    })
+      .then((res) => {
+        if (!res || res.code !== 200 || !res.data) {
+          throw new Error((res && res.message) || TEXTS.loadFailed);
+        }
+        this.applyDetail(mapDetail(res.data));
+        this.setData({
+          cancelPopupVisible: false,
+          cancelSubmitting: false,
+          selectedCancelReason: '',
+          cancelRemark: ''
+        });
+        wx.showToast({ title: TEXTS.cancelSuccess, icon: 'success' });
+      })
+      .catch((err) => {
+        this.setData({ cancelSubmitting: false });
+        wx.showToast({ title: (err && err.message) || TEXTS.loadFailed, icon: 'none' });
+      });
+  },
+
+  onPopupInnerTap() {}
 });
 
 

@@ -1,14 +1,32 @@
 package com.example.backend.model.user;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "用户个人资料Update请求")
 public class UserProfileUpdateRequest {
 
+    @Schema(description = "username")
     private String username;
+
+    @Schema(description = "手机号")
     private String phone;
+
+    @Schema(description = "真实姓名")
     private String realName;
+
+    @Schema(description = "性别")
     private Integer gender;
+
+    @Schema(description = "职业")
     private String profession;
+
+    @Schema(description = "生日")
     private String birthday;
+
+    @Schema(description = "紧急联系")
     private String emergencyContact;
+
+    @Schema(description = "紧急手机号")
     private String emergencyPhone;
 
     public String getUsername() {
@@ -75,4 +93,3 @@ public class UserProfileUpdateRequest {
         this.emergencyPhone = emergencyPhone;
     }
 }
-

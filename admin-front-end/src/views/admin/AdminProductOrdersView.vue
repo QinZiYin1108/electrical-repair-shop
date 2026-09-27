@@ -22,13 +22,28 @@
           </template>
         </el-input>
         <el-select v-model="orderStatus" clearable class="filter-item" placeholder="订单状态">
-          <el-option v-for="item in orderStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
+          <el-option
+            v-for="item in orderStatusOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
         </el-select>
         <el-select v-model="paymentStatus" clearable class="filter-item" placeholder="支付状态">
-          <el-option v-for="item in paymentStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
+          <el-option
+            v-for="item in paymentStatusOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
         </el-select>
         <el-select v-model="deliveryStatus" clearable class="filter-item" placeholder="物流状态">
-          <el-option v-for="item in deliveryStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
+          <el-option
+            v-for="item in deliveryStatusOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
         </el-select>
         <el-button type="primary" @click="handleSearch">查询</el-button>
         <el-button @click="handleReset">重置</el-button>
@@ -51,7 +66,9 @@
         </el-table-column>
         <el-table-column label="收货信息" min-width="190">
           <template #default="{ row }">
-            <div class="stack-text strong">{{ row.deliveryName || '-' }} / {{ row.deliveryPhone || '-' }}</div>
+            <div class="stack-text strong">
+              {{ row.deliveryName || '-' }} / {{ row.deliveryPhone || '-' }}
+            </div>
             <div class="stack-text muted">{{ row.deliveryAddress || '-' }}</div>
           </template>
         </el-table-column>
@@ -63,17 +80,28 @@
         </el-table-column>
         <el-table-column label="订单状态" width="110" align="center">
           <template #default="{ row }">
-            <el-tag size="small" :type="getOrderTagType(row.orderStatus)">{{ row.orderStatusText || '-' }}</el-tag>
+            <el-tag size="small" :type="getOrderTagType(row.orderStatus)">{{
+              row.orderStatusText || '-'
+            }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="取消原因" width="120" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span>{{ row.cancelReason || '-' }}</span>
           </template>
         </el-table-column>
         <el-table-column label="支付状态" width="110" align="center">
           <template #default="{ row }">
-            <el-tag size="small" :type="getPaymentTagType(row.paymentStatus)">{{ row.paymentStatusText || '-' }}</el-tag>
+            <el-tag size="small" :type="getPaymentTagType(row.paymentStatus)">{{
+              row.paymentStatusText || '-'
+            }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="物流状态" width="110" align="center">
           <template #default="{ row }">
-            <el-tag size="small" :type="getDeliveryTagType(row.deliveryStatus)">{{ row.deliveryStatusText || '-' }}</el-tag>
+            <el-tag size="small" :type="getDeliveryTagType(row.deliveryStatus)">{{
+              row.deliveryStatusText || '-'
+            }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="支付方式" width="110" align="center">
@@ -87,7 +115,7 @@
         </el-table-column>
         <el-table-column label="操作" width="120" fixed="right" align="center">
           <template #default="{ row }">
-            <el-dropdown trigger="click" @command="command => handleRowCommand(command, row)">
+            <el-dropdown trigger="click" @command="(command) => handleRowCommand(command, row)">
               <el-button size="small" class="action-trigger">
                 操作
                 <el-icon class="el-icon--right"><ArrowDown /></el-icon>
@@ -123,7 +151,11 @@
           <div class="readonly-text">{{ currentOrder.orderNo || '-' }}</div>
         </el-form-item>
         <el-form-item label="快递公司" prop="deliveryCompany">
-          <el-input v-model="shipForm.deliveryCompany" maxlength="30" placeholder="请输入快递公司" />
+          <el-input
+            v-model="shipForm.deliveryCompany"
+            maxlength="30"
+            placeholder="请输入快递公司"
+          />
         </el-form-item>
         <el-form-item label="快递单号" prop="deliveryNo">
           <el-input v-model="shipForm.deliveryNo" maxlength="50" placeholder="请输入快递单号" />
@@ -132,7 +164,9 @@
       <template #footer>
         <span>
           <el-button @click="shipDialogVisible = false">取消</el-button>
-          <el-button type="primary" :loading="shipSubmitting" @click="submitShip">确认发货</el-button>
+          <el-button type="primary" :loading="shipSubmitting" @click="submitShip"
+            >确认发货</el-button
+          >
         </span>
       </template>
     </el-dialog>
@@ -145,10 +179,7 @@ import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowDown, Search } from '@element-plus/icons-vue';
 import { useAdminPageRefresh } from '../../utils/adminPageRefresh';
-import {
-  fetchAdminProductOrders,
-  shipAdminProductOrder
-} from '../../api/adminProductOrders';
+import { fetchAdminProductOrders, shipAdminProductOrder } from '../../api/adminProductOrders';
 
 const router = useRouter();
 const loading = ref(false);
@@ -233,7 +264,11 @@ function formatMoney(value) {
 }
 
 function canShip(row) {
-  return Number(row.orderStatus) === 2 && Number(row.deliveryStatus) === 1 && Number(row.paymentStatus) === 2;
+  return (
+    Number(row.orderStatus) === 2 &&
+    Number(row.deliveryStatus) === 1 &&
+    Number(row.paymentStatus) === 2
+  );
 }
 
 async function loadList() {

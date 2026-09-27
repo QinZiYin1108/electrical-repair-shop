@@ -36,14 +36,18 @@
             <text class="hero-stat-value">￥{{ summaryDisplay.totalExpense }}</text>
           </view>
         </view>
-        <text class="hero-tip">订单完成满7天后金额才会转入可提现余额；提现能力待接入正式申请、审核和打款链路。</text>
+        <text class="hero-tip"
+          >订单完成满 7 天后金额才会转入可提现余额；提现需提交申请，由平台审核后打款。</text
+        >
       </view>
 
       <view class="card withdraw-card">
         <view class="section-head">
           <view>
             <text class="section-title">提现能力</text>
-            <text class="section-subtitle">当前仅展示可提现余额，正式提现将在接入申请、审核和打款链路后开放</text>
+            <text class="section-subtitle"
+              >提交提现申请后会冻结对应金额，平台审核通过后打款；失败将退回可提现余额。</text
+            >
           </view>
           <view class="section-icon soft-green">
             <u-icon name="red-packet-fill" size="18" color="#16a34a" />
@@ -100,9 +104,10 @@
 
         <view class="cta-row">
           <u-button
-            text="正式提现待接入"
+            text="提交提现申请"
             type="primary"
             shape="circle"
+            :loading="submitting"
             @click="onWithdrawConfirm"
           />
         </view>
@@ -128,7 +133,7 @@
 </template>
 
 <script>
-import { getWorkerFundsSummary } from '@/api/workerFunds';
+import { applyWorkerWithdrawal, getWorkerFundsSummary } from '@/api/workerFunds';
 import { formatMoney, safeToNumber } from '@/utils/funds';
 
 const WITHDRAW_METHODS = [
@@ -155,6 +160,7 @@ export default {
   data() {
     return {
       loading: false,
+      submitting: false,
       withdrawAmount: '',
       selectedWithdrawMethod: 'wechat',
       withdrawMethods: WITHDRAW_METHODS,
@@ -168,7 +174,10 @@ export default {
   },
   computed: {
     currentMethod() {
-      return this.withdrawMethods.find((item) => item.id === this.selectedWithdrawMethod) || this.withdrawMethods[0];
+      return (
+        this.withdrawMethods.find((item) => item.id === this.selectedWithdrawMethod) ||
+        this.withdrawMethods[0]
+      );
     }
   },
   onShow() {
@@ -206,11 +215,53 @@ export default {
     fillAll() {
       this.withdrawAmount = formatMoney(this.availableBalanceNumber());
     },
-    onWithdrawConfirm() {
-      uni.showToast({
-        title: '正式提现待接入',
-        icon: 'none'
-      });
+    async onWithdrawConfirm() {
+      if (this.submitting) {
+        return;
+      }
+      const amount = safeToNumber(this.withdrawAmount);
+      if (!(amount >= 0.01)) {
+        uni.showToast({
+          title: '请输入正确的提现金额',
+          icon: 'none'
+        });
+        return;
+      }
+      if (amount > this.availableBalanceNumber()) {
+        uni.showToast({
+          title: '提现金额超过可提现余额',
+          icon: 'none'
+        });
+        return;
+      }
+      this.submitting = true;
+      try {
+        const res = await applyWorkerWithdrawal({
+          amount: formatMoney(amount),
+          payoutAccount: this.currentMethod.name,
+          idempotencyKey: `wd-${Date.now()}-${Math.floor(Math.random() * 100000)}`
+        });
+        if (res && res.code === 200) {
+          uni.showToast({
+            title: '提现申请已提交',
+            icon: 'success'
+          });
+          this.withdrawAmount = '';
+          await this.reloadSummary();
+        } else {
+          uni.showToast({
+            title: (res && res.message) || '提现申请失败',
+            icon: 'none'
+          });
+        }
+      } catch (e) {
+        uni.showToast({
+          title: '提现申请失败',
+          icon: 'none'
+        });
+      } finally {
+        this.submitting = false;
+      }
     }
   }
 };

@@ -1,26 +1,113 @@
-<section class="section" style="background:var(--color-bg-alt);">
-  <div class="container">
-    <h2 class="section-title">为什么选择安修到家</h2>
-    <p class="section-subtitle">四大核心优势，让维修变得简单放心</p>
+<section
+  class="section features-section"
+  style="background:var(--color-bg-alt);position:relative;overflow:hidden;"
+>
+  <!-- Decorative blob -->
+  <div
+    class="bg-blob bg-blob-primary"
+    style="width:400px;height:400px;top:-10%;right:-8%;opacity:.2;"
+    aria-hidden="true"
+  >
+  </div>
 
-    <div class="features-grid">
+  <div class="container" style="position:relative;z-index:1;">
+    <div class="section-header reveal">
+      <span class="section-label">核心优势</span>
+      <h2 class="section-title">为什么选择速修派</h2>
+      <p class="section-subtitle">四大核心优势，让维修变得简单放心</p>
+    </div>
+
+    <div class="features-grid reveal-stagger">
+      <!-- Feature 1: 一键预约 -->
       <div class="feature-card">
-        <div class="feature-icon">📱</div>
+        <div class="feature-icon-wrap">
+          <svg
+            class="feature-icon-svg"
+            width="36"
+            height="36"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+            <path d="M8 12h8"></path>
+            <path d="M12 8v8"></path>
+            <path d="M3 8h2"></path>
+            <path d="M19 8h2"></path>
+          </svg>
+        </div>
         <h3>一键预约</h3>
         <p>微信小程序随时下单，填写故障信息，系统自动匹配附近师傅，全程线上操作无需打电话。</p>
       </div>
+
+      <!-- Feature 2: 透明定价 -->
       <div class="feature-card">
-        <div class="feature-icon">💰</div>
+        <div class="feature-icon-wrap">
+          <svg
+            class="feature-icon-svg"
+            width="36"
+            height="36"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="6" x2="12" y2="12"></line>
+            <line x1="12" y1="12" x2="16" y2="16"></line>
+            <path d="M7 7l.5.5M16.5 16.5l.5.5"></path>
+          </svg>
+        </div>
         <h3>透明定价</h3>
         <p>维修前明码标价，无隐形费用。支持多种支付方式，维修完成满意后再付款，消费明明白白。</p>
       </div>
+
+      <!-- Feature 3: 专业认证 -->
       <div class="feature-card">
-        <div class="feature-icon">👨‍🔧</div>
+        <div class="feature-icon-wrap">
+          <svg
+            class="feature-icon-svg"
+            width="36"
+            height="36"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+            <path d="M2 17l10 5 10-5"></path>
+            <path d="M2 12l10 5 10-5"></path>
+          </svg>
+        </div>
         <h3>专业认证</h3>
         <p>所有师傅经过实名认证、技能考核、背景审核三重筛选，持证上岗，服务质量有保障。</p>
       </div>
+
+      <!-- Feature 4: 售后无忧 -->
       <div class="feature-card">
-        <div class="feature-icon">🛡️</div>
+        <div class="feature-icon-wrap">
+          <svg
+            class="feature-icon-svg"
+            width="36"
+            height="36"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+        </div>
         <h3>售后无忧</h3>
         <p>提供最长 90 天保修服务，维修后出现问题免费返修。专属客服全程跟进，不满意可申请售后。</p>
       </div>
@@ -29,52 +116,138 @@
 </section>
 
 <style>
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
-}
-
-.feature-card {
-  background: #fff;
-  border-radius: var(--radius);
-  padding: 36px 28px;
-  text-align: center;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--color-border);
-  transition: transform .3s, box-shadow .3s;
-}
-
-.feature-card:hover {
-  transform: translateY(-6px);
-  box-shadow: var(--shadow-md);
-}
-
-.feature-icon {
-  font-size: 2.5rem;
-  margin-bottom: 16px;
-}
-
-.feature-card h3 {
-  font-size: 1.15rem;
-  margin-bottom: 10px;
-  color: var(--color-text);
-}
-
-.feature-card p {
-  font-size: .92rem;
-  color: var(--color-text-secondary);
-  line-height: 1.7;
-}
-
-@media (max-width: 768px) {
-  .features-grid {
-    grid-template-columns: 1fr 1fr;
+  .features-section {
+    position: relative;
   }
-}
-@media (max-width: 480px) {
+
   .features-grid {
-    grid-template-columns: 1fr;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 28px;
   }
-}
+
+  /* ===== Card ===== */
+  .feature-card {
+    position: relative;
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 40px 28px 32px;
+    text-align: center;
+    border: 1px solid var(--color-border-light);
+    box-shadow: var(--shadow-xs);
+    transition:
+      transform 0.4s var(--ease-out-expo),
+      box-shadow 0.4s var(--ease-out-expo),
+      border-color 0.3s;
+    overflow: hidden;
+  }
+
+  /* Subtle top gradient line */
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20%;
+    width: 60%;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: var(--gradient-brand);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .feature-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--glass-border);
+  }
+  .feature-card:hover::before {
+    opacity: 1;
+  }
+
+  /* ===== Icon ===== */
+  .feature-icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+    position: relative;
+    z-index: 0;
+  }
+
+  .feature-icon-wrap::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    z-index: -1;
+    opacity: 0.12;
+    transition:
+      opacity 0.4s,
+      transform 0.4s;
+  }
+
+  .feature-card:hover .feature-icon-wrap::after {
+    opacity: 0.2;
+    transform: scale(1.15);
+  }
+
+  /* Icon color variants */
+  .feature-card:nth-child(1) .feature-icon-wrap {
+    color: #2563eb;
+  }
+  .feature-card:nth-child(1) .feature-icon-wrap::after {
+    background: #2563eb;
+  }
+
+  .feature-card:nth-child(2) .feature-icon-wrap {
+    color: #f59e0b;
+  }
+  .feature-card:nth-child(2) .feature-icon-wrap::after {
+    background: #f59e0b;
+  }
+
+  .feature-card:nth-child(3) .feature-icon-wrap {
+    color: #10b981;
+  }
+  .feature-card:nth-child(3) .feature-icon-wrap::after {
+    background: #10b981;
+  }
+
+  .feature-card:nth-child(4) .feature-icon-wrap {
+    color: #10b981;
+  }
+  .feature-card:nth-child(4) .feature-icon-wrap::after {
+    background: #10b981;
+  }
+
+  .feature-card h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: var(--color-text);
+  }
+
+  .feature-card p {
+    font-size: 0.92rem;
+    color: var(--color-text-secondary);
+    line-height: 1.75;
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 1024px) {
+    .features-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 480px) {
+    .features-grid {
+      grid-template-columns: 1fr;
+      max-width: 380px;
+      margin: 0 auto;
+    }
+  }
 </style>

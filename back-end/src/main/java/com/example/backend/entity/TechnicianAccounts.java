@@ -4,16 +4,14 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.Version;
-import lombok.Data;
-
 import java.math.BigDecimal;
+import lombok.Data;
 
 @Data
 @TableName("technician_accounts")
 public class TechnicianAccounts {
 
-    @TableId
-    private String id;
+    @TableId private String id;
 
     private String storeId;
 
@@ -33,6 +31,8 @@ public class TechnicianAccounts {
 
     private Integer accountStatus;
 
+    private Integer tokenVersion;
+
     private Long lastLoginTime;
 
     private String lastLoginIp;
@@ -51,9 +51,7 @@ public class TechnicianAccounts {
 
     private Long updatedTime;
 
-    @Version
-    private Integer version;
+    @Version private Integer version;
 
-    @TableLogic
-    private Integer isDelete;
+    @TableLogic private Integer isDelete;
 }

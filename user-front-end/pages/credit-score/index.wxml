@@ -1,0 +1,67 @@
+<view class="page credit-page">
+  <!-- 积分卡片 -->
+  <view class="score-card {{scoreClass}}">
+    <view class="score-value">{{creditScore !== null ? creditScore : '--'}}</view>
+    <view class="score-label">当前信用积分</view>
+    <view class="score-status">{{scoreStatusText}}</view>
+  </view>
+
+  <view class="score-tips">
+    <view class="tip-row">
+      <view class="tip-dot tip-dot-normal"></view>
+      <text class="tip-text">≥60 分：正常使用全部功能</text>
+    </view>
+    <view class="tip-row">
+      <view class="tip-dot tip-dot-warning"></view>
+      <text class="tip-text">40-59 分：部分功能受限</text>
+    </view>
+    <view class="tip-row">
+      <view class="tip-dot tip-dot-danger"></view>
+      <text class="tip-text">&lt;40 分：账号已限制</text>
+    </view>
+  </view>
+
+  <!-- 积分变动历史 -->
+  <view class="history-section">
+    <view class="section-title">积分变动记录</view>
+
+    <view wx:if="{{historyList.length > 0}}">
+      <view
+        wx:for="{{historyList}}"
+        wx:key="id"
+        class="history-card"
+      >
+        <view class="history-header">
+          <van-tag type="{{item.changeTypeColor}}" size="medium">{{item.changeTypeText}}</van-tag>
+          <text class="history-change {{item.isPositive ? 'positive' : 'negative'}}">
+            {{item.isPositive ? '+' : ''}}{{item.scoreChange}}
+          </text>
+        </view>
+        <view class="history-body">
+          <view class="history-row">
+            <text class="history-label">变动前：</text>
+            <text class="history-value">{{item.scoreBefore}}</text>
+            <text class="history-arrow">→</text>
+            <text class="history-value history-after {{item.scoreAfter >= 60 ? 'after-normal' : item.scoreAfter >= 40 ? 'after-warning' : 'after-danger'}}">{{item.scoreAfter}}</text>
+          </view>
+          <view wx:if="{{item.reason}}" class="history-row">
+            <text class="history-label">原因：</text>
+            <text class="history-value">{{item.reason}}</text>
+          </view>
+        </view>
+        <view class="history-footer">
+          <text class="history-time">{{item.timeText}}</text>
+        </view>
+      </view>
+
+      <view wx:if="{{historyLoading}}" class="loading-more">
+        <van-loading type="spinner" size="30rpx" />
+      </view>
+      <view wx:elif="{{!hasMore}}" class="no-more">— 没有更多了 —</view>
+    </view>
+
+    <view wx:elif="{{historyLoading}}" class="loading-area">
+      <van-loading type="spinner" size="40rpx" />
+    </view>
+  </view>
+</view>

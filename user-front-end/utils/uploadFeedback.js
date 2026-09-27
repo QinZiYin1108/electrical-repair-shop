@@ -8,11 +8,11 @@ function getUploadErrorMessage(error, fallback = DEFAULT_UPLOAD_ERROR) {
     return error.message.trim();
   }
   if (
-    error
-    && error.response
-    && error.response.data
-    && typeof error.response.data.message === 'string'
-    && error.response.data.message.trim()
+    error &&
+    error.response &&
+    error.response.data &&
+    typeof error.response.data.message === 'string' &&
+    error.response.data.message.trim()
   ) {
     return error.response.data.message.trim();
   }

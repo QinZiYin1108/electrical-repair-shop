@@ -8,8 +8,8 @@ import com.example.backend.entity.RepairOrderFaults;
 import com.example.backend.entity.ServiceCategories;
 import com.example.backend.entity.ServiceTypes;
 import com.example.backend.exception.BusinessException;
-import com.example.backend.model.admin.AdminFaultPhenomenonCreateRequest;
 import com.example.backend.model.admin.AdminFaultPhenomenonBatchCopyRequest;
+import com.example.backend.model.admin.AdminFaultPhenomenonCreateRequest;
 import com.example.backend.model.admin.AdminFaultPhenomenonResponse;
 import com.example.backend.model.admin.AdminFaultPhenomenonUpdateRequest;
 import com.example.backend.model.admin.AdminServiceCategoryCreateRequest;
@@ -21,29 +21,23 @@ import com.example.backend.model.admin.AdminServiceTypeResponse;
 import com.example.backend.model.admin.AdminServiceTypeUpdateRequest;
 import com.example.backend.security.context.AuthUserContext;
 import com.example.backend.security.model.LoginUserInfo;
+import com.example.backend.service.AdminServiceConfigService;
 import com.example.backend.service.FaultPhenomenaService;
 import com.example.backend.service.ImagesService;
-import com.example.backend.service.AdminServiceConfigService;
 import com.example.backend.service.RepairOrderFaultsService;
 import com.example.backend.service.ServiceCategoriesService;
 import com.example.backend.service.ServiceTypesService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
 import com.example.backend.utils.oss.OssUtil;
 import com.example.backend.utils.upload.UploadLimitUtil;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-import org.springframework.web.multipart.MultipartFile;
-
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -51,6 +45,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import javax.imageio.ImageIO;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class AdminServiceConfigServiceImpl implements AdminServiceConfigService {
@@ -65,13 +64,12 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
     private final OssUtil ossUtil;
 
     public AdminServiceConfigServiceImpl(
-        ServiceCategoriesService serviceCategoriesService,
-        ServiceTypesService serviceTypesService,
-        FaultPhenomenaService faultPhenomenaService,
-        RepairOrderFaultsService repairOrderFaultsService,
-        ImagesService imagesService,
-        OssUtil ossUtil
-    ) {
+            ServiceCategoriesService serviceCategoriesService,
+            ServiceTypesService serviceTypesService,
+            FaultPhenomenaService faultPhenomenaService,
+            RepairOrderFaultsService repairOrderFaultsService,
+            ImagesService imagesService,
+            OssUtil ossUtil) {
         this.serviceCategoriesService = serviceCategoriesService;
         this.serviceTypesService = serviceTypesService;
         this.faultPhenomenaService = faultPhenomenaService;
@@ -82,19 +80,20 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
 
     @Override
     public List<AdminServiceCategoryResponse> listServiceCategories() {
-        List<ServiceCategories> categories = serviceCategoriesService.list(
-            new LambdaQueryWrapper<ServiceCategories>()
-                .orderByAsc(ServiceCategories::getSortOrder)
-                .orderByDesc(ServiceCategories::getCreatedTime)
-        );
-        Map<String, ServiceCategories> map = categories.stream()
-            .collect(Collectors.toMap(ServiceCategories::getId, c -> c, (a, b) -> a));
-        Map<String, String> iconMap = loadLatestCategoryIconUrlMap(
-            categories.stream()
-                .filter(c -> Objects.equals(c.getLevel(), 3))
-                .map(ServiceCategories::getId)
-                .collect(Collectors.toList())
-        );
+        List<ServiceCategories> categories =
+                serviceCategoriesService.list(
+                        new LambdaQueryWrapper<ServiceCategories>()
+                                .orderByAsc(ServiceCategories::getSortOrder)
+                                .orderByDesc(ServiceCategories::getCreatedTime));
+        Map<String, ServiceCategories> map =
+                categories.stream()
+                        .collect(Collectors.toMap(ServiceCategories::getId, c -> c, (a, b) -> a));
+        Map<String, String> iconMap =
+                loadLatestCategoryIconUrlMap(
+                        categories.stream()
+                                .filter(c -> Objects.equals(c.getLevel(), 3))
+                                .map(ServiceCategories::getId)
+                                .collect(Collectors.toList()));
         List<AdminServiceCategoryResponse> resp = new ArrayList<>();
         for (ServiceCategories c : categories) {
             resp.add(toCategoryResponse(c, map, iconMap.get(c.getId())));
@@ -103,7 +102,8 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
     }
 
     @Override
-    public AdminServiceCategoryResponse createServiceCategory(AdminServiceCategoryCreateRequest request) {
+    public AdminServiceCategoryResponse createServiceCategory(
+            AdminServiceCategoryCreateRequest request) {
         String parentId = normalizeBlankToNull(request.getParentId());
 
         ServiceCategories parent = null;
@@ -113,7 +113,8 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
                 throw new BusinessException(ErrorCode.NOT_FOUND, "Service category not found");
             }
             if (defaultIfNull(parent.getLevel(), 1) >= 3) {
-                throw new BusinessException(ErrorCode.PARAM_ERROR, "Service category supports up to 3 levels");
+                throw new BusinessException(
+                        ErrorCode.PARAM_ERROR, "Service category supports up to 3 levels");
             }
         }
 
@@ -155,7 +156,8 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
     }
 
     @Override
-    public AdminServiceCategoryResponse updateServiceCategory(String id, AdminServiceCategoryUpdateRequest request) {
+    public AdminServiceCategoryResponse updateServiceCategory(
+            String id, AdminServiceCategoryUpdateRequest request) {
         ServiceCategories current = serviceCategoriesService.getById(id);
         if (current == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "Service category not found");
@@ -172,9 +174,12 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
             if (newParent == null) {
                 throw new BusinessException(ErrorCode.NOT_FOUND, "Service category not found");
             }
-            if (StringUtils.hasText(current.getPath()) && StringUtils.hasText(newParent.getPath())
-                && newParent.getPath().startsWith(current.getPath())) {
-                throw new BusinessException(ErrorCode.PARAM_ERROR, "Parent category cannot be a child of current category");
+            if (StringUtils.hasText(current.getPath())
+                    && StringUtils.hasText(newParent.getPath())
+                    && newParent.getPath().startsWith(current.getPath())) {
+                throw new BusinessException(
+                        ErrorCode.PARAM_ERROR,
+                        "Parent category cannot be a child of current category");
             }
         }
 
@@ -206,24 +211,27 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
             newPath = newParent.getPath() + current.getId() + "/";
         }
         if (newLevel > 3) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "Service category supports up to 3 levels");
+            throw new BusinessException(
+                    ErrorCode.PARAM_ERROR, "Service category supports up to 3 levels");
         }
 
-        boolean parentChanged = !Objects.equals(normalizeBlankToNull(current.getParentId()), newParentId);
+        boolean parentChanged =
+                !Objects.equals(normalizeBlankToNull(current.getParentId()), newParentId);
         boolean pathChanged = parentChanged && !Objects.equals(oldPath, newPath);
         boolean cascadeDisable = requestedIsActive == 0;
         if (pathChanged && StringUtils.hasText(oldPath)) {
-            List<ServiceCategories> descendantsForLevelCheck = serviceCategoriesService.list(
-                new LambdaQueryWrapper<ServiceCategories>()
-                    .likeRight(ServiceCategories::getPath, oldPath)
-            );
+            List<ServiceCategories> descendantsForLevelCheck =
+                    serviceCategoriesService.list(
+                            new LambdaQueryWrapper<ServiceCategories>()
+                                    .likeRight(ServiceCategories::getPath, oldPath));
             int maxOldLevel = oldLevel;
             for (ServiceCategories d : descendantsForLevelCheck) {
                 maxOldLevel = Math.max(maxOldLevel, defaultIfNull(d.getLevel(), oldLevel));
             }
             int subtreeDepth = maxOldLevel - oldLevel;
             if (newLevel + subtreeDepth > 3) {
-                throw new BusinessException(ErrorCode.PARAM_ERROR, "Service category supports up to 3 levels");
+                throw new BusinessException(
+                        ErrorCode.PARAM_ERROR, "Service category supports up to 3 levels");
             }
         }
 
@@ -238,10 +246,10 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
 
         if ((pathChanged || cascadeDisable) && StringUtils.hasText(oldPath)) {
             int delta = newLevel - oldLevel;
-            List<ServiceCategories> descendants = serviceCategoriesService.list(
-                new LambdaQueryWrapper<ServiceCategories>()
-                    .likeRight(ServiceCategories::getPath, oldPath)
-            );
+            List<ServiceCategories> descendants =
+                    serviceCategoriesService.list(
+                            new LambdaQueryWrapper<ServiceCategories>()
+                                    .likeRight(ServiceCategories::getPath, oldPath));
             List<ServiceCategories> toUpdate = new ArrayList<>();
             for (ServiceCategories d : descendants) {
                 if (Objects.equals(d.getId(), id)) {
@@ -274,8 +282,9 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
             }
         }
 
-        Map<String, ServiceCategories> map = serviceCategoriesService.list().stream()
-            .collect(Collectors.toMap(ServiceCategories::getId, c -> c, (a, b) -> a));
+        Map<String, ServiceCategories> map =
+                serviceCategoriesService.list().stream()
+                        .collect(Collectors.toMap(ServiceCategories::getId, c -> c, (a, b) -> a));
         String iconUrl = null;
         if (Objects.equals(current.getLevel(), 3)) {
             iconUrl = loadLatestCategoryIconUrlMap(List.of(current.getId())).get(current.getId());
@@ -290,20 +299,22 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
             return;
         }
 
-        long childrenCount = serviceCategoriesService.count(
-            new LambdaQueryWrapper<ServiceCategories>()
-                .eq(ServiceCategories::getParentId, id)
-        );
+        long childrenCount =
+                serviceCategoriesService.count(
+                        new LambdaQueryWrapper<ServiceCategories>()
+                                .eq(ServiceCategories::getParentId, id));
         if (childrenCount > 0) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "Category has child categories and cannot be deleted");
+            throw new BusinessException(
+                    ErrorCode.BUSINESS_ERROR,
+                    "Category has child categories and cannot be deleted");
         }
 
-        long typeCount = serviceTypesService.count(
-            new LambdaQueryWrapper<ServiceTypes>()
-                .eq(ServiceTypes::getCategoryId, id)
-        );
+        long typeCount =
+                serviceTypesService.count(
+                        new LambdaQueryWrapper<ServiceTypes>().eq(ServiceTypes::getCategoryId, id));
         if (typeCount > 0) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "Category has service types and cannot be deleted");
+            throw new BusinessException(
+                    ErrorCode.BUSINESS_ERROR, "Category has service types and cannot be deleted");
         }
 
         serviceCategoriesService.removeById(id);
@@ -311,13 +322,16 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
 
     @Override
     public List<AdminServiceTypeResponse> listServiceTypes() {
-        List<ServiceTypes> types = serviceTypesService.list(
-            new LambdaQueryWrapper<ServiceTypes>()
-                .orderByAsc(ServiceTypes::getSortOrder)
-                .orderByDesc(ServiceTypes::getCreatedTime)
-        );
-        Map<String, ServiceCategories> categoryMap = serviceCategoriesService.list().stream()
-            .collect(Collectors.toMap(ServiceCategories::getId, item -> item, (a, b) -> a));
+        List<ServiceTypes> types =
+                serviceTypesService.list(
+                        new LambdaQueryWrapper<ServiceTypes>()
+                                .orderByAsc(ServiceTypes::getSortOrder)
+                                .orderByDesc(ServiceTypes::getCreatedTime));
+        Map<String, ServiceCategories> categoryMap =
+                serviceCategoriesService.list().stream()
+                        .collect(
+                                Collectors.toMap(
+                                        ServiceCategories::getId, item -> item, (a, b) -> a));
 
         List<AdminServiceTypeResponse> resp = new ArrayList<>();
         for (ServiceTypes t : types) {
@@ -353,70 +367,93 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public List<AdminServiceTypeResponse> copyServiceTypes(AdminServiceTypeBatchCopyRequest request) {
+    public List<AdminServiceTypeResponse> copyServiceTypes(
+            AdminServiceTypeBatchCopyRequest request) {
         if (request == null || request.getSourceIds() == null || request.getSourceIds().isEmpty()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请选择要复制的服务类型");
         }
         Integer targetType = normalizeServiceTypeValue(request.getTargetType());
-        List<String> sourceIds = request.getSourceIds().stream()
-            .map(AdminServiceConfigServiceImpl::normalizeBlankToNull)
-            .filter(StringUtils::hasText)
-            .distinct()
-            .collect(Collectors.toList());
+        List<String> sourceIds =
+                request.getSourceIds().stream()
+                        .map(AdminServiceConfigServiceImpl::normalizeBlankToNull)
+                        .filter(StringUtils::hasText)
+                        .distinct()
+                        .collect(Collectors.toList());
         if (sourceIds.isEmpty()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请选择要复制的服务类型");
         }
 
-        List<ServiceTypes> sourceTypes = serviceTypesService.list(
-            new LambdaQueryWrapper<ServiceTypes>()
-                .in(ServiceTypes::getId, sourceIds)
-                .eq(ServiceTypes::getIsDelete, 0)
-                .orderByAsc(ServiceTypes::getSortOrder)
-                .orderByAsc(ServiceTypes::getCreatedTime)
-        );
+        List<ServiceTypes> sourceTypes =
+                serviceTypesService.list(
+                        new LambdaQueryWrapper<ServiceTypes>()
+                                .in(ServiceTypes::getId, sourceIds)
+                                .eq(ServiceTypes::getIsDelete, 0)
+                                .orderByAsc(ServiceTypes::getSortOrder)
+                                .orderByAsc(ServiceTypes::getCreatedTime));
         if (sourceTypes.isEmpty()) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "未找到可复制的服务类型");
         }
 
-        Map<String, ServiceTypes> sourceTypeMap = sourceTypes.stream()
-            .collect(Collectors.toMap(ServiceTypes::getId, item -> item, (a, b) -> a, LinkedHashMap::new));
-        List<ServiceTypes> orderedSourceTypes = sourceIds.stream()
-            .map(sourceTypeMap::get)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
+        Map<String, ServiceTypes> sourceTypeMap =
+                sourceTypes.stream()
+                        .collect(
+                                Collectors.toMap(
+                                        ServiceTypes::getId,
+                                        item -> item,
+                                        (a, b) -> a,
+                                        LinkedHashMap::new));
+        List<ServiceTypes> orderedSourceTypes =
+                sourceIds.stream()
+                        .map(sourceTypeMap::get)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList());
         if (orderedSourceTypes.isEmpty()) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "未找到可复制的服务类型");
         }
 
-        Set<String> categoryIds = orderedSourceTypes.stream()
-            .map(ServiceTypes::getCategoryId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toCollection(LinkedHashSet::new));
-        Set<String> sourceNames = orderedSourceTypes.stream()
-            .map(ServiceTypes::getName)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toCollection(LinkedHashSet::new));
+        Set<String> categoryIds =
+                orderedSourceTypes.stream()
+                        .map(ServiceTypes::getCategoryId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
+        Set<String> sourceNames =
+                orderedSourceTypes.stream()
+                        .map(ServiceTypes::getName)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
         if (!categoryIds.isEmpty() && !sourceNames.isEmpty()) {
-            List<ServiceTypes> existingTypes = serviceTypesService.list(
-                new LambdaQueryWrapper<ServiceTypes>()
-                    .eq(ServiceTypes::getType, targetType)
-                    .in(ServiceTypes::getCategoryId, categoryIds)
-                    .in(ServiceTypes::getName, sourceNames)
-                    .eq(ServiceTypes::getIsDelete, 0)
-            );
-            Set<String> existingKeys = existingTypes.stream()
-                .map(item -> buildTypeUniqueKey(item.getCategoryId(), item.getType(), item.getName()))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-            List<String> duplicateNames = orderedSourceTypes.stream()
-                .filter(item -> existingKeys.contains(buildTypeUniqueKey(item.getCategoryId(), targetType, item.getName())))
-                .map(ServiceTypes::getName)
-                .distinct()
-                .collect(Collectors.toList());
+            List<ServiceTypes> existingTypes =
+                    serviceTypesService.list(
+                            new LambdaQueryWrapper<ServiceTypes>()
+                                    .eq(ServiceTypes::getType, targetType)
+                                    .in(ServiceTypes::getCategoryId, categoryIds)
+                                    .in(ServiceTypes::getName, sourceNames)
+                                    .eq(ServiceTypes::getIsDelete, 0));
+            Set<String> existingKeys =
+                    existingTypes.stream()
+                            .map(
+                                    item ->
+                                            buildTypeUniqueKey(
+                                                    item.getCategoryId(),
+                                                    item.getType(),
+                                                    item.getName()))
+                            .collect(Collectors.toCollection(LinkedHashSet::new));
+            List<String> duplicateNames =
+                    orderedSourceTypes.stream()
+                            .filter(
+                                    item ->
+                                            existingKeys.contains(
+                                                    buildTypeUniqueKey(
+                                                            item.getCategoryId(),
+                                                            targetType,
+                                                            item.getName())))
+                            .map(ServiceTypes::getName)
+                            .distinct()
+                            .collect(Collectors.toList());
             if (!duplicateNames.isEmpty()) {
                 throw new BusinessException(
-                    ErrorCode.BUSINESS_ERROR,
-                    "以下服务类型在目标类型下已存在：" + String.join("、", duplicateNames)
-                );
+                        ErrorCode.BUSINESS_ERROR,
+                        "以下服务类型在目标类型下已存在：" + String.join("、", duplicateNames));
             }
         }
 
@@ -446,15 +483,19 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
         }
         copyFaultPhenomenaByTypeMapping(copiedTypeIdMap, now);
 
-        Map<String, ServiceCategories> categoryMap = serviceCategoriesService.list().stream()
-            .collect(Collectors.toMap(ServiceCategories::getId, item -> item, (a, b) -> a));
+        Map<String, ServiceCategories> categoryMap =
+                serviceCategoriesService.list().stream()
+                        .collect(
+                                Collectors.toMap(
+                                        ServiceCategories::getId, item -> item, (a, b) -> a));
         return copiedTypes.stream()
-            .map(item -> toServiceTypeResponse(item, categoryMap.get(item.getCategoryId())))
-            .collect(Collectors.toList());
+                .map(item -> toServiceTypeResponse(item, categoryMap.get(item.getCategoryId())))
+                .collect(Collectors.toList());
     }
 
     @Override
-    public AdminServiceTypeResponse updateServiceType(String id, AdminServiceTypeUpdateRequest request) {
+    public AdminServiceTypeResponse updateServiceType(
+            String id, AdminServiceTypeUpdateRequest request) {
         ServiceTypes current = serviceTypesService.getById(id);
         if (current == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "Service type not found");
@@ -487,12 +528,14 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
             return;
         }
 
-        long faultCount = faultPhenomenaService.count(
-            new LambdaQueryWrapper<FaultPhenomena>()
-                .eq(FaultPhenomena::getServiceTypeId, id)
-        );
+        long faultCount =
+                faultPhenomenaService.count(
+                        new LambdaQueryWrapper<FaultPhenomena>()
+                                .eq(FaultPhenomena::getServiceTypeId, id));
         if (faultCount > 0) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "Service type has fault phenomena and cannot be deleted");
+            throw new BusinessException(
+                    ErrorCode.BUSINESS_ERROR,
+                    "Service type has fault phenomena and cannot be deleted");
         }
 
         serviceTypesService.removeById(id);
@@ -501,7 +544,8 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
     @Override
     public String uploadServiceCategoryIcon(String categoryId, MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "Please select an icon file to upload");
+            throw new BusinessException(
+                    ErrorCode.PARAM_ERROR, "Please select an icon file to upload");
         }
         UploadLimitUtil.validateImageSize(file);
 
@@ -510,7 +554,8 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
             throw new BusinessException(ErrorCode.NOT_FOUND, "Service category not found");
         }
         if (!Objects.equals(category.getLevel(), 3)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "Only level-3 service categories require an icon");
+            throw new BusinessException(
+                    ErrorCode.PARAM_ERROR, "Only level-3 service categories require an icon");
         }
 
         byte[] bytes;
@@ -539,7 +584,14 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
         }
 
         String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String objectName = "service-category-icons/" + categoryId + "/" + date + "_" + UUID.randomUUID().toString().replace("-", "") + ext;
+        String objectName =
+                "service-category-icons/"
+                        + categoryId
+                        + "/"
+                        + date
+                        + "_"
+                        + UUID.randomUUID().toString().replace("-", "")
+                        + ext;
 
         String url = ossUtil.upload(objectName, new ByteArrayInputStream(bytes));
 
@@ -571,17 +623,22 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
 
     @Override
     public List<AdminFaultPhenomenonResponse> listFaultPhenomena(String serviceTypeId) {
-        LambdaQueryWrapper<FaultPhenomena> wrapper = new LambdaQueryWrapper<FaultPhenomena>()
-            .orderByAsc(FaultPhenomena::getSortOrder)
-            .orderByDesc(FaultPhenomena::getCreatedTime);
+        LambdaQueryWrapper<FaultPhenomena> wrapper =
+                new LambdaQueryWrapper<FaultPhenomena>()
+                        .orderByAsc(FaultPhenomena::getSortOrder)
+                        .orderByDesc(FaultPhenomena::getCreatedTime);
         if (StringUtils.hasText(serviceTypeId)) {
             wrapper.eq(FaultPhenomena::getServiceTypeId, serviceTypeId);
         }
         List<FaultPhenomena> faults = faultPhenomenaService.list(wrapper);
-        Map<String, ServiceTypes> typeMap = serviceTypesService.list().stream()
-            .collect(Collectors.toMap(ServiceTypes::getId, item -> item, (a, b) -> a));
-        Map<String, ServiceCategories> categoryMap = serviceCategoriesService.list().stream()
-            .collect(Collectors.toMap(ServiceCategories::getId, item -> item, (a, b) -> a));
+        Map<String, ServiceTypes> typeMap =
+                serviceTypesService.list().stream()
+                        .collect(Collectors.toMap(ServiceTypes::getId, item -> item, (a, b) -> a));
+        Map<String, ServiceCategories> categoryMap =
+                serviceCategoriesService.list().stream()
+                        .collect(
+                                Collectors.toMap(
+                                        ServiceCategories::getId, item -> item, (a, b) -> a));
 
         List<AdminFaultPhenomenonResponse> resp = new ArrayList<>();
         for (FaultPhenomena f : faults) {
@@ -591,13 +648,17 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
     }
 
     @Override
-    public AdminFaultPhenomenonResponse createFaultPhenomenon(AdminFaultPhenomenonCreateRequest request) {
+    public AdminFaultPhenomenonResponse createFaultPhenomenon(
+            AdminFaultPhenomenonCreateRequest request) {
         ServiceTypes type = serviceTypesService.getById(request.getServiceTypeId());
         if (type == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "Service type not found");
         }
-        Map<String, ServiceCategories> categoryMap = serviceCategoriesService.list().stream()
-            .collect(Collectors.toMap(ServiceCategories::getId, item -> item, (a, b) -> a));
+        Map<String, ServiceCategories> categoryMap =
+                serviceCategoriesService.list().stream()
+                        .collect(
+                                Collectors.toMap(
+                                        ServiceCategories::getId, item -> item, (a, b) -> a));
 
         long now = System.currentTimeMillis();
         FaultPhenomena f = new FaultPhenomena();
@@ -614,7 +675,8 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
 
         boolean ok = faultPhenomenaService.save(f);
         if (!ok) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "Failed to create fault phenomenon");
+            throw new BusinessException(
+                    ErrorCode.SYSTEM_ERROR, "Failed to create fault phenomenon");
         }
 
         return toFaultPhenomenonResponse(f, type, categoryMap);
@@ -622,7 +684,8 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public List<AdminFaultPhenomenonResponse> copyFaultPhenomena(AdminFaultPhenomenonBatchCopyRequest request) {
+    public List<AdminFaultPhenomenonResponse> copyFaultPhenomena(
+            AdminFaultPhenomenonBatchCopyRequest request) {
         if (request == null || request.getSourceIds() == null || request.getSourceIds().isEmpty()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请选择要复制的故障现象");
         }
@@ -637,51 +700,64 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
             throw new BusinessException(ErrorCode.NOT_FOUND, "目标服务类型不存在");
         }
 
-        List<String> sourceIds = request.getSourceIds().stream()
-            .map(AdminServiceConfigServiceImpl::normalizeBlankToNull)
-            .filter(StringUtils::hasText)
-            .distinct()
-            .collect(Collectors.toList());
+        List<String> sourceIds =
+                request.getSourceIds().stream()
+                        .map(AdminServiceConfigServiceImpl::normalizeBlankToNull)
+                        .filter(StringUtils::hasText)
+                        .distinct()
+                        .collect(Collectors.toList());
         if (sourceIds.isEmpty()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请选择要复制的故障现象");
         }
 
-        List<FaultPhenomena> sourceFaults = faultPhenomenaService.list(
-            new LambdaQueryWrapper<FaultPhenomena>()
-                .in(FaultPhenomena::getId, sourceIds)
-                .eq(FaultPhenomena::getIsDelete, 0)
-                .orderByAsc(FaultPhenomena::getSortOrder)
-                .orderByAsc(FaultPhenomena::getCreatedTime)
-        );
+        List<FaultPhenomena> sourceFaults =
+                faultPhenomenaService.list(
+                        new LambdaQueryWrapper<FaultPhenomena>()
+                                .in(FaultPhenomena::getId, sourceIds)
+                                .eq(FaultPhenomena::getIsDelete, 0)
+                                .orderByAsc(FaultPhenomena::getSortOrder)
+                                .orderByAsc(FaultPhenomena::getCreatedTime));
         if (sourceFaults.isEmpty()) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "未找到可复制的故障现象");
         }
 
-        Map<String, FaultPhenomena> sourceFaultMap = sourceFaults.stream()
-            .collect(Collectors.toMap(FaultPhenomena::getId, item -> item, (a, b) -> a, LinkedHashMap::new));
-        List<FaultPhenomena> orderedSourceFaults = sourceIds.stream()
-            .map(sourceFaultMap::get)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
+        Map<String, FaultPhenomena> sourceFaultMap =
+                sourceFaults.stream()
+                        .collect(
+                                Collectors.toMap(
+                                        FaultPhenomena::getId,
+                                        item -> item,
+                                        (a, b) -> a,
+                                        LinkedHashMap::new));
+        List<FaultPhenomena> orderedSourceFaults =
+                sourceIds.stream()
+                        .map(sourceFaultMap::get)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList());
         if (orderedSourceFaults.isEmpty()) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "未找到可复制的故障现象");
         }
 
         long now = System.currentTimeMillis();
-        List<FaultPhenomena> copiedFaults = buildCopiedFaultPhenomena(orderedSourceFaults, targetServiceTypeId, now);
+        List<FaultPhenomena> copiedFaults =
+                buildCopiedFaultPhenomena(orderedSourceFaults, targetServiceTypeId, now);
         if (!faultPhenomenaService.saveBatch(copiedFaults)) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "批量复制故障现象失败");
         }
 
-        Map<String, ServiceCategories> categoryMap = serviceCategoriesService.list().stream()
-            .collect(Collectors.toMap(ServiceCategories::getId, item -> item, (a, b) -> a));
+        Map<String, ServiceCategories> categoryMap =
+                serviceCategoriesService.list().stream()
+                        .collect(
+                                Collectors.toMap(
+                                        ServiceCategories::getId, item -> item, (a, b) -> a));
         return copiedFaults.stream()
-            .map(item -> toFaultPhenomenonResponse(item, targetType, categoryMap))
-            .collect(Collectors.toList());
+                .map(item -> toFaultPhenomenonResponse(item, targetType, categoryMap))
+                .collect(Collectors.toList());
     }
 
     @Override
-    public AdminFaultPhenomenonResponse updateFaultPhenomenon(String id, AdminFaultPhenomenonUpdateRequest request) {
+    public AdminFaultPhenomenonResponse updateFaultPhenomenon(
+            String id, AdminFaultPhenomenonUpdateRequest request) {
         FaultPhenomena current = faultPhenomenaService.getById(id);
         if (current == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "Fault phenomenon not found");
@@ -691,8 +767,11 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
         if (type == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "Service type not found");
         }
-        Map<String, ServiceCategories> categoryMap = serviceCategoriesService.list().stream()
-            .collect(Collectors.toMap(ServiceCategories::getId, item -> item, (a, b) -> a));
+        Map<String, ServiceCategories> categoryMap =
+                serviceCategoriesService.list().stream()
+                        .collect(
+                                Collectors.toMap(
+                                        ServiceCategories::getId, item -> item, (a, b) -> a));
 
         long now = System.currentTimeMillis();
         current.setServiceTypeId(request.getServiceTypeId());
@@ -706,7 +785,8 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
 
         boolean ok = faultPhenomenaService.updateById(current);
         if (!ok) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "Failed to update fault phenomenon");
+            throw new BusinessException(
+                    ErrorCode.SYSTEM_ERROR, "Failed to update fault phenomenon");
         }
 
         return toFaultPhenomenonResponse(current, type, categoryMap);
@@ -719,18 +799,21 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
             return;
         }
 
-        long useCount = repairOrderFaultsService.count(
-            new LambdaQueryWrapper<RepairOrderFaults>()
-                .eq(RepairOrderFaults::getFaultPhenomenonId, id)
-        );
+        long useCount =
+                repairOrderFaultsService.count(
+                        new LambdaQueryWrapper<RepairOrderFaults>()
+                                .eq(RepairOrderFaults::getFaultPhenomenonId, id));
         if (useCount > 0) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "Delete failed: this fault phenomenon is referenced by orders");
+            throw new BusinessException(
+                    ErrorCode.BUSINESS_ERROR,
+                    "Delete failed: this fault phenomenon is referenced by orders");
         }
 
         faultPhenomenaService.removeById(id);
     }
 
-    private AdminServiceCategoryResponse toCategoryResponse(ServiceCategories c, Map<String, ServiceCategories> map, String iconUrl) {
+    private AdminServiceCategoryResponse toCategoryResponse(
+            ServiceCategories c, Map<String, ServiceCategories> map, String iconUrl) {
         AdminServiceCategoryResponse r = new AdminServiceCategoryResponse();
         r.setId(c.getId());
         r.setName(c.getName());
@@ -757,12 +840,12 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
         if (categoryIds == null || categoryIds.isEmpty()) {
             return Map.of();
         }
-        List<Images> images = imagesService.list(
-            new LambdaQueryWrapper<Images>()
-                .eq(Images::getBusinessType, SERVICE_CATEGORY_ICON_BUSINESS_TYPE)
-                .in(Images::getBusinessId, categoryIds)
-                .orderByDesc(Images::getCreatedTime)
-        );
+        List<Images> images =
+                imagesService.list(
+                        new LambdaQueryWrapper<Images>()
+                                .eq(Images::getBusinessType, SERVICE_CATEGORY_ICON_BUSINESS_TYPE)
+                                .in(Images::getBusinessId, categoryIds)
+                                .orderByDesc(Images::getCreatedTime));
         Map<String, String> result = new HashMap<>();
         for (Images img : images) {
             if (!result.containsKey(img.getBusinessId())) {
@@ -779,12 +862,14 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
         }
         Integer level = defaultIfNull(category.getLevel(), 0);
         if (level != 2 && level != 3) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "Service type category must be level 2 or level 3");
+            throw new BusinessException(
+                    ErrorCode.PARAM_ERROR, "Service type category must be level 2 or level 3");
         }
         return category;
     }
 
-    private AdminServiceTypeResponse toServiceTypeResponse(ServiceTypes serviceType, ServiceCategories category) {
+    private AdminServiceTypeResponse toServiceTypeResponse(
+            ServiceTypes serviceType, ServiceCategories category) {
         AdminServiceTypeResponse resp = new AdminServiceTypeResponse();
         resp.setId(serviceType.getId());
         resp.setName(serviceType.getName());
@@ -801,17 +886,20 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
     }
 
     private AdminFaultPhenomenonResponse toFaultPhenomenonResponse(
-        FaultPhenomena fault,
-        ServiceTypes serviceType,
-        Map<String, ServiceCategories> categoryMap
-    ) {
+            FaultPhenomena fault,
+            ServiceTypes serviceType,
+            Map<String, ServiceCategories> categoryMap) {
         AdminFaultPhenomenonResponse resp = new AdminFaultPhenomenonResponse();
         resp.setId(fault.getId());
         resp.setServiceTypeId(fault.getServiceTypeId());
         resp.setServiceTypeName(serviceType == null ? null : serviceType.getName());
         resp.setServiceTypeType(serviceType == null ? null : serviceType.getType());
-        String categoryId = serviceType == null ? null : normalizeBlankToNull(serviceType.getCategoryId());
-        ServiceCategories category = StringUtils.hasText(categoryId) && categoryMap != null ? categoryMap.get(categoryId) : null;
+        String categoryId =
+                serviceType == null ? null : normalizeBlankToNull(serviceType.getCategoryId());
+        ServiceCategories category =
+                StringUtils.hasText(categoryId) && categoryMap != null
+                        ? categoryMap.get(categoryId)
+                        : null;
         resp.setServiceCategoryId(categoryId);
         resp.setServiceCategoryName(category == null ? null : category.getName());
         resp.setServiceCategoryPath(buildCategoryPath(categoryId, categoryMap));
@@ -826,7 +914,8 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
         return resp;
     }
 
-    private String buildCategoryPath(String categoryId, Map<String, ServiceCategories> categoryMap) {
+    private String buildCategoryPath(
+            String categoryId, Map<String, ServiceCategories> categoryMap) {
         if (!StringUtils.hasText(categoryId) || categoryMap == null || categoryMap.isEmpty()) {
             return "";
         }
@@ -856,25 +945,29 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
         throw new BusinessException(ErrorCode.PARAM_ERROR, "服务类型仅支持上门维修、上门安装、线下维修");
     }
 
-    private void copyFaultPhenomenaByTypeMapping(Map<String, String> sourceToTargetTypeIdMap, long now) {
+    private void copyFaultPhenomenaByTypeMapping(
+            Map<String, String> sourceToTargetTypeIdMap, long now) {
         if (sourceToTargetTypeIdMap == null || sourceToTargetTypeIdMap.isEmpty()) {
             return;
         }
 
-        List<FaultPhenomena> sourceFaults = faultPhenomenaService.list(
-            new LambdaQueryWrapper<FaultPhenomena>()
-                .in(FaultPhenomena::getServiceTypeId, sourceToTargetTypeIdMap.keySet())
-                .eq(FaultPhenomena::getIsDelete, 0)
-                .orderByAsc(FaultPhenomena::getSortOrder)
-                .orderByAsc(FaultPhenomena::getCreatedTime)
-        );
+        List<FaultPhenomena> sourceFaults =
+                faultPhenomenaService.list(
+                        new LambdaQueryWrapper<FaultPhenomena>()
+                                .in(
+                                        FaultPhenomena::getServiceTypeId,
+                                        sourceToTargetTypeIdMap.keySet())
+                                .eq(FaultPhenomena::getIsDelete, 0)
+                                .orderByAsc(FaultPhenomena::getSortOrder)
+                                .orderByAsc(FaultPhenomena::getCreatedTime));
         if (sourceFaults.isEmpty()) {
             return;
         }
 
         List<FaultPhenomena> copiedFaults = new ArrayList<>();
         for (FaultPhenomena sourceFault : sourceFaults) {
-            String targetServiceTypeId = sourceToTargetTypeIdMap.get(sourceFault.getServiceTypeId());
+            String targetServiceTypeId =
+                    sourceToTargetTypeIdMap.get(sourceFault.getServiceTypeId());
             if (!StringUtils.hasText(targetServiceTypeId)) {
                 continue;
             }
@@ -885,13 +978,15 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
         }
     }
 
-    private List<FaultPhenomena> buildCopiedFaultPhenomena(List<FaultPhenomena> sourceFaults, String targetServiceTypeId, long now) {
+    private List<FaultPhenomena> buildCopiedFaultPhenomena(
+            List<FaultPhenomena> sourceFaults, String targetServiceTypeId, long now) {
         return sourceFaults.stream()
-            .map(item -> buildCopiedFaultPhenomenon(item, targetServiceTypeId, now))
-            .collect(Collectors.toList());
+                .map(item -> buildCopiedFaultPhenomenon(item, targetServiceTypeId, now))
+                .collect(Collectors.toList());
     }
 
-    private FaultPhenomena buildCopiedFaultPhenomenon(FaultPhenomena sourceFault, String targetServiceTypeId, long now) {
+    private FaultPhenomena buildCopiedFaultPhenomenon(
+            FaultPhenomena sourceFault, String targetServiceTypeId, long now) {
         FaultPhenomena copiedFault = new FaultPhenomena();
         copiedFault.setId(SnowflakeIdUtil.nextFaultPhenomenonId());
         copiedFault.setServiceTypeId(targetServiceTypeId);
@@ -907,7 +1002,11 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
     }
 
     private String buildTypeUniqueKey(String categoryId, Integer type, String name) {
-        return normalizeBlankToNull(categoryId) + "|" + defaultIfNull(type, 0) + "|" + normalizeBlankToNull(name);
+        return normalizeBlankToNull(categoryId)
+                + "|"
+                + defaultIfNull(type, 0)
+                + "|"
+                + normalizeBlankToNull(name);
     }
 
     private static String normalizeBlankToNull(String v) {
@@ -928,5 +1027,3 @@ public class AdminServiceConfigServiceImpl implements AdminServiceConfigService 
         return v == null ? def : v;
     }
 }
-
-

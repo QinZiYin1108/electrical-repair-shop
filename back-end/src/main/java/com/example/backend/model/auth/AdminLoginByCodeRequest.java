@@ -1,23 +1,27 @@
 package com.example.backend.model.auth;
 
-import jakarta.validation.constraints.Email;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 
+@Schema(description = "管理员登录ByCode请求")
 public class AdminLoginByCodeRequest {
 
     @NotBlank
-    @Email
-    private String email;
+    @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
+    @Schema(description = "手机号")
+    private String phone;
 
     @NotBlank
+    @Schema(description = "编码")
     private String code;
 
-    public String getEmail() {
-        return email;
+    public String getPhone() {
+        return phone;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 
     public String getCode() {
@@ -28,4 +32,3 @@ public class AdminLoginByCodeRequest {
         this.code = code;
     }
 }
-

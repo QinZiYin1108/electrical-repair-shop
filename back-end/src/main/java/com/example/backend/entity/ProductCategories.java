@@ -3,75 +3,45 @@ package com.example.backend.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
-/**
- * 商品分类表
- * @TableName product_categories
- */
-@TableName(value ="product_categories")
+/** 商品分类表 @TableName product_categories */
+@TableName(value = "product_categories")
 @Data
 public class ProductCategories {
-    /**
-     * 主键，PC+雪花ID
-     */
-    @TableId
-    private String id;
+    /** 主键，PC+雪花ID */
+    @TableId private String id;
 
-    /**
-     * 分类名称
-     */
+    /** 分类名称 */
     private String name;
 
-    /**
-     * 父分类ID
-     */
+    /** 父分类ID */
     private String parentId;
 
-    /**
-     * 分类层级
-     */
+    /** 分类层级 */
     private Integer level;
 
-    /**
-     * 分类描述
-     */
+    /** 分类描述 */
     private String description;
 
-    /**
-     * 图标URL
-     */
+    /** 图标URL */
     private String iconUrl;
 
-    /**
-     * 排序
-     */
+    /** 排序 */
     private Integer sortOrder;
 
-    /**
-     * 是否启用：0-禁用，1-启用
-     */
+    /** 是否启用：0-禁用，1-启用 */
     private Integer isActive;
 
-    /**
-     * 创建时间戳
-     */
+    /** 创建时间戳 */
     private Long createdTime;
 
-    /**
-     * 更新时间戳
-     */
+    /** 更新时间戳 */
     private Long updatedTime;
 
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
+    /** 乐观锁版本号 */
+    @Version private Integer version;
 
-    /**
-     * 逻辑删除：0-未删除，1-已删除
-     */
-    @TableLogic
-    private Integer isDelete;
+    /** 逻辑删除：0-未删除，1-已删除 */
+    @TableLogic private Integer isDelete;
 
     @Override
     public boolean equals(Object that) {
@@ -86,17 +56,39 @@ public class ProductCategories {
         }
         ProductCategories other = (ProductCategories) that;
         return (this.getId() == null ? other.getId() == null : this.getId().equals(other.getId()))
-            && (this.getName() == null ? other.getName() == null : this.getName().equals(other.getName()))
-            && (this.getParentId() == null ? other.getParentId() == null : this.getParentId().equals(other.getParentId()))
-            && (this.getLevel() == null ? other.getLevel() == null : this.getLevel().equals(other.getLevel()))
-            && (this.getDescription() == null ? other.getDescription() == null : this.getDescription().equals(other.getDescription()))
-            && (this.getIconUrl() == null ? other.getIconUrl() == null : this.getIconUrl().equals(other.getIconUrl()))
-            && (this.getSortOrder() == null ? other.getSortOrder() == null : this.getSortOrder().equals(other.getSortOrder()))
-            && (this.getIsActive() == null ? other.getIsActive() == null : this.getIsActive().equals(other.getIsActive()))
-            && (this.getCreatedTime() == null ? other.getCreatedTime() == null : this.getCreatedTime().equals(other.getCreatedTime()))
-            && (this.getUpdatedTime() == null ? other.getUpdatedTime() == null : this.getUpdatedTime().equals(other.getUpdatedTime()))
-            && (this.getVersion() == null ? other.getVersion() == null : this.getVersion().equals(other.getVersion()))
-            && (this.getIsDelete() == null ? other.getIsDelete() == null : this.getIsDelete().equals(other.getIsDelete()));
+                && (this.getName() == null
+                        ? other.getName() == null
+                        : this.getName().equals(other.getName()))
+                && (this.getParentId() == null
+                        ? other.getParentId() == null
+                        : this.getParentId().equals(other.getParentId()))
+                && (this.getLevel() == null
+                        ? other.getLevel() == null
+                        : this.getLevel().equals(other.getLevel()))
+                && (this.getDescription() == null
+                        ? other.getDescription() == null
+                        : this.getDescription().equals(other.getDescription()))
+                && (this.getIconUrl() == null
+                        ? other.getIconUrl() == null
+                        : this.getIconUrl().equals(other.getIconUrl()))
+                && (this.getSortOrder() == null
+                        ? other.getSortOrder() == null
+                        : this.getSortOrder().equals(other.getSortOrder()))
+                && (this.getIsActive() == null
+                        ? other.getIsActive() == null
+                        : this.getIsActive().equals(other.getIsActive()))
+                && (this.getCreatedTime() == null
+                        ? other.getCreatedTime() == null
+                        : this.getCreatedTime().equals(other.getCreatedTime()))
+                && (this.getUpdatedTime() == null
+                        ? other.getUpdatedTime() == null
+                        : this.getUpdatedTime().equals(other.getUpdatedTime()))
+                && (this.getVersion() == null
+                        ? other.getVersion() == null
+                        : this.getVersion().equals(other.getVersion()))
+                && (this.getIsDelete() == null
+                        ? other.getIsDelete() == null
+                        : this.getIsDelete().equals(other.getIsDelete()));
     }
 
     @Override

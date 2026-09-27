@@ -4,17 +4,12 @@ import { ElMessage } from 'element-plus';
 
 export function useAdminPageRefresh(refreshHandler, options = {}) {
   const route = useRoute();
-  const {
-    matcher,
-    successMessage = '刷新成功',
-    showSuccess = true
-  } = options;
+  const { matcher, successMessage = '刷新成功', showSuccess = true } = options;
 
-  const shouldHandle = typeof matcher === 'function'
-    ? matcher
-    : detail => detail?.path === route.path;
+  const shouldHandle =
+    typeof matcher === 'function' ? matcher : (detail) => detail?.path === route.path;
 
-  const handleExternalRefresh = async event => {
+  const handleExternalRefresh = async (event) => {
     const detail = event?.detail;
     if (!detail || !shouldHandle(detail, route)) {
       return;

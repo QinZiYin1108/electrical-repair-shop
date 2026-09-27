@@ -2,10 +2,9 @@ package com.example.backend.controller.admin;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.backend.common.ErrorCode;
 import com.example.backend.common.Result;
+import com.example.backend.domain.order.RepairOrderStateMachine;
 import com.example.backend.entity.FaultPhenomena;
 import com.example.backend.entity.Images;
 import com.example.backend.entity.OrderProgress;
@@ -27,11 +26,13 @@ import com.example.backend.model.admin.AdminReserveOrderProgressItemResponse;
 import com.example.backend.security.context.AuthUserContext;
 import com.example.backend.security.model.AccountRole;
 import com.example.backend.security.model.LoginUserInfo;
+import com.example.backend.service.AdminDataScopeService;
 import com.example.backend.service.FaultPhenomenaService;
 import com.example.backend.service.ImagesService;
 import com.example.backend.service.OrderProgressService;
 import com.example.backend.service.RepairOrderFaultsService;
 import com.example.backend.service.RepairOrderPaymentsService;
+import com.example.backend.service.RepairOrderQueryService;
 import com.example.backend.service.RepairOrdersService;
 import com.example.backend.service.ServiceCategoriesService;
 import com.example.backend.service.ServiceTypesService;
@@ -39,13 +40,10 @@ import com.example.backend.service.TechnicianAccountsService;
 import com.example.backend.service.UserAccountsService;
 import com.example.backend.service.UserAddressesService;
 import com.example.backend.service.VideosService;
-import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -56,7 +54,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "管理员端/维修订单")
 @RestController
 @RequestMapping("/admin/orders/reserve")
 public class AdminReserveOrderController {
@@ -78,21 +83,26 @@ public class AdminReserveOrderController {
     private final FaultPhenomenaService faultPhenomenaService;
     private final ImagesService imagesService;
     private final VideosService videosService;
+    private final RepairOrderStateMachine repairOrderStateMachine;
+    private final RepairOrderQueryService repairOrderQueryService;
+    private final AdminDataScopeService adminDataScopeService;
 
     public AdminReserveOrderController(
-        RepairOrdersService repairOrdersService,
-        RepairOrderPaymentsService repairOrderPaymentsService,
-        RepairOrderFaultsService repairOrderFaultsService,
-        OrderProgressService orderProgressService,
-        ServiceTypesService serviceTypesService,
-        ServiceCategoriesService serviceCategoriesService,
-        UserAccountsService userAccountsService,
-        TechnicianAccountsService technicianAccountsService,
-        UserAddressesService userAddressesService,
-        FaultPhenomenaService faultPhenomenaService,
-        ImagesService imagesService,
-        VideosService videosService
-    ) {
+            RepairOrdersService repairOrdersService,
+            RepairOrderPaymentsService repairOrderPaymentsService,
+            RepairOrderFaultsService repairOrderFaultsService,
+            OrderProgressService orderProgressService,
+            ServiceTypesService serviceTypesService,
+            ServiceCategoriesService serviceCategoriesService,
+            UserAccountsService userAccountsService,
+            TechnicianAccountsService technicianAccountsService,
+            UserAddressesService userAddressesService,
+            FaultPhenomenaService faultPhenomenaService,
+            ImagesService imagesService,
+            VideosService videosService,
+            RepairOrderStateMachine repairOrderStateMachine,
+            RepairOrderQueryService repairOrderQueryService,
+            AdminDataScopeService adminDataScopeService) {
         this.repairOrdersService = repairOrdersService;
         this.repairOrderPaymentsService = repairOrderPaymentsService;
         this.repairOrderFaultsService = repairOrderFaultsService;
@@ -105,38 +115,44 @@ public class AdminReserveOrderController {
         this.faultPhenomenaService = faultPhenomenaService;
         this.imagesService = imagesService;
         this.videosService = videosService;
+        this.repairOrderStateMachine = repairOrderStateMachine;
+        this.repairOrderQueryService = repairOrderQueryService;
+        this.adminDataScopeService = adminDataScopeService;
     }
 
     @GetMapping
     public Result<Page<AdminReserveOrderListItemResponse>> listReserveOrders(
-        @RequestParam(value = "pageNum", defaultValue = "1") long pageNum,
-        @RequestParam(value = "pageSize", defaultValue = "10") long pageSize,
-        @RequestParam(value = "keyword", required = false) String keyword,
-        @RequestParam(value = "status", required = false) Integer status,
-        @RequestParam(value = "paymentStatus", required = false) Integer paymentStatus,
-        @RequestParam(value = "serviceMode", required = false) Integer serviceMode,
-        @RequestParam(value = "appointmentStart", required = false) Long appointmentStart,
-        @RequestParam(value = "appointmentEnd", required = false) Long appointmentEnd
-    ) {
+            @RequestParam(value = "pageNum", defaultValue = "1") long pageNum,
+            @RequestParam(value = "pageSize", defaultValue = "10") long pageSize,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "paymentStatus", required = false) Integer paymentStatus,
+            @RequestParam(value = "serviceMode", required = false) Integer serviceMode,
+            @RequestParam(value = "appointmentStart", required = false) Long appointmentStart,
+            @RequestParam(value = "appointmentEnd", required = false) Long appointmentEnd) {
         LoginUserInfo admin = requireAdmin();
         long currentPage = pageNum <= 0 ? 1 : pageNum;
         long currentSize = pageSize <= 0 ? 10 : pageSize;
 
-        LambdaQueryWrapper<RepairOrders> wrapper = new LambdaQueryWrapper<RepairOrders>()
-            .eq(RepairOrders::getIsDelete, 0);
+        LambdaQueryWrapper<RepairOrders> wrapper =
+                new LambdaQueryWrapper<RepairOrders>().eq(RepairOrders::getIsDelete, 0);
 
         // 店铺管理员只能看自己门店的订单
-        if (admin.isStoreAdmin() && admin.getStoreId() != null) {
-            List<TechnicianAccounts> storeTechs = technicianAccountsService.list(
-                new LambdaQueryWrapper<TechnicianAccounts>()
-                    .eq(TechnicianAccounts::getStoreId, admin.getStoreId())
-                    .select(TechnicianAccounts::getId)
-            );
+        if (admin.isStoreAdmin()) {
+            adminDataScopeService.requireStoreAccess(admin, admin.getStoreId());
+            List<TechnicianAccounts> storeTechs =
+                    technicianAccountsService.list(
+                            new LambdaQueryWrapper<TechnicianAccounts>()
+                                    .eq(TechnicianAccounts::getStoreId, admin.getStoreId())
+                                    .select(TechnicianAccounts::getId));
             if (storeTechs.isEmpty()) {
                 return Result.success(emptyPage(currentPage, currentSize));
             }
-            wrapper.in(RepairOrders::getTechnicianAccountId,
-                storeTechs.stream().map(TechnicianAccounts::getId).collect(java.util.stream.Collectors.toSet()));
+            wrapper.in(
+                    RepairOrders::getTechnicianAccountId,
+                    storeTechs.stream()
+                            .map(TechnicianAccounts::getId)
+                            .collect(java.util.stream.Collectors.toSet()));
         }
         if (status != null) {
             wrapper.eq(RepairOrders::getStatus, status);
@@ -163,23 +179,24 @@ public class AdminReserveOrderController {
             applyKeywordFilter(wrapper, normalizedKeyword);
         }
 
-        wrapper.orderByDesc(RepairOrders::getUpdatedTime)
-            .orderByDesc(RepairOrders::getCreatedTime);
+        wrapper.orderByDesc(RepairOrders::getUpdatedTime).orderByDesc(RepairOrders::getCreatedTime);
 
-        Page<RepairOrders> page = repairOrdersService.page(new Page<>(currentPage, currentSize), wrapper);
-        Page<AdminReserveOrderListItemResponse> responsePage = new Page<>(
-            page.getCurrent(),
-            page.getSize(),
-            page.getTotal()
-        );
+        Page<RepairOrders> page =
+                repairOrdersService.page(new Page<>(currentPage, currentSize), wrapper);
+        Page<AdminReserveOrderListItemResponse> responsePage =
+                new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
         responsePage.setRecords(buildListItems(page.getRecords()));
         return Result.success(responsePage);
     }
 
+    @Operation(summary = "查询ReserveOrder详情")
     @GetMapping("/{id}")
-    public Result<AdminReserveOrderDetailResponse> getReserveOrderDetail(@PathVariable("id") String id) {
-        requireAdmin();
-        return Result.success(buildDetailResponse(requireReserveOrder(id)));
+    public Result<AdminReserveOrderDetailResponse> getReserveOrderDetail(
+            @PathVariable("id") String id) {
+        LoginUserInfo admin = requireAdmin();
+        RepairOrders order = requireReserveOrder(id);
+        adminDataScopeService.requireRepairOrderAccess(admin, order);
+        return Result.success(buildDetailResponse(order));
     }
 
     private void applyKeywordFilter(LambdaQueryWrapper<RepairOrders> wrapper, String keyword) {
@@ -188,21 +205,22 @@ public class AdminReserveOrderController {
         Set<String> serviceTypeIds = findServiceTypeIdsByKeyword(keyword);
         Set<String> addressIds = findAddressIdsByKeyword(keyword);
 
-        wrapper.and(q -> {
-            q.like(RepairOrders::getOrderNo, keyword);
-            if (!userIds.isEmpty()) {
-                q.or().in(RepairOrders::getAccountId, userIds);
-            }
-            if (!technicianIds.isEmpty()) {
-                q.or().in(RepairOrders::getTechnicianAccountId, technicianIds);
-            }
-            if (!serviceTypeIds.isEmpty()) {
-                q.or().in(RepairOrders::getServiceTypeId, serviceTypeIds);
-            }
-            if (!addressIds.isEmpty()) {
-                q.or().in(RepairOrders::getServiceAddressId, addressIds);
-            }
-        });
+        wrapper.and(
+                q -> {
+                    q.like(RepairOrders::getOrderNo, keyword);
+                    if (!userIds.isEmpty()) {
+                        q.or().in(RepairOrders::getAccountId, userIds);
+                    }
+                    if (!technicianIds.isEmpty()) {
+                        q.or().in(RepairOrders::getTechnicianAccountId, technicianIds);
+                    }
+                    if (!serviceTypeIds.isEmpty()) {
+                        q.or().in(RepairOrders::getServiceTypeId, serviceTypeIds);
+                    }
+                    if (!addressIds.isEmpty()) {
+                        q.or().in(RepairOrders::getServiceAddressId, addressIds);
+                    }
+                });
     }
 
     private Page<AdminReserveOrderListItemResponse> emptyPage(long currentPage, long currentSize) {
@@ -226,30 +244,29 @@ public class AdminReserveOrderController {
 
         List<AdminReserveOrderListItemResponse> items = new ArrayList<>();
         for (RepairOrders order : orders) {
-            items.add(buildListItem(
-                order,
-                serviceTypeMap.get(order.getServiceTypeId()),
-                categoryMap,
-                userMap.get(order.getAccountId()),
-                technicianMap.get(order.getTechnicianAccountId()),
-                addressMap.get(order.getServiceAddressId()),
-                faultMap.get(order.getId()),
-                paymentMap.get(order.getId())
-            ));
+            items.add(
+                    buildListItem(
+                            order,
+                            serviceTypeMap.get(order.getServiceTypeId()),
+                            categoryMap,
+                            userMap.get(order.getAccountId()),
+                            technicianMap.get(order.getTechnicianAccountId()),
+                            addressMap.get(order.getServiceAddressId()),
+                            faultMap.get(order.getId()),
+                            paymentMap.get(order.getId())));
         }
         return items;
     }
 
     private AdminReserveOrderListItemResponse buildListItem(
-        RepairOrders order,
-        ServiceTypes serviceType,
-        Map<String, ServiceCategories> categoryMap,
-        UserAccounts user,
-        TechnicianAccounts technician,
-        UserAddresses address,
-        List<RepairOrderFaults> faults,
-        RepairOrderPayments payment
-    ) {
+            RepairOrders order,
+            ServiceTypes serviceType,
+            Map<String, ServiceCategories> categoryMap,
+            UserAccounts user,
+            TechnicianAccounts technician,
+            UserAddresses address,
+            List<RepairOrderFaults> faults,
+            RepairOrderPayments payment) {
         AdminReserveOrderListItemResponse item = new AdminReserveOrderListItemResponse();
         item.setId(order.getId());
         item.setOrderNo(safe(order.getOrderNo()));
@@ -260,7 +277,8 @@ public class AdminReserveOrderController {
         item.setServiceTypeId(order.getServiceTypeId());
         item.setServiceTypeName(serviceType == null ? "" : safe(serviceType.getName()));
 
-        ServiceCategories category = serviceType == null ? null : categoryMap.get(serviceType.getCategoryId());
+        ServiceCategories category =
+                serviceType == null ? null : categoryMap.get(serviceType.getCategoryId());
         item.setServiceCategoryId(category == null ? "" : safe(category.getId()));
         item.setServiceCategoryName(category == null ? "" : safe(category.getName()));
         item.setServiceCategoryPath(buildCategoryPath(category, categoryMap));
@@ -300,7 +318,8 @@ public class AdminReserveOrderController {
         Map<String, RepairOrderPayments> paymentMap = listPaymentMap(orders);
         List<OrderProgress> progressList = listOrderProgress(order.getId());
         OrderProgress latestInspectionProgress = findLatestInspectionProgress(progressList);
-        InspectionProgressSnapshot inspectionSnapshot = parseInspectionProgress(latestInspectionProgress);
+        InspectionProgressSnapshot inspectionSnapshot =
+                parseInspectionProgress(latestInspectionProgress);
 
         ServiceTypes serviceType = serviceTypeMap.get(order.getServiceTypeId());
         UserAccounts user = userMap.get(order.getAccountId());
@@ -308,16 +327,16 @@ public class AdminReserveOrderController {
         UserAddresses address = addressMap.get(order.getServiceAddressId());
         RepairOrderPayments payment = paymentMap.get(order.getId());
 
-        AdminReserveOrderListItemResponse item = buildListItem(
-            order,
-            serviceType,
-            categoryMap,
-            user,
-            technician,
-            address,
-            faultMap.get(order.getId()),
-            payment
-        );
+        AdminReserveOrderListItemResponse item =
+                buildListItem(
+                        order,
+                        serviceType,
+                        categoryMap,
+                        user,
+                        technician,
+                        address,
+                        faultMap.get(order.getId()),
+                        payment);
 
         AdminReserveOrderDetailResponse response = new AdminReserveOrderDetailResponse();
         copyListFields(item, response);
@@ -334,22 +353,36 @@ public class AdminReserveOrderController {
         response.setMaterialFee(formatMoney(payment == null ? null : payment.getMaterialFee()));
         response.setOvertimeFee(formatMoney(payment == null ? null : payment.getOvertimeFee()));
         response.setRemark(safe(order.getRemark()));
-        response.setInspectionDiagnosis(inspectionSnapshot == null ? "" : inspectionSnapshot.getInspectionDiagnosis());
-        response.setRepairPlan(inspectionSnapshot == null ? "" : inspectionSnapshot.getRepairPlan());
-        response.setInspectionTime(latestInspectionProgress == null ? null : latestInspectionProgress.getCreatedTime());
+        response.setInspectionDiagnosis(
+                inspectionSnapshot == null ? "" : inspectionSnapshot.getInspectionDiagnosis());
+        response.setRepairPlan(
+                inspectionSnapshot == null ? "" : inspectionSnapshot.getRepairPlan());
+        response.setInspectionTime(
+                latestInspectionProgress == null
+                        ? null
+                        : latestInspectionProgress.getCreatedTime());
         response.setCancelReason(safe(order.getCancelReason()));
         response.setCancelTime(order.getCancelTime());
         response.setRefundReason(safe(order.getRefundReason()));
         response.setRefundAmount(formatMoney(order.getRefundAmount()));
         response.setRefundTime(order.getRefundTime());
         response.setFaultList(buildFaultItems(faultMap.get(order.getId())));
-        response.setInspectionImages(listInspectionImages(latestInspectionProgress == null ? null : latestInspectionProgress.getId()));
-        response.setInspectionVideos(listInspectionVideos(latestInspectionProgress == null ? null : latestInspectionProgress.getId()));
+        response.setInspectionImages(
+                listInspectionImages(
+                        latestInspectionProgress == null
+                                ? null
+                                : latestInspectionProgress.getId()));
+        response.setInspectionVideos(
+                listInspectionVideos(
+                        latestInspectionProgress == null
+                                ? null
+                                : latestInspectionProgress.getId()));
         response.setProgressList(buildProgressItems(order, progressList));
         return response;
     }
 
-    private void copyListFields(AdminReserveOrderListItemResponse item, AdminReserveOrderDetailResponse response) {
+    private void copyListFields(
+            AdminReserveOrderListItemResponse item, AdminReserveOrderDetailResponse response) {
         response.setId(item.getId());
         response.setOrderNo(item.getOrderNo());
         response.setStatus(item.getStatus());
@@ -382,45 +415,63 @@ public class AdminReserveOrderController {
         response.setUpdatedTime(item.getUpdatedTime());
     }
 
-    private List<AdminReserveOrderFaultItemResponse> buildFaultItems(List<RepairOrderFaults> faults) {
+    private List<AdminReserveOrderFaultItemResponse> buildFaultItems(
+            List<RepairOrderFaults> faults) {
         if (faults == null || faults.isEmpty()) {
             return Collections.emptyList();
         }
 
-        Set<String> phenomenonIds = faults.stream()
-            .map(RepairOrderFaults::getFaultPhenomenonId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
-        Map<String, FaultPhenomena> phenomenonMap = phenomenonIds.isEmpty()
-            ? new HashMap<>()
-            : faultPhenomenaService.list(
-                new LambdaQueryWrapper<FaultPhenomena>()
-                    .in(FaultPhenomena::getId, phenomenonIds)
-                    .eq(FaultPhenomena::getIsDelete, 0)
-            ).stream().collect(Collectors.toMap(FaultPhenomena::getId, item -> item, (a, b) -> a));
+        Set<String> phenomenonIds =
+                faults.stream()
+                        .map(RepairOrderFaults::getFaultPhenomenonId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
+        Map<String, FaultPhenomena> phenomenonMap =
+                phenomenonIds.isEmpty()
+                        ? new HashMap<>()
+                        : faultPhenomenaService
+                                .list(
+                                        new LambdaQueryWrapper<FaultPhenomena>()
+                                                .in(FaultPhenomena::getId, phenomenonIds)
+                                                .eq(FaultPhenomena::getIsDelete, 0))
+                                .stream()
+                                .collect(
+                                        Collectors.toMap(
+                                                FaultPhenomena::getId, item -> item, (a, b) -> a));
 
-        Set<String> faultIds = faults.stream()
-            .map(RepairOrderFaults::getId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
-        Map<String, List<Images>> imageMap = faultIds.isEmpty()
-            ? new HashMap<>()
-            : imagesService.list(
-                new LambdaQueryWrapper<Images>()
-                    .eq(Images::getBusinessType, ORDER_FAULT_BUSINESS_TYPE)
-                    .in(Images::getBusinessId, faultIds)
-                    .eq(Images::getIsDelete, 0)
-                    .orderByAsc(Images::getCreatedTime)
-            ).stream().collect(Collectors.groupingBy(Images::getBusinessId));
-        Map<String, List<Videos>> videoMap = faultIds.isEmpty()
-            ? new HashMap<>()
-            : videosService.list(
-                new LambdaQueryWrapper<Videos>()
-                    .eq(Videos::getBusinessType, ORDER_FAULT_BUSINESS_TYPE)
-                    .in(Videos::getBusinessId, faultIds)
-                    .eq(Videos::getIsDelete, 0)
-                    .orderByAsc(Videos::getCreatedTime)
-            ).stream().collect(Collectors.groupingBy(Videos::getBusinessId));
+        Set<String> faultIds =
+                faults.stream()
+                        .map(RepairOrderFaults::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
+        Map<String, List<Images>> imageMap =
+                faultIds.isEmpty()
+                        ? new HashMap<>()
+                        : imagesService
+                                .list(
+                                        new LambdaQueryWrapper<Images>()
+                                                .eq(
+                                                        Images::getBusinessType,
+                                                        ORDER_FAULT_BUSINESS_TYPE)
+                                                .in(Images::getBusinessId, faultIds)
+                                                .eq(Images::getIsDelete, 0)
+                                                .orderByAsc(Images::getCreatedTime))
+                                .stream()
+                                .collect(Collectors.groupingBy(Images::getBusinessId));
+        Map<String, List<Videos>> videoMap =
+                faultIds.isEmpty()
+                        ? new HashMap<>()
+                        : videosService
+                                .list(
+                                        new LambdaQueryWrapper<Videos>()
+                                                .eq(
+                                                        Videos::getBusinessType,
+                                                        ORDER_FAULT_BUSINESS_TYPE)
+                                                .in(Videos::getBusinessId, faultIds)
+                                                .eq(Videos::getIsDelete, 0)
+                                                .orderByAsc(Videos::getCreatedTime))
+                                .stream()
+                                .collect(Collectors.groupingBy(Videos::getBusinessId));
 
         List<AdminReserveOrderFaultItemResponse> items = new ArrayList<>();
         for (RepairOrderFaults fault : faults) {
@@ -429,7 +480,8 @@ public class AdminReserveOrderController {
             item.setId(fault.getId());
             item.setFaultPhenomenonId(fault.getFaultPhenomenonId());
             item.setFaultPhenomenonName(phenomenon == null ? "" : safe(phenomenon.getName()));
-            item.setFaultPhenomenonDescription(phenomenon == null ? "" : safe(phenomenon.getDescription()));
+            item.setFaultPhenomenonDescription(
+                    phenomenon == null ? "" : safe(phenomenon.getDescription()));
             item.setFaultDescription(safe(fault.getFaultDescription()));
             item.setImages(toImageItems(imageMap.get(fault.getId())));
             item.setVideos(toVideoItems(videoMap.get(fault.getId())));
@@ -447,7 +499,10 @@ public class AdminReserveOrderController {
         for (Images image : images) {
             AdminReserveOrderMediaItemResponse item = new AdminReserveOrderMediaItemResponse();
             item.setId(image.getId());
-            item.setName(StringUtils.hasText(image.getOriginalName()) ? image.getOriginalName() : safe(image.getFileName()));
+            item.setName(
+                    StringUtils.hasText(image.getOriginalName())
+                            ? image.getOriginalName()
+                            : safe(image.getFileName()));
             item.setUrl(safe(image.getFileUrl()));
             item.setThumbnailUrl(safe(image.getFileUrl()));
             item.setMimeType(safe(image.getMimeType()));
@@ -468,7 +523,10 @@ public class AdminReserveOrderController {
         for (Videos video : videos) {
             AdminReserveOrderMediaItemResponse item = new AdminReserveOrderMediaItemResponse();
             item.setId(video.getId());
-            item.setName(StringUtils.hasText(video.getOriginalName()) ? video.getOriginalName() : safe(video.getFileName()));
+            item.setName(
+                    StringUtils.hasText(video.getOriginalName())
+                            ? video.getOriginalName()
+                            : safe(video.getFileName()));
             item.setUrl(safe(video.getFileUrl()));
             item.setThumbnailUrl(safe(video.getThumbnailUrl()));
             item.setMimeType(safe(video.getMimeType()));
@@ -485,29 +543,30 @@ public class AdminReserveOrderController {
         if (!StringUtils.hasText(progressId)) {
             return Collections.emptyList();
         }
-        return toImageItems(imagesService.list(
-            new LambdaQueryWrapper<Images>()
-                .eq(Images::getBusinessType, ORDER_INSPECTION_BUSINESS_TYPE)
-                .eq(Images::getBusinessId, progressId)
-                .eq(Images::getIsDelete, 0)
-                .orderByAsc(Images::getCreatedTime)
-        ));
+        return toImageItems(
+                imagesService.list(
+                        new LambdaQueryWrapper<Images>()
+                                .eq(Images::getBusinessType, ORDER_INSPECTION_BUSINESS_TYPE)
+                                .eq(Images::getBusinessId, progressId)
+                                .eq(Images::getIsDelete, 0)
+                                .orderByAsc(Images::getCreatedTime)));
     }
 
     private List<AdminReserveOrderMediaItemResponse> listInspectionVideos(String progressId) {
         if (!StringUtils.hasText(progressId)) {
             return Collections.emptyList();
         }
-        return toVideoItems(videosService.list(
-            new LambdaQueryWrapper<Videos>()
-                .eq(Videos::getBusinessType, ORDER_INSPECTION_BUSINESS_TYPE)
-                .eq(Videos::getBusinessId, progressId)
-                .eq(Videos::getIsDelete, 0)
-                .orderByAsc(Videos::getCreatedTime)
-        ));
+        return toVideoItems(
+                videosService.list(
+                        new LambdaQueryWrapper<Videos>()
+                                .eq(Videos::getBusinessType, ORDER_INSPECTION_BUSINESS_TYPE)
+                                .eq(Videos::getBusinessId, progressId)
+                                .eq(Videos::getIsDelete, 0)
+                                .orderByAsc(Videos::getCreatedTime)));
     }
 
-    private List<AdminReserveOrderProgressItemResponse> buildProgressItems(RepairOrders order, List<OrderProgress> progressList) {
+    private List<AdminReserveOrderProgressItemResponse> buildProgressItems(
+            RepairOrders order, List<OrderProgress> progressList) {
         List<AdminReserveOrderProgressItemResponse> items = new ArrayList<>();
 
         AdminReserveOrderProgressItemResponse initial = new AdminReserveOrderProgressItemResponse();
@@ -521,7 +580,8 @@ public class AdminReserveOrderController {
         items.add(initial);
 
         for (OrderProgress progress : progressList) {
-            AdminReserveOrderProgressItemResponse item = new AdminReserveOrderProgressItemResponse();
+            AdminReserveOrderProgressItemResponse item =
+                    new AdminReserveOrderProgressItemResponse();
             item.setId(progress.getId());
             item.setStatus(progress.getStatus());
             item.setStatusText(getStatusText(progress.getStatus()));
@@ -560,10 +620,9 @@ public class AdminReserveOrderController {
             return null;
         }
         try {
-            Map<String, Object> payload = OBJECT_MAPPER.readValue(
-                progress.getDescription(),
-                new TypeReference<Map<String, Object>>() {}
-            );
+            Map<String, Object> payload =
+                    OBJECT_MAPPER.readValue(
+                            progress.getDescription(), new TypeReference<Map<String, Object>>() {});
             if (!INSPECTION_PROGRESS_TYPE.equals(String.valueOf(payload.get("type")))) {
                 return null;
             }
@@ -579,24 +638,18 @@ public class AdminReserveOrderController {
     }
 
     private String buildInspectionProgressSummary(InspectionProgressSnapshot snapshot) {
-        return "师傅已完成检查：问题=" + safe(snapshot.getInspectionDiagnosis())
-            + "；维修建议=" + safe(snapshot.getRepairPlan())
-            + "；服务费=" + safe(snapshot.getServiceFee())
-            + "；材料费=" + safe(snapshot.getMaterialFee());
+        return "师傅已完成检查：问题="
+                + safe(snapshot.getInspectionDiagnosis())
+                + "；维修建议="
+                + safe(snapshot.getRepairPlan())
+                + "；服务费="
+                + safe(snapshot.getServiceFee())
+                + "；材料费="
+                + safe(snapshot.getMaterialFee());
     }
 
     private RepairOrders requireReserveOrder(String id) {
-        RepairOrders order = repairOrdersService.getOne(
-            new LambdaQueryWrapper<RepairOrders>()
-                .eq(RepairOrders::getId, id)
-                .eq(RepairOrders::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
-        if (order == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "预约订单不存在");
-        }
-        return order;
+        return repairOrderQueryService.requireOrder(id);
     }
 
     private List<OrderProgress> listOrderProgress(String orderId) {
@@ -604,42 +657,46 @@ public class AdminReserveOrderController {
             return Collections.emptyList();
         }
         return orderProgressService.list(
-            new LambdaQueryWrapper<OrderProgress>()
-                .eq(OrderProgress::getOrderId, orderId)
-                .eq(OrderProgress::getIsDelete, 0)
-                .orderByAsc(OrderProgress::getCreatedTime)
-        );
+                new LambdaQueryWrapper<OrderProgress>()
+                        .eq(OrderProgress::getOrderId, orderId)
+                        .eq(OrderProgress::getIsDelete, 0)
+                        .orderByAsc(OrderProgress::getCreatedTime));
     }
 
     private Map<String, ServiceTypes> listServiceTypeMap(List<RepairOrders> orders) {
-        Set<String> ids = orders.stream()
-            .map(RepairOrders::getServiceTypeId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+        Set<String> ids =
+                orders.stream()
+                        .map(RepairOrders::getServiceTypeId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (ids.isEmpty()) {
             return new HashMap<>();
         }
-        return serviceTypesService.list(
-            new LambdaQueryWrapper<ServiceTypes>()
-                .in(ServiceTypes::getId, ids)
-                .eq(ServiceTypes::getIsDelete, 0)
-        ).stream().collect(Collectors.toMap(ServiceTypes::getId, item -> item, (a, b) -> a));
+        return serviceTypesService
+                .list(
+                        new LambdaQueryWrapper<ServiceTypes>()
+                                .in(ServiceTypes::getId, ids)
+                                .eq(ServiceTypes::getIsDelete, 0))
+                .stream()
+                .collect(Collectors.toMap(ServiceTypes::getId, item -> item, (a, b) -> a));
     }
 
-    private Map<String, ServiceCategories> listCategoryMap(Map<String, ServiceTypes> serviceTypeMap) {
-        Set<String> directIds = serviceTypeMap.values().stream()
-            .map(ServiceTypes::getCategoryId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+    private Map<String, ServiceCategories> listCategoryMap(
+            Map<String, ServiceTypes> serviceTypeMap) {
+        Set<String> directIds =
+                serviceTypeMap.values().stream()
+                        .map(ServiceTypes::getCategoryId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (directIds.isEmpty()) {
             return new HashMap<>();
         }
 
-        List<ServiceCategories> directCategories = serviceCategoriesService.list(
-            new LambdaQueryWrapper<ServiceCategories>()
-                .in(ServiceCategories::getId, directIds)
-                .eq(ServiceCategories::getIsDelete, 0)
-        );
+        List<ServiceCategories> directCategories =
+                serviceCategoriesService.list(
+                        new LambdaQueryWrapper<ServiceCategories>()
+                                .in(ServiceCategories::getId, directIds)
+                                .eq(ServiceCategories::getIsDelete, 0));
         if (directCategories.isEmpty()) {
             return new HashMap<>();
         }
@@ -648,178 +705,216 @@ public class AdminReserveOrderController {
         for (ServiceCategories category : directCategories) {
             allIds.addAll(parsePathIds(category.getPath()));
         }
-        return serviceCategoriesService.list(
-            new LambdaQueryWrapper<ServiceCategories>()
-                .in(ServiceCategories::getId, allIds)
-                .eq(ServiceCategories::getIsDelete, 0)
-        ).stream().collect(Collectors.toMap(ServiceCategories::getId, item -> item, (a, b) -> a));
+        return serviceCategoriesService
+                .list(
+                        new LambdaQueryWrapper<ServiceCategories>()
+                                .in(ServiceCategories::getId, allIds)
+                                .eq(ServiceCategories::getIsDelete, 0))
+                .stream()
+                .collect(Collectors.toMap(ServiceCategories::getId, item -> item, (a, b) -> a));
     }
 
     private Map<String, UserAccounts> listUserMap(List<RepairOrders> orders) {
-        Set<String> ids = orders.stream()
-            .map(RepairOrders::getAccountId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+        Set<String> ids =
+                orders.stream()
+                        .map(RepairOrders::getAccountId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (ids.isEmpty()) {
             return new HashMap<>();
         }
-        return userAccountsService.list(
-            new LambdaQueryWrapper<UserAccounts>()
-                .in(UserAccounts::getId, ids)
-                .eq(UserAccounts::getIsDelete, 0)
-        ).stream().collect(Collectors.toMap(UserAccounts::getId, item -> item, (a, b) -> a));
+        return userAccountsService
+                .list(
+                        new LambdaQueryWrapper<UserAccounts>()
+                                .in(UserAccounts::getId, ids)
+                                .eq(UserAccounts::getIsDelete, 0))
+                .stream()
+                .collect(Collectors.toMap(UserAccounts::getId, item -> item, (a, b) -> a));
     }
 
     private Map<String, TechnicianAccounts> listTechnicianMap(List<RepairOrders> orders) {
-        Set<String> ids = orders.stream()
-            .map(RepairOrders::getTechnicianAccountId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+        Set<String> ids =
+                orders.stream()
+                        .map(RepairOrders::getTechnicianAccountId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (ids.isEmpty()) {
             return new HashMap<>();
         }
-        return technicianAccountsService.list(
-            new LambdaQueryWrapper<TechnicianAccounts>()
-                .in(TechnicianAccounts::getId, ids)
-                .eq(TechnicianAccounts::getIsDelete, 0)
-        ).stream().collect(Collectors.toMap(TechnicianAccounts::getId, item -> item, (a, b) -> a));
+        return technicianAccountsService
+                .list(
+                        new LambdaQueryWrapper<TechnicianAccounts>()
+                                .in(TechnicianAccounts::getId, ids)
+                                .eq(TechnicianAccounts::getIsDelete, 0))
+                .stream()
+                .collect(Collectors.toMap(TechnicianAccounts::getId, item -> item, (a, b) -> a));
     }
 
     private Map<String, UserAddresses> listAddressMap(List<RepairOrders> orders) {
-        Set<String> ids = orders.stream()
-            .map(RepairOrders::getServiceAddressId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+        Set<String> ids =
+                orders.stream()
+                        .map(RepairOrders::getServiceAddressId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (ids.isEmpty()) {
             return new HashMap<>();
         }
-        return userAddressesService.list(
-            new LambdaQueryWrapper<UserAddresses>()
-                .in(UserAddresses::getId, ids)
-                .eq(UserAddresses::getIsDelete, 0)
-        ).stream().collect(Collectors.toMap(UserAddresses::getId, item -> item, (a, b) -> a));
+        return userAddressesService
+                .list(
+                        new LambdaQueryWrapper<UserAddresses>()
+                                .in(UserAddresses::getId, ids)
+                                .eq(UserAddresses::getIsDelete, 0))
+                .stream()
+                .collect(Collectors.toMap(UserAddresses::getId, item -> item, (a, b) -> a));
     }
 
     private Map<String, List<RepairOrderFaults>> listFaultMap(List<RepairOrders> orders) {
-        Set<String> ids = orders.stream()
-            .map(RepairOrders::getId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+        Set<String> ids =
+                orders.stream()
+                        .map(RepairOrders::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (ids.isEmpty()) {
             return new HashMap<>();
         }
-        return repairOrderFaultsService.list(
-            new LambdaQueryWrapper<RepairOrderFaults>()
-                .in(RepairOrderFaults::getRepairOrderId, ids)
-                .eq(RepairOrderFaults::getIsDelete, 0)
-                .orderByAsc(RepairOrderFaults::getCreatedTime)
-        ).stream().collect(Collectors.groupingBy(RepairOrderFaults::getRepairOrderId));
+        return repairOrderFaultsService
+                .list(
+                        new LambdaQueryWrapper<RepairOrderFaults>()
+                                .in(RepairOrderFaults::getRepairOrderId, ids)
+                                .eq(RepairOrderFaults::getIsDelete, 0)
+                                .orderByAsc(RepairOrderFaults::getCreatedTime))
+                .stream()
+                .collect(Collectors.groupingBy(RepairOrderFaults::getRepairOrderId));
     }
 
     private Map<String, RepairOrderPayments> listPaymentMap(List<RepairOrders> orders) {
-        Set<String> ids = orders.stream()
-            .map(RepairOrders::getId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+        Set<String> ids =
+                orders.stream()
+                        .map(RepairOrders::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (ids.isEmpty()) {
             return new HashMap<>();
         }
-        return repairOrderPaymentsService.list(
-            new LambdaQueryWrapper<RepairOrderPayments>()
-                .in(RepairOrderPayments::getRepairOrderId, ids)
-                .eq(RepairOrderPayments::getIsDelete, 0)
-                .orderByDesc(RepairOrderPayments::getCreatedTime)
-        ).stream().collect(Collectors.toMap(RepairOrderPayments::getRepairOrderId, item -> item, (a, b) -> a));
+        return repairOrderPaymentsService
+                .list(
+                        new LambdaQueryWrapper<RepairOrderPayments>()
+                                .in(RepairOrderPayments::getRepairOrderId, ids)
+                                .eq(RepairOrderPayments::getIsDelete, 0)
+                                .orderByDesc(RepairOrderPayments::getCreatedTime))
+                .stream()
+                .collect(
+                        Collectors.toMap(
+                                RepairOrderPayments::getRepairOrderId, item -> item, (a, b) -> a));
     }
 
     private Set<String> findUserIdsByKeyword(String keyword) {
-        return userAccountsService.list(
-            new LambdaQueryWrapper<UserAccounts>()
-                .eq(UserAccounts::getIsDelete, 0)
-                .and(q -> q.like(UserAccounts::getUsername, keyword)
-                    .or().like(UserAccounts::getPhone, keyword)
-                    .or().like(UserAccounts::getEmail, keyword))
-        ).stream().map(UserAccounts::getId).filter(StringUtils::hasText).collect(Collectors.toSet());
+        return userAccountsService
+                .list(
+                        new LambdaQueryWrapper<UserAccounts>()
+                                .eq(UserAccounts::getIsDelete, 0)
+                                .and(
+                                        q ->
+                                                q.like(UserAccounts::getUsername, keyword)
+                                                        .or()
+                                                        .like(UserAccounts::getPhone, keyword)
+                                                        .or()
+                                                        .like(UserAccounts::getEmail, keyword)))
+                .stream()
+                .map(UserAccounts::getId)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toSet());
     }
 
     private Set<String> findTechnicianIdsByKeyword(String keyword) {
-        return technicianAccountsService.list(
-            new LambdaQueryWrapper<TechnicianAccounts>()
-                .eq(TechnicianAccounts::getIsDelete, 0)
-                .and(q -> q.like(TechnicianAccounts::getUsername, keyword)
-                    .or().like(TechnicianAccounts::getPhone, keyword)
-                    .or().like(TechnicianAccounts::getEmail, keyword))
-        ).stream().map(TechnicianAccounts::getId).filter(StringUtils::hasText).collect(Collectors.toSet());
+        return technicianAccountsService
+                .list(
+                        new LambdaQueryWrapper<TechnicianAccounts>()
+                                .eq(TechnicianAccounts::getIsDelete, 0)
+                                .and(
+                                        q ->
+                                                q.like(TechnicianAccounts::getUsername, keyword)
+                                                        .or()
+                                                        .like(TechnicianAccounts::getPhone, keyword)
+                                                        .or()
+                                                        .like(
+                                                                TechnicianAccounts::getEmail,
+                                                                keyword)))
+                .stream()
+                .map(TechnicianAccounts::getId)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toSet());
     }
 
     private Set<String> findServiceTypeIdsByKeyword(String keyword) {
-        Set<String> categoryIds = serviceCategoriesService.list(
-            new LambdaQueryWrapper<ServiceCategories>()
-                .eq(ServiceCategories::getIsDelete, 0)
-                .like(ServiceCategories::getName, keyword)
-        ).stream().map(ServiceCategories::getId).filter(StringUtils::hasText).collect(Collectors.toSet());
+        Set<String> categoryIds =
+                serviceCategoriesService
+                        .list(
+                                new LambdaQueryWrapper<ServiceCategories>()
+                                        .eq(ServiceCategories::getIsDelete, 0)
+                                        .like(ServiceCategories::getName, keyword))
+                        .stream()
+                        .map(ServiceCategories::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
 
-        LambdaQueryWrapper<ServiceTypes> wrapper = new LambdaQueryWrapper<ServiceTypes>()
-            .eq(ServiceTypes::getIsDelete, 0)
-            .like(ServiceTypes::getName, keyword);
+        LambdaQueryWrapper<ServiceTypes> wrapper =
+                new LambdaQueryWrapper<ServiceTypes>()
+                        .eq(ServiceTypes::getIsDelete, 0)
+                        .like(ServiceTypes::getName, keyword);
         if (!categoryIds.isEmpty()) {
             wrapper.or().in(ServiceTypes::getCategoryId, categoryIds);
         }
         return serviceTypesService.list(wrapper).stream()
-            .map(ServiceTypes::getId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+                .map(ServiceTypes::getId)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toSet());
     }
 
     private Set<String> findAddressIdsByKeyword(String keyword) {
-        return userAddressesService.list(
-            new LambdaQueryWrapper<UserAddresses>()
-                .eq(UserAddresses::getIsDelete, 0)
-                .and(q -> q.like(UserAddresses::getContactName, keyword)
-                    .or().like(UserAddresses::getContactPhone, keyword)
-                    .or().like(UserAddresses::getProvince, keyword)
-                    .or().like(UserAddresses::getCity, keyword)
-                    .or().like(UserAddresses::getDistrict, keyword)
-                    .or().like(UserAddresses::getStreet, keyword)
-                    .or().like(UserAddresses::getDetailedAddress, keyword))
-        ).stream().map(UserAddresses::getId).filter(StringUtils::hasText).collect(Collectors.toSet());
+        return userAddressesService
+                .list(
+                        new LambdaQueryWrapper<UserAddresses>()
+                                .eq(UserAddresses::getIsDelete, 0)
+                                .and(
+                                        q ->
+                                                q.like(UserAddresses::getContactName, keyword)
+                                                        .or()
+                                                        .like(
+                                                                UserAddresses::getContactPhone,
+                                                                keyword)
+                                                        .or()
+                                                        .like(UserAddresses::getProvince, keyword)
+                                                        .or()
+                                                        .like(UserAddresses::getCity, keyword)
+                                                        .or()
+                                                        .like(UserAddresses::getDistrict, keyword)
+                                                        .or()
+                                                        .like(UserAddresses::getStreet, keyword)
+                                                        .or()
+                                                        .like(
+                                                                UserAddresses::getDetailedAddress,
+                                                                keyword)))
+                .stream()
+                .map(UserAddresses::getId)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toSet());
     }
 
     private Set<String> findServiceTypeIdsByMode(Integer serviceMode) {
-        return serviceTypesService.list(
-            new LambdaQueryWrapper<ServiceTypes>()
-                .eq(ServiceTypes::getType, serviceMode)
-                .eq(ServiceTypes::getIsDelete, 0)
-        ).stream().map(ServiceTypes::getId).filter(StringUtils::hasText).collect(Collectors.toSet());
+        return serviceTypesService
+                .list(
+                        new LambdaQueryWrapper<ServiceTypes>()
+                                .eq(ServiceTypes::getType, serviceMode)
+                                .eq(ServiceTypes::getIsDelete, 0))
+                .stream()
+                .map(ServiceTypes::getId)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toSet());
     }
 
     private String getStatusText(Integer status) {
-        int value = safeInt(status);
-        if (value == 1) {
-            return "待接单";
-        }
-        if (value == 2) {
-            return "待上门";
-        }
-        if (value == 3) {
-            return "待检查";
-        }
-        if (value == 4) {
-            return "待支付";
-        }
-        if (value == 5) {
-            return "服务中";
-        }
-        if (value == 6) {
-            return "已完成";
-        }
-        if (value == 7) {
-            return "已取消";
-        }
-        if (value == 8) {
-            return "已退款";
-        }
-        return "未知状态";
+        return repairOrderStateMachine.statusText(status);
     }
 
     private String getDisplayStatusText(RepairOrders order) {
@@ -865,10 +960,10 @@ public class AdminReserveOrderController {
 
     private boolean isWaitingUserConfirmation(RepairOrders order) {
         return order != null
-            && safeInt(order.getStatus()) == 5
-            && order.getEndTime() != null
-            && order.getEndTime() > 0L
-            && (order.getCompletionTime() == null || order.getCompletionTime() <= 0L);
+                && safeInt(order.getStatus()) == 5
+                && order.getEndTime() != null
+                && order.getEndTime() > 0L
+                && (order.getCompletionTime() == null || order.getCompletionTime() <= 0L);
     }
 
     private boolean isPrepaidOnly(RepairOrderPayments payment) {
@@ -876,12 +971,14 @@ public class AdminReserveOrderController {
             return false;
         }
         return isZero(payment.getServiceFee())
-            && isZero(payment.getMaterialFee())
-            && isZero(payment.getOvertimeFee());
+                && isZero(payment.getMaterialFee())
+                && isZero(payment.getOvertimeFee());
     }
 
     private boolean isFullyPaid(RepairOrderPayments payment) {
-        if (payment == null || payment.getTotalAmount() == null || payment.getActualAmount() == null) {
+        if (payment == null
+                || payment.getTotalAmount() == null
+                || payment.getActualAmount() == null) {
             return false;
         }
         return payment.getActualAmount().compareTo(payment.getTotalAmount()) >= 0;
@@ -907,17 +1004,23 @@ public class AdminReserveOrderController {
             return "";
         }
 
-        Set<String> phenomenonIds = faults.stream()
-            .map(RepairOrderFaults::getFaultPhenomenonId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
-        Map<String, FaultPhenomena> phenomenonMap = phenomenonIds.isEmpty()
-            ? new HashMap<>()
-            : faultPhenomenaService.list(
-                new LambdaQueryWrapper<FaultPhenomena>()
-                    .in(FaultPhenomena::getId, phenomenonIds)
-                    .eq(FaultPhenomena::getIsDelete, 0)
-            ).stream().collect(Collectors.toMap(FaultPhenomena::getId, item -> item, (a, b) -> a));
+        Set<String> phenomenonIds =
+                faults.stream()
+                        .map(RepairOrderFaults::getFaultPhenomenonId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
+        Map<String, FaultPhenomena> phenomenonMap =
+                phenomenonIds.isEmpty()
+                        ? new HashMap<>()
+                        : faultPhenomenaService
+                                .list(
+                                        new LambdaQueryWrapper<FaultPhenomena>()
+                                                .in(FaultPhenomena::getId, phenomenonIds)
+                                                .eq(FaultPhenomena::getIsDelete, 0))
+                                .stream()
+                                .collect(
+                                        Collectors.toMap(
+                                                FaultPhenomena::getId, item -> item, (a, b) -> a));
 
         LinkedHashSet<String> parts = new LinkedHashSet<>();
         for (RepairOrderFaults fault : faults) {
@@ -937,10 +1040,10 @@ public class AdminReserveOrderController {
             return "";
         }
         return safe(address.getProvince())
-            + safe(address.getCity())
-            + safe(address.getDistrict())
-            + safe(address.getStreet())
-            + safe(address.getDetailedAddress());
+                + safe(address.getCity())
+                + safe(address.getDistrict())
+                + safe(address.getStreet())
+                + safe(address.getDetailedAddress());
     }
 
     private String buildShortAddress(UserAddresses address) {
@@ -951,7 +1054,8 @@ public class AdminReserveOrderController {
         return StringUtils.hasText(shortAddress) ? shortAddress : buildFullAddress(address);
     }
 
-    private String buildCategoryPath(ServiceCategories category, Map<String, ServiceCategories> categoryMap) {
+    private String buildCategoryPath(
+            ServiceCategories category, Map<String, ServiceCategories> categoryMap) {
         if (category == null) {
             return "";
         }

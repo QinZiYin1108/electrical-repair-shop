@@ -1,16 +1,19 @@
 package com.example.backend.controller.user;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.backend.common.ErrorCode;
 import com.example.backend.common.Result;
+import com.example.backend.domain.order.RepairOrderAction;
+import com.example.backend.domain.order.RepairOrderAfterSalesStatus;
+import com.example.backend.domain.order.RepairOrderStateContext;
+import com.example.backend.domain.order.RepairOrderStateMachine;
 import com.example.backend.entity.AfterSalesApplications;
+import com.example.backend.entity.CancelReasons;
 import com.example.backend.entity.ConversationSessions;
 import com.example.backend.entity.FaultPhenomena;
 import com.example.backend.entity.Images;
-import com.example.backend.entity.OrderProgress;
 import com.example.backend.entity.OrderDoorQrCodes;
+import com.example.backend.entity.OrderProgress;
 import com.example.backend.entity.PaymentRecords;
 import com.example.backend.entity.RepairOrderFaults;
 import com.example.backend.entity.RepairOrderPayments;
@@ -38,15 +41,20 @@ import com.example.backend.security.context.AuthUserContext;
 import com.example.backend.security.model.AccountRole;
 import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.AfterSalesApplicationsService;
+import com.example.backend.service.AppointmentCapacityService;
+import com.example.backend.service.CancelReasonsService;
+import com.example.backend.service.ContentCheckLogsService;
 import com.example.backend.service.ConversationSessionsService;
 import com.example.backend.service.FaultPhenomenaService;
 import com.example.backend.service.ImagesService;
-import com.example.backend.service.OrderProgressService;
 import com.example.backend.service.OrderDoorQrService;
+import com.example.backend.service.OrderProgressService;
 import com.example.backend.service.PaymentRecordsService;
+import com.example.backend.service.RepairOrderCommandService;
 import com.example.backend.service.RepairOrderFaultsService;
 import com.example.backend.service.RepairOrderFundService;
 import com.example.backend.service.RepairOrderPaymentsService;
+import com.example.backend.service.RepairOrderQueryService;
 import com.example.backend.service.RepairOrdersService;
 import com.example.backend.service.ReviewsService;
 import com.example.backend.service.ServiceCategoriesService;
@@ -57,20 +65,15 @@ import com.example.backend.service.TechnicianAccountsService;
 import com.example.backend.service.UserAddressesService;
 import com.example.backend.service.UserOrderFlowService;
 import com.example.backend.service.VideosService;
+import com.example.backend.service.contentcheck.AliyunGreenClient;
+import com.example.backend.service.contentcheck.CheckResult;
 import com.example.backend.utils.id.SnowflakeIdUtil;
-import lombok.Data;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -84,16 +87,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.Data;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "用户端/维修订单")
 @RequestMapping("/user/orders")
 public class UserOrdersController {
 
     private static final String ORDER_FAULT_BUSINESS_TYPE = "REPAIR_ORDER_FAULT";
     private static final String ORDER_INSPECTION_BUSINESS_TYPE = "REPAIR_ORDER_INSPECTION";
     private static final String AFTER_SALES_BUSINESS_TYPE = "AFTER_SALES_APPLICATION";
-    private static final String WORKER_ORDER_CANCEL_MESSAGE_TYPE = "USER_ORDER_CANCEL_NOTIFY_WORKER";
-    private static final String WORKER_AFTER_SALES_MESSAGE_TYPE = "USER_AFTER_SALES_APPLY_NOTIFY_WORKER";
+    private static final String WORKER_ORDER_CANCEL_MESSAGE_TYPE =
+            "USER_ORDER_CANCEL_NOTIFY_WORKER";
+    private static final String WORKER_AFTER_SALES_MESSAGE_TYPE =
+            "USER_AFTER_SALES_APPLY_NOTIFY_WORKER";
     private static final String INSPECTION_PROGRESS_TYPE = "inspection";
     private static final int PAYMENT_METHOD_WECHAT = 1;
     private static final int PAYMENT_METHOD_ALIPAY = 2;
@@ -114,7 +129,8 @@ public class UserOrdersController {
     private static final int DEFAULT_MAX_AFTER_SALES_IMAGE_COUNT = 5;
     private static final long DEFAULT_AFTER_SALES_VALID_DAYS = 7L;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final DateTimeFormatter DATE_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     private final RepairOrdersService repairOrdersService;
     private final RepairOrderPaymentsService repairOrderPaymentsService;
@@ -136,29 +152,42 @@ public class UserOrdersController {
     private final ReviewsService reviewsService;
     private final SystemConfigsService systemConfigsService;
     private final UserOrderFlowService userOrderFlowService;
+    private final CancelReasonsService cancelReasonsService;
+    private final AliyunGreenClient aliyunGreenClient;
+    private final ContentCheckLogsService checkLogsService;
+    private final RepairOrderStateMachine repairOrderStateMachine;
+    private final RepairOrderQueryService repairOrderQueryService;
+    private final RepairOrderCommandService repairOrderCommandService;
+    private final AppointmentCapacityService appointmentCapacityService;
 
     public UserOrdersController(
-        RepairOrdersService repairOrdersService,
-        RepairOrderPaymentsService repairOrderPaymentsService,
-        RepairOrderFaultsService repairOrderFaultsService,
-        ServiceTypesService serviceTypesService,
-        ServiceCategoriesService serviceCategoriesService,
-        TechnicianAccountsService technicianAccountsService,
-        UserAddressesService userAddressesService,
-        FaultPhenomenaService faultPhenomenaService,
-        ImagesService imagesService,
-        VideosService videosService,
-        OrderProgressService orderProgressService,
-        OrderDoorQrService orderDoorQrService,
-        ConversationSessionsService conversationSessionsService,
-        PaymentRecordsService paymentRecordsService,
-        RepairOrderFundService repairOrderFundService,
-        AfterSalesApplicationsService afterSalesApplicationsService,
-        SystemMessagesService systemMessagesService,
-        ReviewsService reviewsService,
-        SystemConfigsService systemConfigsService,
-        UserOrderFlowService userOrderFlowService
-    ) {
+            RepairOrdersService repairOrdersService,
+            RepairOrderPaymentsService repairOrderPaymentsService,
+            RepairOrderFaultsService repairOrderFaultsService,
+            ServiceTypesService serviceTypesService,
+            ServiceCategoriesService serviceCategoriesService,
+            TechnicianAccountsService technicianAccountsService,
+            UserAddressesService userAddressesService,
+            FaultPhenomenaService faultPhenomenaService,
+            ImagesService imagesService,
+            VideosService videosService,
+            OrderProgressService orderProgressService,
+            OrderDoorQrService orderDoorQrService,
+            ConversationSessionsService conversationSessionsService,
+            PaymentRecordsService paymentRecordsService,
+            RepairOrderFundService repairOrderFundService,
+            AfterSalesApplicationsService afterSalesApplicationsService,
+            SystemMessagesService systemMessagesService,
+            ReviewsService reviewsService,
+            SystemConfigsService systemConfigsService,
+            UserOrderFlowService userOrderFlowService,
+            CancelReasonsService cancelReasonsService,
+            AliyunGreenClient aliyunGreenClient,
+            ContentCheckLogsService checkLogsService,
+            RepairOrderStateMachine repairOrderStateMachine,
+            RepairOrderQueryService repairOrderQueryService,
+            RepairOrderCommandService repairOrderCommandService,
+            AppointmentCapacityService appointmentCapacityService) {
         this.repairOrdersService = repairOrdersService;
         this.repairOrderPaymentsService = repairOrderPaymentsService;
         this.repairOrderFaultsService = repairOrderFaultsService;
@@ -179,14 +208,22 @@ public class UserOrdersController {
         this.reviewsService = reviewsService;
         this.systemConfigsService = systemConfigsService;
         this.userOrderFlowService = userOrderFlowService;
+        this.cancelReasonsService = cancelReasonsService;
+        this.aliyunGreenClient = aliyunGreenClient;
+        this.checkLogsService = checkLogsService;
+        this.repairOrderStateMachine = repairOrderStateMachine;
+        this.repairOrderQueryService = repairOrderQueryService;
+        this.repairOrderCommandService = repairOrderCommandService;
+        this.appointmentCapacityService = appointmentCapacityService;
     }
 
+    @Operation(summary = "查询订单列表")
     @GetMapping("/list")
     public Result<List<UserOrderListItemResponse>> listOrders(
-        @RequestParam(value = "tab", required = false) String tab
-    ) {
+            @RequestParam(value = "tab", required = false) String tab) {
         LoginUserInfo user = requireCurrentUser();
-        List<RepairOrders> orders = repairOrdersService.list(buildListQuery(user.getAccountId(), normalizeTab(tab)));
+        List<RepairOrders> orders =
+                repairOrdersService.list(buildListQuery(user.getAccountId(), normalizeTab(tab)));
         if (orders.isEmpty()) {
             return Result.success(Collections.emptyList());
         }
@@ -198,35 +235,38 @@ public class UserOrdersController {
         Map<String, List<RepairOrderFaults>> faultMap = listFaultMap(orders);
         Map<String, FaultPhenomena> phenomenonMap = listPhenomenonMap(faultMap);
         Map<String, RepairOrderPayments> paymentMap = listPaymentMap(orders);
-        Map<String, AfterSalesApplications> afterSalesMap = listLatestAfterSalesMap(orders, user.getAccountId());
-        Map<String, OrderDoorQrCodes> activeDoorQrMap = orderDoorQrService.getActiveCodeMap(
-            orders.stream().map(RepairOrders::getId).collect(Collectors.toList())
-        );
+        Map<String, AfterSalesApplications> afterSalesMap =
+                listLatestAfterSalesMap(orders, user.getAccountId());
+        Map<String, OrderDoorQrCodes> activeDoorQrMap =
+                orderDoorQrService.getActiveCodeMap(
+                        orders.stream().map(RepairOrders::getId).collect(Collectors.toList()));
 
         List<UserOrderListItemResponse> items = new ArrayList<>();
         for (RepairOrders order : orders) {
-            items.add(buildOrderItem(
-                order,
-                serviceTypeMap.get(order.getServiceTypeId()),
-                categoryMap,
-                technicianMap.get(order.getTechnicianAccountId()),
-                addressMap.get(order.getServiceAddressId()),
-                faultMap.get(order.getId()),
-                phenomenonMap,
-                paymentMap.get(order.getId()),
-                afterSalesMap.get(order.getId()),
-                activeDoorQrMap.get(order.getId()) != null
-            ));
+            items.add(
+                    buildOrderItem(
+                            order,
+                            serviceTypeMap.get(order.getServiceTypeId()),
+                            categoryMap,
+                            technicianMap.get(order.getTechnicianAccountId()),
+                            addressMap.get(order.getServiceAddressId()),
+                            faultMap.get(order.getId()),
+                            phenomenonMap,
+                            paymentMap.get(order.getId()),
+                            afterSalesMap.get(order.getId()),
+                            activeDoorQrMap.get(order.getId()) != null));
         }
         return Result.success(items);
     }
 
+    @Operation(summary = "查询DoorQr")
     @GetMapping("/door-qr")
     public Result<UserOrderDoorQrResponse> getDoorQr(@RequestParam("orderId") String orderId) {
         LoginUserInfo user = requireCurrentUser();
         return Result.success(orderDoorQrService.getUserDoorQr(orderId, user.getAccountId()));
     }
 
+    @Operation(summary = "查询Order详情")
     @GetMapping("/detail")
     public Result<UserOrderDetailResponse> getOrderDetail(@RequestParam("orderId") String orderId) {
         LoginUserInfo user = requireCurrentUser();
@@ -234,9 +274,11 @@ public class UserOrdersController {
         return Result.success(buildOrderDetail(order));
     }
 
+    @Operation(summary = "修改编辑Order")
     @PostMapping("/update")
     @Transactional(rollbackFor = Exception.class)
-    public Result<UserOrderDetailResponse> updateOrder(@RequestBody(required = false) UserOrderUpdateRequest request) {
+    public Result<UserOrderDetailResponse> updateOrder(
+            @RequestBody(required = false) UserOrderUpdateRequest request) {
         LoginUserInfo user = requireCurrentUser();
         String orderId = request == null ? null : trimToNull(request.getOrderId());
         if (!StringUtils.hasText(orderId)) {
@@ -246,14 +288,18 @@ public class UserOrdersController {
         RepairOrders order = requireOwnedOrder(orderId, user.getAccountId());
         RepairOrderPayments payment = requireOrderPayment(orderId);
         ServiceTypes serviceType = requireOrderServiceType(order.getServiceTypeId());
-        boolean appointmentOnly = request != null && Boolean.TRUE.equals(request.getAppointmentOnly());
+        boolean appointmentOnly =
+                request != null && Boolean.TRUE.equals(request.getAppointmentOnly());
 
         if (appointmentOnly) {
             if (!canUserModifyAppointment(order, serviceType)) {
-                throw new BusinessException(ErrorCode.BUSINESS_ERROR, buildModifyAppointmentUnavailableMessage(order, serviceType));
+                throw new BusinessException(
+                        ErrorCode.BUSINESS_ERROR,
+                        buildModifyAppointmentUnavailableMessage(order, serviceType));
             }
         } else if (!canUserModifyOrder(order, payment)) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, buildModifyOrderUnavailableMessage(order, payment));
+            throw new BusinessException(
+                    ErrorCode.BUSINESS_ERROR, buildModifyOrderUnavailableMessage(order, payment));
         }
 
         long now = System.currentTimeMillis();
@@ -265,10 +311,13 @@ public class UserOrdersController {
             }
             boolean appointmentChanged = !safeEquals(oldAppointmentTime, nextAppointmentTime);
             if (appointmentChanged && !canUserModifyAppointment(order, serviceType)) {
-                throw new BusinessException(ErrorCode.BUSINESS_ERROR, buildModifyAppointmentUnavailableMessage(order, serviceType));
+                throw new BusinessException(
+                        ErrorCode.BUSINESS_ERROR,
+                        buildModifyAppointmentUnavailableMessage(order, serviceType));
             }
             if (appointmentChanged) {
-                userOrderFlowService.validateAppointmentTime(order.getTechnicianAccountId(), nextAppointmentTime, order.getId());
+                userOrderFlowService.validateAppointmentTime(
+                        order.getTechnicianAccountId(), nextAppointmentTime, order.getId());
             }
             order.setAppointmentTime(nextAppointmentTime);
         }
@@ -277,7 +326,8 @@ public class UserOrdersController {
             order.setApplianceBrand(trimToNull(request.getApplianceBrand()));
             order.setApplianceModel(trimToNull(request.getApplianceModel()));
             order.setPurchaseDate(parsePurchaseDate(request.getPurchaseDate()));
-            replaceOrderFaultDetails(order, serviceType.getId(), user.getAccountId(), request.getFaultList(), now);
+            replaceOrderFaultDetails(
+                    order, serviceType.getId(), user.getAccountId(), request.getFaultList(), now);
         }
 
         order.setUpdatedTime(now);
@@ -292,13 +342,20 @@ public class UserOrdersController {
                 orderDoorQrService.invalidateCurrentCodes(order.getId());
             }
         }
+        if (isOnsiteMode(serviceType)
+                && !safeEquals(oldAppointmentTime, order.getAppointmentTime())) {
+            appointmentCapacityService.reschedule(
+                    order.getId(), order.getTechnicianAccountId(), order.getAppointmentTime());
+        }
         saveUserModifyProgress(order, appointmentOnly, now);
         return Result.success(buildOrderDetail(order));
     }
 
+    @Operation(summary = "提交payTail")
     @PostMapping("/pay-tail")
     @Transactional(rollbackFor = Exception.class)
-    public Result<UserOrderDetailResponse> payTail(@RequestBody(required = false) UserOrderTailPayRequest request) {
+    public Result<UserOrderDetailResponse> payTail(
+            @RequestBody(required = false) UserOrderTailPayRequest request) {
         LoginUserInfo user = requireCurrentUser();
         String orderId = request == null ? null : trimToNull(request.getOrderId());
         if (!StringUtils.hasText(orderId)) {
@@ -306,19 +363,25 @@ public class UserOrdersController {
         }
 
         RepairOrders order = requireOwnedOrder(orderId, user.getAccountId());
-        if (safeInt(order.getStatus()) != 4) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "当前订单不在待支付状态");
-        }
-
         RepairOrderPayments payment = requireOrderPayment(orderId);
+        repairOrderStateMachine.requireAction(
+                order.getStatus(),
+                RepairOrderAction.PAY_TAIL,
+                userStateContext(order, null, payment, null),
+                "当前订单不在可支付尾款状态");
         BigDecimal totalAmount = normalizeMoney(payment.getTotalAmount());
         BigDecimal paidAmount = normalizeMoney(payment.getActualAmount());
-        BigDecimal remainingAmount = totalAmount.subtract(paidAmount).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal remainingAmount =
+                totalAmount.subtract(paidAmount).setScale(2, RoundingMode.HALF_UP);
         if (remainingAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "当前订单暂无需要支付的尾款");
         }
 
         int paymentMethod = normalizePaymentMethod(request.getPaymentMethod());
+        if (paymentMethod != PAYMENT_METHOD_WALLET) {
+            throw new BusinessException(
+                    ErrorCode.BUSINESS_ERROR, "微信/支付宝支付请通过支付意图接口发起，当前接口仅支持钱包支付");
+        }
         long now = System.currentTimeMillis();
 
         payment.setActualAmount(totalAmount);
@@ -337,24 +400,23 @@ public class UserOrdersController {
 
         createTailPaymentRecord(order, user.getAccountId(), paymentMethod, remainingAmount, now);
         repairOrderFundService.recordOrderTailPay(
-            user.getAccountId(),
-            order.getTechnicianAccountId(),
-            order.getId(),
-            order.getOrderNo(),
-            paymentMethod,
-            remainingAmount,
-            now
-        );
+                user.getAccountId(),
+                order.getTechnicianAccountId(),
+                order.getId(),
+                order.getOrderNo(),
+                paymentMethod,
+                remainingAmount,
+                now);
         saveTailPaymentProgress(order, remainingAmount, paymentMethod, now);
 
         return Result.success(buildOrderDetail(order));
     }
 
+    @Operation(summary = "提交confirmCompletion")
     @PostMapping("/confirm-completion")
     @Transactional(rollbackFor = Exception.class)
     public Result<UserOrderDetailResponse> confirmCompletion(
-        @RequestBody(required = false) UserOrderConfirmCompletionRequest request
-    ) {
+            @RequestBody(required = false) UserOrderConfirmCompletionRequest request) {
         LoginUserInfo user = requireCurrentUser();
         String orderId = request == null ? null : trimToNull(request.getOrderId());
         if (!StringUtils.hasText(orderId)) {
@@ -364,19 +426,18 @@ public class UserOrdersController {
         RepairOrders order = requireOwnedOrder(orderId, user.getAccountId());
         RepairOrderPayments payment = requireOrderPayment(orderId);
         if (!canUserConfirmCompletion(order, payment)) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, buildConfirmCompletionUnavailableMessage(order, payment));
+            throw new BusinessException(
+                    ErrorCode.BUSINESS_ERROR,
+                    buildConfirmCompletionUnavailableMessage(order, payment));
         }
 
         long now = System.currentTimeMillis();
-        order.setStatus(6);
+        int currentStatus = safeInt(order.getStatus());
         if (order.getEndTime() == null || order.getEndTime() <= 0L) {
             order.setEndTime(now);
         }
         order.setCompletionTime(now);
-        order.setUpdatedTime(now);
-        if (!repairOrdersService.updateById(order)) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "订单完成失败");
-        }
+        repairOrderCommandService.saveTransition(order, currentStatus, 6, now, "订单完成失败");
 
         if (payment != null) {
             repairOrderFundService.settleOnOrderCompleted(order, payment, now);
@@ -387,35 +448,57 @@ public class UserOrdersController {
         return Result.success(buildOrderDetail(order));
     }
 
+    @Operation(summary = "提交注销Order")
     @PostMapping("/cancel")
     @Transactional(rollbackFor = Exception.class)
-    public Result<UserOrderDetailResponse> cancelOrder(@RequestBody(required = false) UserOrderCancelRequest request) {
+    public Result<UserOrderDetailResponse> cancelOrder(
+            @RequestBody(required = false) UserOrderCancelRequest request) {
         LoginUserInfo user = requireCurrentUser();
         String orderId = request == null ? null : trimToNull(request.getOrderId());
         String cancelReason = request == null ? null : trimToNull(request.getReason());
+        String reasonCode = request == null ? null : trimToNull(request.getReasonCode());
+        String reasonLabel = request == null ? null : trimToNull(request.getReasonLabel());
+        String userRemark = request == null ? null : trimToNull(request.getUserRemark());
         if (!StringUtils.hasText(orderId)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "订单ID不能为空");
         }
         if (!StringUtils.hasText(cancelReason)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "取消原因不能为空");
         }
+        // 商家问题应走售后通道，不在取消原因中处理
+        if (isMerchantIssueReason(cancelReason)) {
+            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "如认为是商家问题，请通过「申请售后」处理，而非取消订单");
+        }
 
         RepairOrders order = requireOwnedOrder(orderId, user.getAccountId());
         RepairOrderPayments payment = requireOrderPayment(orderId);
         ServiceTypes serviceType = requireOrderServiceType(order.getServiceTypeId());
         if (!canUserCancel(order, payment)) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, buildCancelUnavailableMessage(order, payment));
+            throw new BusinessException(
+                    ErrorCode.BUSINESS_ERROR, buildCancelUnavailableMessage(order, payment));
         }
 
         long now = System.currentTimeMillis();
+
+        // 写入取消原因记录
+        CancelReasons cr = new CancelReasons();
+        cr.setId(SnowflakeIdUtil.nextCancelReasonId());
+        cr.setOrderId(orderId);
+        cr.setOrderType(1); // 1-维修
+        cr.setReasonCode(reasonCode != null ? reasonCode : "other");
+        cr.setReasonLabel(reasonLabel != null ? reasonLabel : cancelReason);
+        cr.setUserRemark(userRemark);
+        cr.setCreatedTime(now);
+        cancelReasonsService.save(cr);
+
         BigDecimal refundAmount = resolveCancelRefundAmount(order, serviceType, payment);
         BigDecimal paidAmount = normalizeMoney(payment.getActualAmount());
         boolean shouldRefund = refundAmount.compareTo(BigDecimal.ZERO) > 0;
 
-        order.setStatus(7);
+        int currentStatus = safeInt(order.getStatus());
         order.setCancelReason(cancelReason);
+        order.setCancelReasonId(cr.getId());
         order.setCancelTime(now);
-        order.setUpdatedTime(now);
         order.setRefundAmount(refundAmount);
         if (shouldRefund) {
             order.setPaymentStatus(3);
@@ -425,15 +508,16 @@ public class UserOrdersController {
             order.setRefundReason(buildCancelRefundMessage(order, serviceType, payment));
             order.setRefundTime(null);
         }
-        if (!repairOrdersService.updateById(order)) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新订单信息失败");
-        }
+        repairOrderCommandService.saveTransition(order, currentStatus, 7, now, "更新订单信息失败");
+        appointmentCapacityService.release(orderId, "用户取消订单");
 
         orderDoorQrService.invalidateCurrentCodes(orderId);
         closeConversationSession(order, now);
         if (shouldRefund) {
-            repairOrderFundService.refundOnOrderClosed(order, payment, order.getRefundReason(), now);
-        } else if (paidAmount.compareTo(BigDecimal.ZERO) > 0 && hasTechnicianArrived(order, serviceType)) {
+            repairOrderFundService.refundOnOrderClosed(
+                    order, payment, order.getRefundReason(), now);
+        } else if (paidAmount.compareTo(BigDecimal.ZERO) > 0
+                && hasTechnicianArrived(order, serviceType)) {
             repairOrderFundService.settleRetainedAmountOnCancel(order, paidAmount, now);
         }
         saveUserCancelProgress(order, cancelReason, refundAmount, now);
@@ -441,17 +525,19 @@ public class UserOrdersController {
         return Result.success(buildOrderDetail(order));
     }
 
+    @Operation(summary = "提交申请AfterSales")
     @PostMapping("/after-sales/apply")
     @Transactional(rollbackFor = Exception.class)
     public Result<UserOrderDetailResponse> applyAfterSales(
-        @RequestBody(required = false) UserOrderAfterSalesApplyRequest request
-    ) {
+            @RequestBody(required = false) UserOrderAfterSalesApplyRequest request) {
         LoginUserInfo user = requireCurrentUser();
         String orderId = request == null ? null : trimToNull(request.getOrderId());
         String reason = request == null ? null : trimToNull(request.getReason());
         String description = request == null ? null : trimToNull(request.getDescription());
-        List<UserAfterSalesSubmitMediaItem> images = normalizeAfterSalesImages(request == null ? null : request.getImages());
-        UserAfterSalesSubmitMediaItem video = normalizeAfterSalesVideo(request == null ? null : request.getVideo());
+        List<UserAfterSalesSubmitMediaItem> images =
+                normalizeAfterSalesImages(request == null ? null : request.getImages());
+        UserAfterSalesSubmitMediaItem video =
+                normalizeAfterSalesVideo(request == null ? null : request.getVideo());
         if (!StringUtils.hasText(orderId)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "订单ID不能为空");
         }
@@ -461,9 +547,12 @@ public class UserOrdersController {
 
         RepairOrders order = requireOwnedOrder(orderId, user.getAccountId());
         RepairOrderPayments payment = requireOrderPayment(orderId);
-        AfterSalesApplications latestApplication = getLatestAfterSalesApplication(orderId, user.getAccountId());
+        AfterSalesApplications latestApplication =
+                getLatestAfterSalesApplication(orderId, user.getAccountId());
         if (!canUserApplyAfterSales(order, payment, latestApplication)) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, buildAfterSalesUnavailableMessage(order, payment, latestApplication));
+            throw new BusinessException(
+                    ErrorCode.BUSINESS_ERROR,
+                    buildAfterSalesUnavailableMessage(order, payment, latestApplication));
         }
 
         UserAddresses address = getAddress(order.getServiceAddressId());
@@ -475,6 +564,27 @@ public class UserOrdersController {
         application.setOrderType(ORDER_TYPE_REPAIR);
         application.setAccountId(user.getAccountId());
         application.setApplicationType(AFTER_SALES_TYPE_REPAIR);
+        if (StringUtils.hasText(description)) {
+            CheckResult cr = aliyunGreenClient.checkText(description);
+            int logResult =
+                    cr.isBlocked()
+                            ? ContentCheckLogsService.RESULT_BLOCK
+                            : cr.isWatch()
+                                    ? ContentCheckLogsService.RESULT_WATCH
+                                    : ContentCheckLogsService.RESULT_PASS;
+            checkLogsService.logCheck(
+                    user.getAccountId(),
+                    1,
+                    1,
+                    description,
+                    logResult,
+                    cr.getLabel(),
+                    cr.getSuggestion());
+            if (cr.isBlocked()) {
+                throw new BusinessException(
+                        ErrorCode.BUSINESS_ERROR, "问题描述包含违规内容：" + cr.getLabelDesc() + "，请修改后重新提交");
+            }
+        }
         application.setReason(reason);
         application.setDescription(description);
         application.setEvidenceImages(buildEvidenceImageSnapshot(images));
@@ -497,8 +607,10 @@ public class UserOrdersController {
         return Result.success(buildOrderDetail(order));
     }
 
+    @Operation(summary = "查询AfterSales详情")
     @GetMapping("/after-sales/detail")
-    public Result<UserAfterSalesDetailResponse> getAfterSalesDetail(@RequestParam("orderId") String orderId) {
+    public Result<UserAfterSalesDetailResponse> getAfterSalesDetail(
+            @RequestParam("orderId") String orderId) {
         LoginUserInfo user = requireCurrentUser();
         String normalizedOrderId = trimToNull(orderId);
         if (!StringUtils.hasText(normalizedOrderId)) {
@@ -506,30 +618,31 @@ public class UserOrdersController {
         }
         RepairOrders order = requireOwnedOrder(normalizedOrderId, user.getAccountId());
         RepairOrderPayments payment = requireOrderPayment(normalizedOrderId);
-        AfterSalesApplications latestApplication = getLatestAfterSalesApplication(normalizedOrderId, user.getAccountId());
+        AfterSalesApplications latestApplication =
+                getLatestAfterSalesApplication(normalizedOrderId, user.getAccountId());
         return Result.success(buildAfterSalesDetail(order, payment, latestApplication));
     }
 
+    @Operation(summary = "提交注销AfterSales")
     @PostMapping("/after-sales/cancel")
     @Transactional(rollbackFor = Exception.class)
     public Result<UserAfterSalesDetailResponse> cancelAfterSales(
-        @RequestBody(required = false) UserOrderAfterSalesCancelRequest request
-    ) {
+            @RequestBody(required = false) UserOrderAfterSalesCancelRequest request) {
         LoginUserInfo user = requireCurrentUser();
         String applicationId = request == null ? null : trimToNull(request.getApplicationId());
         if (!StringUtils.hasText(applicationId)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "售后申请ID不能为空");
         }
 
-        AfterSalesApplications application = afterSalesApplicationsService.getOne(
-            new LambdaQueryWrapper<AfterSalesApplications>()
-                .eq(AfterSalesApplications::getId, applicationId)
-                .eq(AfterSalesApplications::getAccountId, user.getAccountId())
-                .eq(AfterSalesApplications::getOrderType, ORDER_TYPE_REPAIR)
-                .eq(AfterSalesApplications::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+        AfterSalesApplications application =
+                afterSalesApplicationsService.getOne(
+                        new LambdaQueryWrapper<AfterSalesApplications>()
+                                .eq(AfterSalesApplications::getId, applicationId)
+                                .eq(AfterSalesApplications::getAccountId, user.getAccountId())
+                                .eq(AfterSalesApplications::getOrderType, ORDER_TYPE_REPAIR)
+                                .eq(AfterSalesApplications::getIsDelete, 0)
+                                .last("limit 1"),
+                        false);
         if (application == null) {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "售后申请不存在");
         }
@@ -554,9 +667,10 @@ public class UserOrdersController {
     }
 
     private LambdaQueryWrapper<RepairOrders> buildListQuery(String accountId, String tab) {
-        LambdaQueryWrapper<RepairOrders> wrapper = new LambdaQueryWrapper<RepairOrders>()
-            .eq(RepairOrders::getAccountId, accountId)
-            .eq(RepairOrders::getIsDelete, 0);
+        LambdaQueryWrapper<RepairOrders> wrapper =
+                new LambdaQueryWrapper<RepairOrders>()
+                        .eq(RepairOrders::getAccountId, accountId)
+                        .eq(RepairOrders::getIsDelete, 0);
 
         if ("waiting".equals(tab)) {
             wrapper.eq(RepairOrders::getStatus, 1);
@@ -570,8 +684,7 @@ public class UserOrdersController {
             wrapper.in(RepairOrders::getStatus, 7, 8);
         }
 
-        wrapper.orderByDesc(RepairOrders::getUpdatedTime)
-            .orderByDesc(RepairOrders::getCreatedTime);
+        wrapper.orderByDesc(RepairOrders::getUpdatedTime).orderByDesc(RepairOrders::getCreatedTime);
         return wrapper;
     }
 
@@ -586,24 +699,30 @@ public class UserOrdersController {
         Map<String, RepairOrderPayments> paymentMap = listPaymentMap(orders);
         List<OrderProgress> progressList = listOrderProgress(order.getId());
         OrderProgress latestInspectionProgress = findLatestInspectionProgress(progressList);
-        InspectionProgressSnapshot inspectionSnapshot = parseInspectionProgress(latestInspectionProgress);
+        InspectionProgressSnapshot inspectionSnapshot =
+                parseInspectionProgress(latestInspectionProgress);
         ServiceTypes serviceType = serviceTypeMap.get(order.getServiceTypeId());
         RepairOrderPayments payment = paymentMap.get(order.getId());
-        AfterSalesApplications latestAfterSalesApplication = getLatestAfterSalesApplication(order.getId(), order.getAccountId());
-        Reviews review = reviewsService.getUserOrderReviewEntity(order.getId(), order.getAccountId());
+        AfterSalesApplications latestAfterSalesApplication =
+                getLatestAfterSalesApplication(order.getId(), order.getAccountId());
+        Reviews review =
+                reviewsService.getUserOrderReviewEntity(order.getId(), order.getAccountId());
 
-        UserOrderListItemResponse item = buildOrderItem(
-            order,
-            serviceType,
-            categoryMap,
-            technicianMap.get(order.getTechnicianAccountId()),
-            addressMap.get(order.getServiceAddressId()),
-            faultMap.get(order.getId()),
-            phenomenonMap,
-            payment,
-            latestAfterSalesApplication,
-            orderDoorQrService.getActiveCodeMap(Collections.singletonList(order.getId())).get(order.getId()) != null
-        );
+        UserOrderListItemResponse item =
+                buildOrderItem(
+                        order,
+                        serviceType,
+                        categoryMap,
+                        technicianMap.get(order.getTechnicianAccountId()),
+                        addressMap.get(order.getServiceAddressId()),
+                        faultMap.get(order.getId()),
+                        phenomenonMap,
+                        payment,
+                        latestAfterSalesApplication,
+                        orderDoorQrService
+                                        .getActiveCodeMap(Collections.singletonList(order.getId()))
+                                        .get(order.getId())
+                                != null);
 
         UserOrderDetailResponse response = new UserOrderDetailResponse();
         copyListFields(item, response);
@@ -614,9 +733,14 @@ public class UserOrdersController {
         response.setMaterialFee(formatMoney(payment == null ? null : payment.getMaterialFee()));
         response.setOvertimeFee(formatMoney(payment == null ? null : payment.getOvertimeFee()));
         response.setRemark(safe(order.getRemark()));
-        response.setInspectionDiagnosis(inspectionSnapshot == null ? "" : inspectionSnapshot.getInspectionDiagnosis());
-        response.setRepairPlan(inspectionSnapshot == null ? "" : inspectionSnapshot.getRepairPlan());
-        response.setInspectionTime(latestInspectionProgress == null ? null : latestInspectionProgress.getCreatedTime());
+        response.setInspectionDiagnosis(
+                inspectionSnapshot == null ? "" : inspectionSnapshot.getInspectionDiagnosis());
+        response.setRepairPlan(
+                inspectionSnapshot == null ? "" : inspectionSnapshot.getRepairPlan());
+        response.setInspectionTime(
+                latestInspectionProgress == null
+                        ? null
+                        : latestInspectionProgress.getCreatedTime());
         response.setCancelReason(safe(order.getCancelReason()));
         response.setCancelTime(order.getCancelTime());
         response.setRefundReason(safe(order.getRefundReason()));
@@ -625,20 +749,30 @@ public class UserOrdersController {
         response.setServiceAddressId(order.getServiceAddressId());
         response.setCanCancel(canUserCancel(order, payment));
         response.setCancelTip(buildCancelTip(order, serviceType, payment));
-        response.setCancelRefundAmount(formatMoney(resolveCancelRefundAmount(order, serviceType, payment)));
+        response.setCancelRefundAmount(
+                formatMoney(resolveCancelRefundAmount(order, serviceType, payment)));
         response.setCanModifyOrder(canUserModifyOrder(order, payment));
         response.setCanModifyAppointment(canUserModifyAppointment(order, serviceType));
         response.setCanConfirmCompletion(canUserConfirmCompletion(order, payment));
         response.setConfirmCompletionTip(buildConfirmCompletionTip(order, payment));
-        response.setCanApplyAfterSales(canUserApplyAfterSales(order, payment, latestAfterSalesApplication));
+        response.setCanApplyAfterSales(
+                canUserApplyAfterSales(order, payment, latestAfterSalesApplication));
         response.setAfterSalesTip(buildAfterSalesTip(order, payment, latestAfterSalesApplication));
         response.setCanReview(canUserReview(order, review));
         response.setHasReview(review != null);
         response.setReviewId(review == null ? "" : safe(review.getId()));
         response.setAfterSalesApplication(buildAfterSalesSummary(latestAfterSalesApplication));
         response.setFaultList(buildFaultItems(faultMap.get(order.getId())));
-        response.setInspectionImages(listInspectionImages(latestInspectionProgress == null ? null : latestInspectionProgress.getId()));
-        response.setInspectionVideos(listInspectionVideos(latestInspectionProgress == null ? null : latestInspectionProgress.getId()));
+        response.setInspectionImages(
+                listInspectionImages(
+                        latestInspectionProgress == null
+                                ? null
+                                : latestInspectionProgress.getId()));
+        response.setInspectionVideos(
+                listInspectionVideos(
+                        latestInspectionProgress == null
+                                ? null
+                                : latestInspectionProgress.getId()));
         response.setProgressList(buildProgressItems(order, progressList));
         return response;
     }
@@ -676,17 +810,7 @@ public class UserOrdersController {
     }
 
     private ServiceTypes requireOrderServiceType(String serviceTypeId) {
-        ServiceTypes serviceType = serviceTypesService.getOne(
-            new LambdaQueryWrapper<ServiceTypes>()
-                .eq(ServiceTypes::getId, serviceTypeId)
-                .eq(ServiceTypes::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
-        if (serviceType == null) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "服务类型不存在");
-        }
-        return serviceType;
+        return repairOrderQueryService.requireServiceType(serviceTypeId);
     }
 
     private ServiceTypes getOrderServiceType(String serviceTypeId) {
@@ -694,12 +818,11 @@ public class UserOrdersController {
             return null;
         }
         return serviceTypesService.getOne(
-            new LambdaQueryWrapper<ServiceTypes>()
-                .eq(ServiceTypes::getId, serviceTypeId)
-                .eq(ServiceTypes::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+                new LambdaQueryWrapper<ServiceTypes>()
+                        .eq(ServiceTypes::getId, serviceTypeId)
+                        .eq(ServiceTypes::getIsDelete, 0)
+                        .last("limit 1"),
+                false);
     }
 
     private UserAddresses getAddress(String addressId) {
@@ -707,12 +830,11 @@ public class UserOrdersController {
             return null;
         }
         return userAddressesService.getOne(
-            new LambdaQueryWrapper<UserAddresses>()
-                .eq(UserAddresses::getId, addressId)
-                .eq(UserAddresses::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+                new LambdaQueryWrapper<UserAddresses>()
+                        .eq(UserAddresses::getId, addressId)
+                        .eq(UserAddresses::getIsDelete, 0)
+                        .last("limit 1"),
+                false);
     }
 
     private ServiceCategories getCategory(String categoryId) {
@@ -720,12 +842,11 @@ public class UserOrdersController {
             return null;
         }
         return serviceCategoriesService.getOne(
-            new LambdaQueryWrapper<ServiceCategories>()
-                .eq(ServiceCategories::getId, categoryId)
-                .eq(ServiceCategories::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+                new LambdaQueryWrapper<ServiceCategories>()
+                        .eq(ServiceCategories::getId, categoryId)
+                        .eq(ServiceCategories::getIsDelete, 0)
+                        .last("limit 1"),
+                false);
     }
 
     private TechnicianAccounts getTechnician(String technicianId) {
@@ -733,50 +854,51 @@ public class UserOrdersController {
             return null;
         }
         return technicianAccountsService.getOne(
-            new LambdaQueryWrapper<TechnicianAccounts>()
-                .eq(TechnicianAccounts::getId, technicianId)
-                .eq(TechnicianAccounts::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
+                new LambdaQueryWrapper<TechnicianAccounts>()
+                        .eq(TechnicianAccounts::getId, technicianId)
+                        .eq(TechnicianAccounts::getIsDelete, 0)
+                        .last("limit 1"),
+                false);
     }
 
-    private AfterSalesApplications getLatestAfterSalesApplication(String orderId, String accountId) {
+    private AfterSalesApplications getLatestAfterSalesApplication(
+            String orderId, String accountId) {
         if (!StringUtils.hasText(orderId) || !StringUtils.hasText(accountId)) {
             return null;
         }
         return afterSalesApplicationsService.getOne(
-            new LambdaQueryWrapper<AfterSalesApplications>()
-                .eq(AfterSalesApplications::getOrderId, orderId)
-                .eq(AfterSalesApplications::getOrderType, ORDER_TYPE_REPAIR)
-                .eq(AfterSalesApplications::getAccountId, accountId)
-                .eq(AfterSalesApplications::getIsDelete, 0)
-                .orderByDesc(AfterSalesApplications::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+                new LambdaQueryWrapper<AfterSalesApplications>()
+                        .eq(AfterSalesApplications::getOrderId, orderId)
+                        .eq(AfterSalesApplications::getOrderType, ORDER_TYPE_REPAIR)
+                        .eq(AfterSalesApplications::getAccountId, accountId)
+                        .eq(AfterSalesApplications::getIsDelete, 0)
+                        .orderByDesc(AfterSalesApplications::getCreatedTime)
+                        .last("limit 1"),
+                false);
     }
 
-    private Map<String, AfterSalesApplications> listLatestAfterSalesMap(List<RepairOrders> orders, String accountId) {
+    private Map<String, AfterSalesApplications> listLatestAfterSalesMap(
+            List<RepairOrders> orders, String accountId) {
         if (orders == null || orders.isEmpty() || !StringUtils.hasText(accountId)) {
             return Collections.emptyMap();
         }
-        Set<String> orderIds = orders.stream()
-            .map(RepairOrders::getId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+        Set<String> orderIds =
+                orders.stream()
+                        .map(RepairOrders::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (orderIds.isEmpty()) {
             return Collections.emptyMap();
         }
         Map<String, AfterSalesApplications> latestMap = new HashMap<>();
-        for (AfterSalesApplications application : afterSalesApplicationsService.list(
-            new LambdaQueryWrapper<AfterSalesApplications>()
-                .in(AfterSalesApplications::getOrderId, orderIds)
-                .eq(AfterSalesApplications::getOrderType, ORDER_TYPE_REPAIR)
-                .eq(AfterSalesApplications::getAccountId, accountId)
-                .eq(AfterSalesApplications::getIsDelete, 0)
-                .orderByDesc(AfterSalesApplications::getCreatedTime)
-        )) {
+        for (AfterSalesApplications application :
+                afterSalesApplicationsService.list(
+                        new LambdaQueryWrapper<AfterSalesApplications>()
+                                .in(AfterSalesApplications::getOrderId, orderIds)
+                                .eq(AfterSalesApplications::getOrderType, ORDER_TYPE_REPAIR)
+                                .eq(AfterSalesApplications::getAccountId, accountId)
+                                .eq(AfterSalesApplications::getIsDelete, 0)
+                                .orderByDesc(AfterSalesApplications::getCreatedTime))) {
             if (!latestMap.containsKey(application.getOrderId())) {
                 latestMap.put(application.getOrderId(), application);
             }
@@ -785,63 +907,61 @@ public class UserOrdersController {
     }
 
     private boolean canUserCancel(RepairOrders order, RepairOrderPayments payment) {
-        int status = safeInt(order == null ? null : order.getStatus());
-        if (status < 1 || status > 4) {
-            return false;
-        }
-        return !isTailPaymentCompleted(payment);
+        return order != null
+                && repairOrderStateMachine.canPerform(
+                        order.getStatus(),
+                        RepairOrderAction.CANCEL,
+                        userStateContext(order, null, payment, null));
     }
 
     private boolean canUserModifyOrder(RepairOrders order, RepairOrderPayments payment) {
-        int status = safeInt(order == null ? null : order.getStatus());
-        return status >= 1 && status <= 4 && !isTailPaymentCompleted(payment);
+        return order != null
+                && repairOrderStateMachine.canPerform(
+                        order.getStatus(),
+                        RepairOrderAction.MODIFY_ORDER,
+                        userStateContext(order, null, payment, null));
     }
 
     private boolean canUserModifyAppointment(RepairOrders order, ServiceTypes serviceType) {
         if (order == null || serviceType == null || !isOnsiteMode(serviceType)) {
             return false;
         }
-        int status = safeInt(order.getStatus());
-        return status >= 1 && status < 6 && !hasTechnicianArrived(order, serviceType);
+        return repairOrderStateMachine.canPerform(
+                order.getStatus(),
+                RepairOrderAction.MODIFY_APPOINTMENT,
+                userStateContext(order, serviceType, null, null));
     }
 
     private boolean canUserConfirmCompletion(RepairOrders order, RepairOrderPayments payment) {
-        return isWaitingUserConfirmCompletion(order) || canUserForceConfirmCompletionAfterTailPaid(order, payment);
+        return order != null
+                && repairOrderStateMachine.canPerform(
+                        order.getStatus(),
+                        RepairOrderAction.CONFIRM_COMPLETION,
+                        userStateContext(order, null, payment, null));
     }
 
     private boolean canUserApplyAfterSales(
-        RepairOrders order,
-        RepairOrderPayments payment,
-        AfterSalesApplications latestApplication
-    ) {
-        if (isAfterSalesProcessing(latestApplication)) {
-            return false;
-        }
-        int status = safeInt(order == null ? null : order.getStatus());
-        if (status == 7 || status == 8) {
-            return false;
-        }
-        if (status != 6) {
-            return false;
-        }
-        if (!isAfterSalesWithinWindow(order)) {
-            return false;
-        }
-        return normalizeMoney(payment == null ? null : payment.getActualAmount()).compareTo(BigDecimal.ZERO) > 0;
+            RepairOrders order,
+            RepairOrderPayments payment,
+            AfterSalesApplications latestApplication) {
+        return order != null
+                && repairOrderStateMachine.canPerform(
+                        order.getStatus(),
+                        RepairOrderAction.APPLY_AFTER_SALES,
+                        userStateContext(order, null, payment, latestApplication));
     }
 
     private boolean isAfterSalesProcessing(AfterSalesApplications application) {
-        int status = safeInt(application == null ? null : application.getStatus());
-        return status == AFTER_SALES_STATUS_PENDING
-            || status == AFTER_SALES_STATUS_APPROVED
-            || status == AFTER_SALES_STATUS_PROCESSING;
+        return RepairOrderAfterSalesStatus.fromCode(
+                        application == null ? null : application.getStatus())
+                .isActive();
     }
 
     private boolean canUserCancelAfterSales(AfterSalesApplications application) {
         int status = safeInt(application == null ? null : application.getStatus());
         return status == AFTER_SALES_STATUS_PENDING
-            || status == AFTER_SALES_STATUS_APPROVED
-            || status == AFTER_SALES_STATUS_PROCESSING;
+                || status == AFTER_SALES_STATUS_APPROVED
+                || status == AFTER_SALES_STATUS_PROCESSING;
     }
 
     private boolean isTailPaymentCompleted(RepairOrderPayments payment) {
@@ -850,17 +970,18 @@ public class UserOrdersController {
 
     private boolean isWaitingUserConfirmCompletion(RepairOrders order) {
         return order != null
-            && safeInt(order.getStatus()) == 5
-            && order.getEndTime() != null
-            && order.getEndTime() > 0L
-            && (order.getCompletionTime() == null || order.getCompletionTime() <= 0L);
+                && safeInt(order.getStatus()) == 5
+                && order.getEndTime() != null
+                && order.getEndTime() > 0L
+                && (order.getCompletionTime() == null || order.getCompletionTime() <= 0L);
     }
 
-    private boolean canUserForceConfirmCompletionAfterTailPaid(RepairOrders order, RepairOrderPayments payment) {
+    private boolean canUserForceConfirmCompletionAfterTailPaid(
+            RepairOrders order, RepairOrderPayments payment) {
         return order != null
-            && safeInt(order.getStatus()) == 4
-            && isTailPaymentCompleted(payment)
-            && (order.getCompletionTime() == null || order.getCompletionTime() <= 0L);
+                && safeInt(order.getStatus()) == 4
+                && isTailPaymentCompleted(payment)
+                && (order.getCompletionTime() == null || order.getCompletionTime() <= 0L);
     }
 
     private boolean isAfterSalesWithinWindow(RepairOrders order) {
@@ -885,7 +1006,8 @@ public class UserOrdersController {
         return false;
     }
 
-    private BigDecimal resolveCancelRefundAmount(RepairOrders order, ServiceTypes serviceType, RepairOrderPayments payment) {
+    private BigDecimal resolveCancelRefundAmount(
+            RepairOrders order, ServiceTypes serviceType, RepairOrderPayments payment) {
         if (order == null || serviceType == null || payment == null) {
             return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
         }
@@ -896,7 +1018,8 @@ public class UserOrdersController {
         return normalizeMoney(payment.getActualAmount());
     }
 
-    private String buildCancelTip(RepairOrders order, ServiceTypes serviceType, RepairOrderPayments payment) {
+    private String buildCancelTip(
+            RepairOrders order, ServiceTypes serviceType, RepairOrderPayments payment) {
         if (order == null) {
             return "";
         }
@@ -932,7 +1055,8 @@ public class UserOrdersController {
         return "当前订单状态不支持取消";
     }
 
-    private String buildModifyOrderUnavailableMessage(RepairOrders order, RepairOrderPayments payment) {
+    private String buildModifyOrderUnavailableMessage(
+            RepairOrders order, RepairOrderPayments payment) {
         if (canUserModifyOrder(order, payment)) {
             return "";
         }
@@ -946,7 +1070,8 @@ public class UserOrdersController {
         return "当前订单状态不支持修改订单信息";
     }
 
-    private String buildModifyAppointmentUnavailableMessage(RepairOrders order, ServiceTypes serviceType) {
+    private String buildModifyAppointmentUnavailableMessage(
+            RepairOrders order, ServiceTypes serviceType) {
         if (canUserModifyAppointment(order, serviceType)) {
             return "";
         }
@@ -973,7 +1098,8 @@ public class UserOrdersController {
         return buildConfirmCompletionUnavailableMessage(order, payment);
     }
 
-    private String buildConfirmCompletionUnavailableMessage(RepairOrders order, RepairOrderPayments payment) {
+    private String buildConfirmCompletionUnavailableMessage(
+            RepairOrders order, RepairOrderPayments payment) {
         int status = safeInt(order == null ? null : order.getStatus());
         if (status == 6) {
             return "订单已完成";
@@ -993,24 +1119,24 @@ public class UserOrdersController {
         return "当前订单暂不能确认完成";
     }
 
-    private String buildCancelRefundMessage(RepairOrders order, ServiceTypes serviceType, RepairOrderPayments payment) {
+    private String buildCancelRefundMessage(
+            RepairOrders order, ServiceTypes serviceType, RepairOrderPayments payment) {
         if (order == null || serviceType == null || payment == null) {
             return "";
         }
         int mode = safeInt(serviceType.getType());
         if ((mode == 1 || mode == 2)
-            && hasTechnicianArrived(order, serviceType)
-            && normalizeMoney(payment.getActualAmount()).compareTo(BigDecimal.ZERO) > 0) {
+                && hasTechnicianArrived(order, serviceType)
+                && normalizeMoney(payment.getActualAmount()).compareTo(BigDecimal.ZERO) > 0) {
             return "师傅已上门，取消订单不退上门费";
         }
         return "";
     }
 
     private String buildAfterSalesTip(
-        RepairOrders order,
-        RepairOrderPayments payment,
-        AfterSalesApplications latestApplication
-    ) {
+            RepairOrders order,
+            RepairOrderPayments payment,
+            AfterSalesApplications latestApplication) {
         if (isAfterSalesProcessing(latestApplication)) {
             return "售后申请处理中，请等待管理员审核";
         }
@@ -1034,10 +1160,9 @@ public class UserOrdersController {
     }
 
     private String buildAfterSalesUnavailableMessage(
-        RepairOrders order,
-        RepairOrderPayments payment,
-        AfterSalesApplications latestApplication
-    ) {
+            RepairOrders order,
+            RepairOrderPayments payment,
+            AfterSalesApplications latestApplication) {
         if (isAfterSalesProcessing(latestApplication)) {
             return "售后申请处理中，请勿重复提交";
         }
@@ -1057,14 +1182,16 @@ public class UserOrdersController {
         return "当前订单暂不支持申请售后";
     }
 
-    private UserAfterSalesApplicationSummary buildAfterSalesSummary(AfterSalesApplications application) {
+    private UserAfterSalesApplicationSummary buildAfterSalesSummary(
+            AfterSalesApplications application) {
         if (application == null) {
             return null;
         }
         UserAfterSalesApplicationSummary summary = new UserAfterSalesApplicationSummary();
         summary.setId(application.getId());
         summary.setApplicationType(application.getApplicationType());
-        summary.setApplicationTypeText(getAfterSalesApplicationTypeText(application.getApplicationType()));
+        summary.setApplicationTypeText(
+                getAfterSalesApplicationTypeText(application.getApplicationType()));
         summary.setStatus(application.getStatus());
         summary.setStatusText(getAfterSalesStatusText(application.getStatus()));
         summary.setReason(safe(application.getReason()));
@@ -1077,23 +1204,26 @@ public class UserOrdersController {
     }
 
     private UserAfterSalesDetailResponse buildAfterSalesDetail(
-        RepairOrders order,
-        RepairOrderPayments payment,
-        AfterSalesApplications latestApplication
-    ) {
+            RepairOrders order,
+            RepairOrderPayments payment,
+            AfterSalesApplications latestApplication) {
         UserAfterSalesDetailResponse response = new UserAfterSalesDetailResponse();
         response.setOrderId(order == null ? "" : safe(order.getId()));
         response.setOrderNo(order == null ? "" : safe(order.getOrderNo()));
         response.setOrderStatus(order == null ? null : order.getStatus());
         response.setOrderStatusText(getDisplayStatusText(order));
 
-        ServiceTypes serviceType = order == null ? null : requireOrderServiceType(order.getServiceTypeId());
-        ServiceCategories category = serviceType == null ? null : getCategory(serviceType.getCategoryId());
-        TechnicianAccounts technician = order == null ? null : getTechnician(order.getTechnicianAccountId());
+        ServiceTypes serviceType =
+                order == null ? null : requireOrderServiceType(order.getServiceTypeId());
+        ServiceCategories category =
+                serviceType == null ? null : getCategory(serviceType.getCategoryId());
+        TechnicianAccounts technician =
+                order == null ? null : getTechnician(order.getTechnicianAccountId());
 
         response.setServiceTypeName(serviceType == null ? "" : safe(serviceType.getName()));
         response.setServiceCategoryName(category == null ? "" : safe(category.getName()));
-        response.setServiceModeText(serviceType == null ? "" : getServiceModeText(serviceType.getType()));
+        response.setServiceModeText(
+                serviceType == null ? "" : getServiceModeText(serviceType.getType()));
         response.setTechnicianName(technician == null ? "" : safe(technician.getUsername()));
         response.setCanApplyAfterSales(canUserApplyAfterSales(order, payment, latestApplication));
         response.setAfterSalesTip(buildAfterSalesTip(order, payment, latestApplication));
@@ -1101,14 +1231,17 @@ public class UserOrdersController {
         return response;
     }
 
-    private UserAfterSalesApplicationDetailResponse buildAfterSalesApplicationDetail(AfterSalesApplications application) {
+    private UserAfterSalesApplicationDetailResponse buildAfterSalesApplicationDetail(
+            AfterSalesApplications application) {
         if (application == null) {
             return null;
         }
-        UserAfterSalesApplicationDetailResponse detail = new UserAfterSalesApplicationDetailResponse();
+        UserAfterSalesApplicationDetailResponse detail =
+                new UserAfterSalesApplicationDetailResponse();
         detail.setId(application.getId());
         detail.setApplicationType(application.getApplicationType());
-        detail.setApplicationTypeText(getAfterSalesApplicationTypeText(application.getApplicationType()));
+        detail.setApplicationTypeText(
+                getAfterSalesApplicationTypeText(application.getApplicationType()));
         detail.setStatus(application.getStatus());
         detail.setStatusText(getAfterSalesStatusText(application.getStatus()));
         detail.setReason(safe(application.getReason()));
@@ -1167,7 +1300,8 @@ public class UserOrdersController {
         return "未知";
     }
 
-    private void saveUserCancelProgress(RepairOrders order, String reason, BigDecimal refundAmount, long now) {
+    private void saveUserCancelProgress(
+            RepairOrders order, String reason, BigDecimal refundAmount, long now) {
         OrderProgress progress = new OrderProgress();
         progress.setId(SnowflakeIdUtil.nextOrderProgressId());
         progress.setOrderId(order.getId());
@@ -1262,17 +1396,16 @@ public class UserOrdersController {
     }
 
     private UserOrderListItemResponse buildOrderItem(
-        RepairOrders order,
-        ServiceTypes serviceType,
-        Map<String, ServiceCategories> categoryMap,
-        TechnicianAccounts technician,
-        UserAddresses address,
-        List<RepairOrderFaults> faults,
-        Map<String, FaultPhenomena> phenomenonMap,
-        RepairOrderPayments payment,
-        AfterSalesApplications latestAfterSalesApplication,
-        boolean hasDoorQr
-    ) {
+            RepairOrders order,
+            ServiceTypes serviceType,
+            Map<String, ServiceCategories> categoryMap,
+            TechnicianAccounts technician,
+            UserAddresses address,
+            List<RepairOrderFaults> faults,
+            Map<String, FaultPhenomena> phenomenonMap,
+            RepairOrderPayments payment,
+            AfterSalesApplications latestAfterSalesApplication,
+            boolean hasDoorQr) {
         UserOrderListItemResponse item = new UserOrderListItemResponse();
         item.setId(order.getId());
         item.setOrderNo(order.getOrderNo());
@@ -1283,7 +1416,8 @@ public class UserOrdersController {
         item.setServiceTypeId(order.getServiceTypeId());
         item.setServiceTypeName(serviceType == null ? "" : safe(serviceType.getName()));
 
-        ServiceCategories category = serviceType == null ? null : categoryMap.get(serviceType.getCategoryId());
+        ServiceCategories category =
+                serviceType == null ? null : categoryMap.get(serviceType.getCategoryId());
         item.setServiceCategoryId(category == null ? "" : safe(category.getId()));
         item.setServiceCategoryName(category == null ? "" : safe(category.getName()));
         item.setServiceCategoryPath(buildCategoryPath(category, categoryMap));
@@ -1312,8 +1446,11 @@ public class UserOrdersController {
         item.setHasDoorQr(hasDoorQr);
         item.setCanConfirmCompletion(canUserConfirmCompletion(order, payment));
         item.setConfirmCompletionTip(buildConfirmCompletionTip(order, payment));
-        item.setCanApplyAfterSales(canUserApplyAfterSales(order, payment, latestAfterSalesApplication));
-        item.setHasAfterSalesEntry(Boolean.TRUE.equals(item.getCanApplyAfterSales()) || latestAfterSalesApplication != null);
+        item.setCanApplyAfterSales(
+                canUserApplyAfterSales(order, payment, latestAfterSalesApplication));
+        item.setHasAfterSalesEntry(
+                Boolean.TRUE.equals(item.getCanApplyAfterSales())
+                        || latestAfterSalesApplication != null);
         item.setAfterSalesTip(buildAfterSalesTip(order, payment, latestAfterSalesApplication));
         return item;
     }
@@ -1323,40 +1460,57 @@ public class UserOrdersController {
             return Collections.emptyList();
         }
 
-        Set<String> phenomenonIds = faults.stream()
-            .map(RepairOrderFaults::getFaultPhenomenonId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
-        Map<String, FaultPhenomena> phenomenonMap = phenomenonIds.isEmpty()
-            ? new HashMap<>()
-            : faultPhenomenaService.list(
-                new LambdaQueryWrapper<FaultPhenomena>()
-                    .in(FaultPhenomena::getId, phenomenonIds)
-                    .eq(FaultPhenomena::getIsDelete, 0)
-            ).stream().collect(Collectors.toMap(FaultPhenomena::getId, item -> item, (a, b) -> a));
+        Set<String> phenomenonIds =
+                faults.stream()
+                        .map(RepairOrderFaults::getFaultPhenomenonId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
+        Map<String, FaultPhenomena> phenomenonMap =
+                phenomenonIds.isEmpty()
+                        ? new HashMap<>()
+                        : faultPhenomenaService
+                                .list(
+                                        new LambdaQueryWrapper<FaultPhenomena>()
+                                                .in(FaultPhenomena::getId, phenomenonIds)
+                                                .eq(FaultPhenomena::getIsDelete, 0))
+                                .stream()
+                                .collect(
+                                        Collectors.toMap(
+                                                FaultPhenomena::getId, item -> item, (a, b) -> a));
 
-        Set<String> faultIds = faults.stream()
-            .map(RepairOrderFaults::getId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
-        Map<String, List<Images>> imageMap = faultIds.isEmpty()
-            ? new HashMap<>()
-            : imagesService.list(
-                new LambdaQueryWrapper<Images>()
-                    .eq(Images::getBusinessType, ORDER_FAULT_BUSINESS_TYPE)
-                    .in(Images::getBusinessId, faultIds)
-                    .eq(Images::getIsDelete, 0)
-                    .orderByAsc(Images::getCreatedTime)
-            ).stream().collect(Collectors.groupingBy(Images::getBusinessId));
-        Map<String, List<Videos>> videoMap = faultIds.isEmpty()
-            ? new HashMap<>()
-            : videosService.list(
-                new LambdaQueryWrapper<Videos>()
-                    .eq(Videos::getBusinessType, ORDER_FAULT_BUSINESS_TYPE)
-                    .in(Videos::getBusinessId, faultIds)
-                    .eq(Videos::getIsDelete, 0)
-                    .orderByAsc(Videos::getCreatedTime)
-            ).stream().collect(Collectors.groupingBy(Videos::getBusinessId));
+        Set<String> faultIds =
+                faults.stream()
+                        .map(RepairOrderFaults::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
+        Map<String, List<Images>> imageMap =
+                faultIds.isEmpty()
+                        ? new HashMap<>()
+                        : imagesService
+                                .list(
+                                        new LambdaQueryWrapper<Images>()
+                                                .eq(
+                                                        Images::getBusinessType,
+                                                        ORDER_FAULT_BUSINESS_TYPE)
+                                                .in(Images::getBusinessId, faultIds)
+                                                .eq(Images::getIsDelete, 0)
+                                                .orderByAsc(Images::getCreatedTime))
+                                .stream()
+                                .collect(Collectors.groupingBy(Images::getBusinessId));
+        Map<String, List<Videos>> videoMap =
+                faultIds.isEmpty()
+                        ? new HashMap<>()
+                        : videosService
+                                .list(
+                                        new LambdaQueryWrapper<Videos>()
+                                                .eq(
+                                                        Videos::getBusinessType,
+                                                        ORDER_FAULT_BUSINESS_TYPE)
+                                                .in(Videos::getBusinessId, faultIds)
+                                                .eq(Videos::getIsDelete, 0)
+                                                .orderByAsc(Videos::getCreatedTime))
+                                .stream()
+                                .collect(Collectors.groupingBy(Videos::getBusinessId));
 
         List<UserOrderFaultItemResponse> items = new ArrayList<>();
         for (RepairOrderFaults fault : faults) {
@@ -1365,7 +1519,8 @@ public class UserOrdersController {
             item.setId(fault.getId());
             item.setFaultPhenomenonId(fault.getFaultPhenomenonId());
             item.setFaultPhenomenonName(phenomenon == null ? "" : safe(phenomenon.getName()));
-            item.setFaultPhenomenonDescription(phenomenon == null ? "" : safe(phenomenon.getDescription()));
+            item.setFaultPhenomenonDescription(
+                    phenomenon == null ? "" : safe(phenomenon.getDescription()));
             item.setFaultDescription(safe(fault.getFaultDescription()));
             item.setImages(toImageItems(imageMap.get(fault.getId())));
             item.setVideos(toVideoItems(videoMap.get(fault.getId())));
@@ -1374,16 +1529,17 @@ public class UserOrdersController {
         return items;
     }
 
-    private List<UserOrderProgressItemResponse> buildProgressItems(RepairOrders order, List<OrderProgress> progressList) {
+    private List<UserOrderProgressItemResponse> buildProgressItems(
+            RepairOrders order, List<OrderProgress> progressList) {
         List<UserOrderProgressItemResponse> items = new ArrayList<>();
-        items.add(buildSyntheticProgress(
-            "INIT-" + order.getId(),
-            1,
-            "订单已提交，等待师傅接单",
-            "系统",
-            4,
-            order.getCreatedTime()
-        ));
+        items.add(
+                buildSyntheticProgress(
+                        "INIT-" + order.getId(),
+                        1,
+                        "订单已提交，等待师傅接单",
+                        "系统",
+                        4,
+                        order.getCreatedTime()));
 
         Set<Integer> existingStatuses = new HashSet<>();
         for (OrderProgress progress : progressList) {
@@ -1391,9 +1547,10 @@ public class UserOrdersController {
             UserOrderProgressItemResponse item = new UserOrderProgressItemResponse();
             item.setId(progress.getId());
             item.setStatus(progress.getStatus());
-            item.setStatusText(StringUtils.hasText(progress.getStatusName())
-                ? progress.getStatusName()
-                : getStatusText(progress.getStatus()));
+            item.setStatusText(
+                    StringUtils.hasText(progress.getStatusName())
+                            ? progress.getStatusName()
+                            : getStatusText(progress.getStatus()));
             item.setDescription(resolveProgressDescription(progress));
             item.setOperatorName(safe(progress.getOperatorName()));
             item.setOperatorType(progress.getOperatorType());
@@ -1402,53 +1559,56 @@ public class UserOrdersController {
         }
 
         int currentStatus = safeInt(order.getStatus());
-        if (currentStatus == 6 && order.getCompletionTime() != null && !existingStatuses.contains(6)) {
-            items.add(buildSyntheticProgress(
-                "FINISH-" + order.getId(),
-                6,
-                "订单已完成",
-                "系统",
-                4,
-                order.getCompletionTime()
-            ));
+        if (currentStatus == 6
+                && order.getCompletionTime() != null
+                && !existingStatuses.contains(6)) {
+            items.add(
+                    buildSyntheticProgress(
+                            "FINISH-" + order.getId(),
+                            6,
+                            "订单已完成",
+                            "系统",
+                            4,
+                            order.getCompletionTime()));
         }
         if (currentStatus == 7 && order.getCancelTime() != null && !existingStatuses.contains(7)) {
-            String description = StringUtils.hasText(order.getCancelReason())
-                ? "订单已取消：" + order.getCancelReason()
-                : "订单已取消";
-            items.add(buildSyntheticProgress(
-                "CANCEL-" + order.getId(),
-                7,
-                description,
-                "系统",
-                4,
-                order.getCancelTime()
-            ));
+            String description =
+                    StringUtils.hasText(order.getCancelReason())
+                            ? "订单已取消：" + order.getCancelReason()
+                            : "订单已取消";
+            items.add(
+                    buildSyntheticProgress(
+                            "CANCEL-" + order.getId(),
+                            7,
+                            description,
+                            "系统",
+                            4,
+                            order.getCancelTime()));
         }
         if (currentStatus == 8 && order.getRefundTime() != null && !existingStatuses.contains(8)) {
-            String description = StringUtils.hasText(order.getRefundReason())
-                ? "订单已退款：" + order.getRefundReason()
-                : "订单已退款";
-            items.add(buildSyntheticProgress(
-                "REFUND-" + order.getId(),
-                8,
-                description,
-                "系统",
-                4,
-                order.getRefundTime()
-            ));
+            String description =
+                    StringUtils.hasText(order.getRefundReason())
+                            ? "订单已退款：" + order.getRefundReason()
+                            : "订单已退款";
+            items.add(
+                    buildSyntheticProgress(
+                            "REFUND-" + order.getId(),
+                            8,
+                            description,
+                            "系统",
+                            4,
+                            order.getRefundTime()));
         }
         return items;
     }
 
     private UserOrderProgressItemResponse buildSyntheticProgress(
-        String id,
-        Integer status,
-        String description,
-        String operatorName,
-        Integer operatorType,
-        Long createdTime
-    ) {
+            String id,
+            Integer status,
+            String description,
+            String operatorName,
+            Integer operatorType,
+            Long createdTime) {
         UserOrderProgressItemResponse item = new UserOrderProgressItemResponse();
         item.setId(id);
         item.setStatus(status);
@@ -1470,7 +1630,10 @@ public class UserOrdersController {
             item.setId(image.getId());
             item.setUrl(safe(image.getFileUrl()));
             item.setThumbnailUrl(safe(image.getFileUrl()));
-            item.setName(StringUtils.hasText(image.getOriginalName()) ? image.getOriginalName() : safe(image.getFileName()));
+            item.setName(
+                    StringUtils.hasText(image.getOriginalName())
+                            ? image.getOriginalName()
+                            : safe(image.getFileName()));
             item.setMimeType(safe(image.getMimeType()));
             items.add(item);
         }
@@ -1487,7 +1650,10 @@ public class UserOrdersController {
             item.setId(video.getId());
             item.setUrl(safe(video.getFileUrl()));
             item.setThumbnailUrl(safe(video.getThumbnailUrl()));
-            item.setName(StringUtils.hasText(video.getOriginalName()) ? video.getOriginalName() : safe(video.getFileName()));
+            item.setName(
+                    StringUtils.hasText(video.getOriginalName())
+                            ? video.getOriginalName()
+                            : safe(video.getFileName()));
             item.setMimeType(safe(video.getMimeType()));
             item.setDuration(video.getDuration());
             items.add(item);
@@ -1499,13 +1665,13 @@ public class UserOrdersController {
         if (!StringUtils.hasText(progressId)) {
             return Collections.emptyList();
         }
-        List<Images> images = imagesService.list(
-            new LambdaQueryWrapper<Images>()
-                .eq(Images::getBusinessType, ORDER_INSPECTION_BUSINESS_TYPE)
-                .eq(Images::getBusinessId, progressId)
-                .eq(Images::getIsDelete, 0)
-                .orderByAsc(Images::getCreatedTime)
-        );
+        List<Images> images =
+                imagesService.list(
+                        new LambdaQueryWrapper<Images>()
+                                .eq(Images::getBusinessType, ORDER_INSPECTION_BUSINESS_TYPE)
+                                .eq(Images::getBusinessId, progressId)
+                                .eq(Images::getIsDelete, 0)
+                                .orderByAsc(Images::getCreatedTime));
         return toImageItems(images);
     }
 
@@ -1513,13 +1679,13 @@ public class UserOrdersController {
         if (!StringUtils.hasText(progressId)) {
             return Collections.emptyList();
         }
-        List<Videos> videos = videosService.list(
-            new LambdaQueryWrapper<Videos>()
-                .eq(Videos::getBusinessType, ORDER_INSPECTION_BUSINESS_TYPE)
-                .eq(Videos::getBusinessId, progressId)
-                .eq(Videos::getIsDelete, 0)
-                .orderByAsc(Videos::getCreatedTime)
-        );
+        List<Videos> videos =
+                videosService.list(
+                        new LambdaQueryWrapper<Videos>()
+                                .eq(Videos::getBusinessType, ORDER_INSPECTION_BUSINESS_TYPE)
+                                .eq(Videos::getBusinessId, progressId)
+                                .eq(Videos::getIsDelete, 0)
+                                .orderByAsc(Videos::getCreatedTime));
         return toVideoItems(videos);
     }
 
@@ -1528,14 +1694,12 @@ public class UserOrdersController {
             return Collections.emptyList();
         }
         return toImageItems(
-            imagesService.list(
-                new LambdaQueryWrapper<Images>()
-                    .eq(Images::getBusinessType, AFTER_SALES_BUSINESS_TYPE)
-                    .eq(Images::getBusinessId, applicationId)
-                    .eq(Images::getIsDelete, 0)
-                    .orderByAsc(Images::getCreatedTime)
-            )
-        );
+                imagesService.list(
+                        new LambdaQueryWrapper<Images>()
+                                .eq(Images::getBusinessType, AFTER_SALES_BUSINESS_TYPE)
+                                .eq(Images::getBusinessId, applicationId)
+                                .eq(Images::getIsDelete, 0)
+                                .orderByAsc(Images::getCreatedTime)));
     }
 
     private List<UserOrderMediaItemResponse> listAfterSalesVideos(String applicationId) {
@@ -1543,14 +1707,12 @@ public class UserOrdersController {
             return Collections.emptyList();
         }
         return toVideoItems(
-            videosService.list(
-                new LambdaQueryWrapper<Videos>()
-                    .eq(Videos::getBusinessType, AFTER_SALES_BUSINESS_TYPE)
-                    .eq(Videos::getBusinessId, applicationId)
-                    .eq(Videos::getIsDelete, 0)
-                    .orderByAsc(Videos::getCreatedTime)
-            )
-        );
+                videosService.list(
+                        new LambdaQueryWrapper<Videos>()
+                                .eq(Videos::getBusinessType, AFTER_SALES_BUSINESS_TYPE)
+                                .eq(Videos::getBusinessId, applicationId)
+                                .eq(Videos::getIsDelete, 0)
+                                .orderByAsc(Videos::getCreatedTime)));
     }
 
     private List<OrderProgress> listOrderProgress(String orderId) {
@@ -1558,11 +1720,10 @@ public class UserOrdersController {
             return Collections.emptyList();
         }
         return orderProgressService.list(
-            new LambdaQueryWrapper<OrderProgress>()
-                .eq(OrderProgress::getOrderId, orderId)
-                .eq(OrderProgress::getIsDelete, 0)
-                .orderByAsc(OrderProgress::getCreatedTime)
-        );
+                new LambdaQueryWrapper<OrderProgress>()
+                        .eq(OrderProgress::getOrderId, orderId)
+                        .eq(OrderProgress::getIsDelete, 0)
+                        .orderByAsc(OrderProgress::getCreatedTime));
     }
 
     private OrderProgress findLatestInspectionProgress(List<OrderProgress> progressList) {
@@ -1591,7 +1752,9 @@ public class UserOrdersController {
             return null;
         }
         try {
-            Map<String, Object> payload = OBJECT_MAPPER.readValue(progress.getDescription(), new TypeReference<Map<String, Object>>() {});
+            Map<String, Object> payload =
+                    OBJECT_MAPPER.readValue(
+                            progress.getDescription(), new TypeReference<Map<String, Object>>() {});
             if (!INSPECTION_PROGRESS_TYPE.equals(String.valueOf(payload.get("type")))) {
                 return null;
             }
@@ -1607,10 +1770,14 @@ public class UserOrdersController {
     }
 
     private String buildInspectionProgressSummary(InspectionProgressSnapshot snapshot) {
-        return "师傅已完成检查：问题=" + safe(snapshot.getInspectionDiagnosis())
-            + "；维修建议=" + safe(snapshot.getRepairPlan())
-            + "；服务费=" + safe(snapshot.getServiceFee())
-            + "；材料费=" + safe(snapshot.getMaterialFee());
+        return "师傅已完成检查：问题="
+                + safe(snapshot.getInspectionDiagnosis())
+                + "；维修建议="
+                + safe(snapshot.getRepairPlan())
+                + "；服务费="
+                + safe(snapshot.getServiceFee())
+                + "；材料费="
+                + safe(snapshot.getMaterialFee());
     }
 
     private String stringValue(Object value) {
@@ -1618,41 +1785,19 @@ public class UserOrdersController {
     }
 
     private RepairOrders requireOwnedOrder(String orderId, String accountId) {
-        RepairOrders order = repairOrdersService.getOne(
-            new LambdaQueryWrapper<RepairOrders>()
-                .eq(RepairOrders::getId, orderId)
-                .eq(RepairOrders::getAccountId, accountId)
-                .eq(RepairOrders::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
-        if (order == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "订单不存在");
-        }
-        return order;
+        return repairOrderQueryService.requireUserOrder(orderId, accountId);
     }
 
     private RepairOrderPayments requireOrderPayment(String orderId) {
-        RepairOrderPayments payment = repairOrderPaymentsService.getOne(
-            new LambdaQueryWrapper<RepairOrderPayments>()
-                .eq(RepairOrderPayments::getRepairOrderId, orderId)
-                .eq(RepairOrderPayments::getIsDelete, 0)
-                .last("limit 1"),
-            false
-        );
-        if (payment == null) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "订单支付信息不存在");
-        }
-        return payment;
+        return repairOrderQueryService.requirePayment(orderId);
     }
 
     private void createTailPaymentRecord(
-        RepairOrders order,
-        String accountId,
-        Integer paymentMethod,
-        BigDecimal paymentAmount,
-        long now
-    ) {
+            RepairOrders order,
+            String accountId,
+            Integer paymentMethod,
+            BigDecimal paymentAmount,
+            long now) {
         PaymentRecords record = new PaymentRecords();
         record.setId(SnowflakeIdUtil.nextPaymentRecordId());
         record.setPaymentNo(buildTailPaymentNo(record.getId()));
@@ -1675,22 +1820,17 @@ public class UserOrdersController {
     }
 
     private void saveTailPaymentProgress(
-        RepairOrders order,
-        BigDecimal paymentAmount,
-        Integer paymentMethod,
-        long now
-    ) {
+            RepairOrders order, BigDecimal paymentAmount, Integer paymentMethod, long now) {
         OrderProgress progress = new OrderProgress();
         progress.setId(SnowflakeIdUtil.nextOrderProgressId());
         progress.setOrderId(order.getId());
         progress.setStatus(4);
         progress.setStatusName("待支付");
         progress.setDescription(
-            "用户已支付尾款，支付方式："
-                + getPaymentMethodText(paymentMethod)
-                + "；支付金额："
-                + formatMoney(normalizeMoney(paymentAmount))
-        );
+                "用户已支付尾款，支付方式："
+                        + getPaymentMethodText(paymentMethod)
+                        + "；支付金额："
+                        + formatMoney(normalizeMoney(paymentAmount)));
         progress.setOperatorId(order.getAccountId());
         progress.setOperatorType(OPERATOR_TYPE_USER);
         progress.setOperatorName("用户");
@@ -1703,11 +1843,11 @@ public class UserOrdersController {
 
     private int normalizePaymentMethod(Integer paymentMethod) {
         int value = paymentMethod == null ? PAYMENT_METHOD_WECHAT : paymentMethod;
-        if (value != PAYMENT_METHOD_WECHAT && value != PAYMENT_METHOD_ALIPAY && value != PAYMENT_METHOD_WALLET) {
+        if (value != PAYMENT_METHOD_WECHAT
+                && value != PAYMENT_METHOD_ALIPAY
+                && value != PAYMENT_METHOD_WALLET) {
             throw new BusinessException(
-                ErrorCode.PARAM_ERROR,
-                "paymentMethod 仅支持 1-微信支付、2-支付宝支付、5-钱包支付"
-            );
+                    ErrorCode.PARAM_ERROR, "paymentMethod 仅支持 1-微信支付、2-支付宝支付、5-钱包支付");
         }
         return value;
     }
@@ -1743,7 +1883,10 @@ public class UserOrdersController {
 
     private String buildThirdPartyNo(String paymentNo, Integer paymentMethod) {
         int method = safeInt(paymentMethod);
-        String prefix = method == PAYMENT_METHOD_ALIPAY ? "ALI" : method == PAYMENT_METHOD_WALLET ? "WLT" : "WX";
+        String prefix =
+                method == PAYMENT_METHOD_ALIPAY
+                        ? "ALI"
+                        : method == PAYMENT_METHOD_WALLET ? "WLT" : "WX";
         return prefix + compactTradeNo(paymentNo);
     }
 
@@ -1769,6 +1912,25 @@ public class UserOrdersController {
         return value.trim();
     }
 
+    /** 判断取消原因是否属于商家问题（应引导走售后通道）。 */
+    private boolean isMerchantIssueReason(String reason) {
+        if (!StringUtils.hasText(reason)) {
+            return false;
+        }
+        String lower = reason.toLowerCase();
+        return lower.contains("商家")
+                || lower.contains("师傅")
+                || lower.contains("维修")
+                || lower.contains("服务差")
+                || lower.contains("态度")
+                || lower.contains("质量")
+                || lower.contains("损坏")
+                || lower.contains("弄坏")
+                || lower.contains("技术")
+                || lower.contains("不专业")
+                || lower.contains("乱收费");
+    }
+
     private boolean safeEquals(Object left, Object right) {
         return left == null ? right == null : left.equals(right);
     }
@@ -1779,17 +1941,15 @@ public class UserOrdersController {
     }
 
     private boolean shouldRegenerateDoorQr(RepairOrders order, ServiceTypes serviceType) {
-        return order != null
-            && isOnsiteMode(serviceType)
-            && safeInt(order.getStatus()) == 2;
+        return order != null && isOnsiteMode(serviceType) && safeInt(order.getStatus()) == 2;
     }
 
     private Long parsePurchaseDate(String purchaseDate) {
         String normalized = trimToNull(purchaseDate);
         if (!StringUtils.hasText(normalized)
-            || "未知".equals(normalized)
-            || "不清楚".equals(normalized)
-            || "未填写".equals(normalized)) {
+                || "未知".equals(normalized)
+                || "不清楚".equals(normalized)
+                || "未填写".equals(normalized)) {
             return null;
         }
         try {
@@ -1801,64 +1961,61 @@ public class UserOrdersController {
     }
 
     private void replaceOrderFaultDetails(
-        RepairOrders order,
-        String serviceTypeId,
-        String accountId,
-        List<UserOrderFlowModel.SubmitFaultItem> faultList,
-        long now
-    ) {
+            RepairOrders order,
+            String serviceTypeId,
+            String accountId,
+            List<UserOrderFlowModel.SubmitFaultItem> faultList,
+            long now) {
         if (order == null || !StringUtils.hasText(order.getId())) {
             return;
         }
-        List<RepairOrderFaults> existingFaults = repairOrderFaultsService.list(
-            new LambdaQueryWrapper<RepairOrderFaults>()
-                .eq(RepairOrderFaults::getRepairOrderId, order.getId())
-                .eq(RepairOrderFaults::getIsDelete, 0)
-        );
+        List<RepairOrderFaults> existingFaults =
+                repairOrderFaultsService.list(
+                        new LambdaQueryWrapper<RepairOrderFaults>()
+                                .eq(RepairOrderFaults::getRepairOrderId, order.getId())
+                                .eq(RepairOrderFaults::getIsDelete, 0));
         if (!existingFaults.isEmpty()) {
-            List<String> faultIds = existingFaults.stream()
-                .map(RepairOrderFaults::getId)
-                .filter(StringUtils::hasText)
-                .collect(Collectors.toList());
+            List<String> faultIds =
+                    existingFaults.stream()
+                            .map(RepairOrderFaults::getId)
+                            .filter(StringUtils::hasText)
+                            .collect(Collectors.toList());
             if (!faultIds.isEmpty()) {
                 imagesService.remove(
-                    new LambdaQueryWrapper<Images>()
-                        .eq(Images::getBusinessType, ORDER_FAULT_BUSINESS_TYPE)
-                        .in(Images::getBusinessId, faultIds)
-                );
+                        new LambdaQueryWrapper<Images>()
+                                .eq(Images::getBusinessType, ORDER_FAULT_BUSINESS_TYPE)
+                                .in(Images::getBusinessId, faultIds));
                 videosService.remove(
-                    new LambdaQueryWrapper<Videos>()
-                        .eq(Videos::getBusinessType, ORDER_FAULT_BUSINESS_TYPE)
-                        .in(Videos::getBusinessId, faultIds)
-                );
+                        new LambdaQueryWrapper<Videos>()
+                                .eq(Videos::getBusinessType, ORDER_FAULT_BUSINESS_TYPE)
+                                .in(Videos::getBusinessId, faultIds));
             }
             repairOrderFaultsService.remove(
-                new LambdaQueryWrapper<RepairOrderFaults>()
-                    .eq(RepairOrderFaults::getRepairOrderId, order.getId())
-            );
+                    new LambdaQueryWrapper<RepairOrderFaults>()
+                            .eq(RepairOrderFaults::getRepairOrderId, order.getId()));
         }
         saveOrderFaultDetails(order.getId(), serviceTypeId, accountId, faultList, now);
     }
 
     private void saveOrderFaultDetails(
-        String orderId,
-        String serviceTypeId,
-        String accountId,
-        List<UserOrderFlowModel.SubmitFaultItem> faultList,
-        long now
-    ) {
+            String orderId,
+            String serviceTypeId,
+            String accountId,
+            List<UserOrderFlowModel.SubmitFaultItem> faultList,
+            long now) {
         if (faultList == null || faultList.isEmpty()) {
             return;
         }
-        List<FaultPhenomena> validFaultList = faultPhenomenaService.list(
-            new LambdaQueryWrapper<FaultPhenomena>()
-                .eq(FaultPhenomena::getServiceTypeId, serviceTypeId)
-                .eq(FaultPhenomena::getIsActive, 1)
-                .eq(FaultPhenomena::getIsDelete, 0)
-        );
-        Set<String> validFaultIdSet = validFaultList.stream()
-            .map(FaultPhenomena::getId)
-            .collect(Collectors.toCollection(HashSet::new));
+        List<FaultPhenomena> validFaultList =
+                faultPhenomenaService.list(
+                        new LambdaQueryWrapper<FaultPhenomena>()
+                                .eq(FaultPhenomena::getServiceTypeId, serviceTypeId)
+                                .eq(FaultPhenomena::getIsActive, 1)
+                                .eq(FaultPhenomena::getIsDelete, 0));
+        Set<String> validFaultIdSet =
+                validFaultList.stream()
+                        .map(FaultPhenomena::getId)
+                        .collect(Collectors.toCollection(HashSet::new));
 
         for (int index = 0; index < faultList.size(); index++) {
             UserOrderFlowModel.SubmitFaultItem fault = faultList.get(index);
@@ -1870,9 +2027,8 @@ public class UserOrdersController {
                 throw new BusinessException(ErrorCode.PARAM_ERROR, "故障现象不存在或已失效");
             }
 
-            List<UserOrderFlowModel.SubmitImageItem> images = fault.getImages() == null
-                ? Collections.emptyList()
-                : fault.getImages();
+            List<UserOrderFlowModel.SubmitImageItem> images =
+                    fault.getImages() == null ? Collections.emptyList() : fault.getImages();
             if (images.size() > 3) {
                 throw new BusinessException(ErrorCode.PARAM_ERROR, "每项故障图片最多上传3张");
             }
@@ -1891,7 +2047,8 @@ public class UserOrdersController {
             }
 
             for (int imageIndex = 0; imageIndex < images.size(); imageIndex++) {
-                saveOrderFaultImage(images.get(imageIndex), faultRecordId, accountId, now, imageIndex);
+                saveOrderFaultImage(
+                        images.get(imageIndex), faultRecordId, accountId, now, imageIndex);
             }
             if (fault.getVideo() != null) {
                 saveOrderFaultVideo(fault.getVideo(), faultRecordId, accountId, now);
@@ -1909,12 +2066,11 @@ public class UserOrdersController {
     }
 
     private void saveOrderFaultImage(
-        UserOrderFlowModel.SubmitImageItem image,
-        String faultRecordId,
-        String accountId,
-        long now,
-        int index
-    ) {
+            UserOrderFlowModel.SubmitImageItem image,
+            String faultRecordId,
+            String accountId,
+            long now,
+            int index) {
         if (image == null) {
             return;
         }
@@ -1928,7 +2084,10 @@ public class UserOrdersController {
         entity.setFilePath(fileUrl);
         entity.setFileUrl(fileUrl);
         entity.setFileSize(image.getFileSize() == null ? 0L : image.getFileSize());
-        entity.setMimeType(StringUtils.hasText(trimToNull(image.getMimeType())) ? image.getMimeType() : "image/jpeg");
+        entity.setMimeType(
+                StringUtils.hasText(trimToNull(image.getMimeType()))
+                        ? image.getMimeType()
+                        : "image/jpeg");
         entity.setWidth(image.getWidth());
         entity.setHeight(image.getHeight());
         entity.setUploaderId(accountId);
@@ -1943,11 +2102,10 @@ public class UserOrdersController {
     }
 
     private void saveOrderFaultVideo(
-        UserOrderFlowModel.SubmitVideoItem video,
-        String faultRecordId,
-        String accountId,
-        long now
-    ) {
+            UserOrderFlowModel.SubmitVideoItem video,
+            String faultRecordId,
+            String accountId,
+            long now) {
         String fileUrl = requireMediaUrl(video.getUrl());
         String fileName = resolveMediaName(video.getName(), "fault-video.mp4");
 
@@ -1958,7 +2116,10 @@ public class UserOrdersController {
         entity.setFilePath(fileUrl);
         entity.setFileUrl(fileUrl);
         entity.setFileSize(video.getFileSize() == null ? 0L : video.getFileSize());
-        entity.setMimeType(StringUtils.hasText(trimToNull(video.getMimeType())) ? video.getMimeType() : "video/mp4");
+        entity.setMimeType(
+                StringUtils.hasText(trimToNull(video.getMimeType()))
+                        ? video.getMimeType()
+                        : "video/mp4");
         entity.setDuration(video.getDuration());
         entity.setWidth(video.getWidth());
         entity.setHeight(video.getHeight());
@@ -1987,13 +2148,18 @@ public class UserOrdersController {
         return StringUtils.hasText(normalized) ? normalized : fallback;
     }
 
-    private List<UserAfterSalesSubmitMediaItem> normalizeAfterSalesImages(List<UserAfterSalesSubmitMediaItem> images) {
+    private List<UserAfterSalesSubmitMediaItem> normalizeAfterSalesImages(
+            List<UserAfterSalesSubmitMediaItem> images) {
         if (images == null || images.isEmpty()) {
             return Collections.emptyList();
         }
-        List<UserAfterSalesSubmitMediaItem> normalized = images.stream()
-            .filter(item -> item != null && StringUtils.hasText(trimToNull(item.getUrl())))
-            .collect(Collectors.toList());
+        List<UserAfterSalesSubmitMediaItem> normalized =
+                images.stream()
+                        .filter(
+                                item ->
+                                        item != null
+                                                && StringUtils.hasText(trimToNull(item.getUrl())))
+                        .collect(Collectors.toList());
         int maxImageCount = getAfterSalesMaxImageCount();
         if (normalized.size() > maxImageCount) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "售后图片最多上传 " + maxImageCount + " 张");
@@ -2002,10 +2168,9 @@ public class UserOrdersController {
     }
 
     private long getAfterSalesValidDays() {
-        Long value = systemConfigsService.getLongConfig(
-            "after_sales.valid_days",
-            DEFAULT_AFTER_SALES_VALID_DAYS
-        );
+        Long value =
+                systemConfigsService.getLongConfig(
+                        "after_sales.valid_days", DEFAULT_AFTER_SALES_VALID_DAYS);
         return value == null || value <= 0L ? DEFAULT_AFTER_SALES_VALID_DAYS : value;
     }
 
@@ -2014,14 +2179,14 @@ public class UserOrdersController {
     }
 
     private int getAfterSalesMaxImageCount() {
-        Integer value = systemConfigsService.getIntegerConfig(
-            "after_sales.max_image_count",
-            DEFAULT_MAX_AFTER_SALES_IMAGE_COUNT
-        );
+        Integer value =
+                systemConfigsService.getIntegerConfig(
+                        "after_sales.max_image_count", DEFAULT_MAX_AFTER_SALES_IMAGE_COUNT);
         return value == null || value <= 0 ? DEFAULT_MAX_AFTER_SALES_IMAGE_COUNT : value;
     }
 
-    private UserAfterSalesSubmitMediaItem normalizeAfterSalesVideo(UserAfterSalesSubmitMediaItem video) {
+    private UserAfterSalesSubmitMediaItem normalizeAfterSalesVideo(
+            UserAfterSalesSubmitMediaItem video) {
         if (video == null || !StringUtils.hasText(trimToNull(video.getUrl()))) {
             return null;
         }
@@ -2032,10 +2197,11 @@ public class UserOrdersController {
         if (images == null || images.isEmpty()) {
             return null;
         }
-        List<String> urls = images.stream()
-            .map(UserAfterSalesSubmitMediaItem::getUrl)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toList());
+        List<String> urls =
+                images.stream()
+                        .map(UserAfterSalesSubmitMediaItem::getUrl)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toList());
         try {
             return urls.isEmpty() ? null : OBJECT_MAPPER.writeValueAsString(urls);
         } catch (Exception exception) {
@@ -2044,11 +2210,10 @@ public class UserOrdersController {
     }
 
     private void saveAfterSalesImages(
-        List<UserAfterSalesSubmitMediaItem> images,
-        String applicationId,
-        String accountId,
-        long now
-    ) {
+            List<UserAfterSalesSubmitMediaItem> images,
+            String applicationId,
+            String accountId,
+            long now) {
         if (images == null || images.isEmpty()) {
             return;
         }
@@ -2056,16 +2221,20 @@ public class UserOrdersController {
             UserAfterSalesSubmitMediaItem image = images.get(index);
             Images entity = new Images();
             String fileUrl = trimToNull(image.getUrl());
-            String fileName = StringUtils.hasText(trimToNull(image.getName()))
-                ? image.getName().trim()
-                : ("after-sales-image-" + (index + 1) + ".jpg");
+            String fileName =
+                    StringUtils.hasText(trimToNull(image.getName()))
+                            ? image.getName().trim()
+                            : ("after-sales-image-" + (index + 1) + ".jpg");
             entity.setId(SnowflakeIdUtil.nextImageId());
             entity.setOriginalName(fileName);
             entity.setFileName(fileName);
             entity.setFilePath(fileUrl);
             entity.setFileUrl(fileUrl);
             entity.setFileSize(image.getFileSize() == null ? 0L : image.getFileSize());
-            entity.setMimeType(StringUtils.hasText(trimToNull(image.getMimeType())) ? image.getMimeType().trim() : "image/jpeg");
+            entity.setMimeType(
+                    StringUtils.hasText(trimToNull(image.getMimeType()))
+                            ? image.getMimeType().trim()
+                            : "image/jpeg");
             entity.setWidth(image.getWidth());
             entity.setHeight(image.getHeight());
             entity.setUploaderId(accountId);
@@ -2081,26 +2250,26 @@ public class UserOrdersController {
     }
 
     private void saveAfterSalesVideo(
-        UserAfterSalesSubmitMediaItem video,
-        String applicationId,
-        String accountId,
-        long now
-    ) {
+            UserAfterSalesSubmitMediaItem video, String applicationId, String accountId, long now) {
         if (video == null || !StringUtils.hasText(trimToNull(video.getUrl()))) {
             return;
         }
         Videos entity = new Videos();
         String fileUrl = trimToNull(video.getUrl());
-        String fileName = StringUtils.hasText(trimToNull(video.getName()))
-            ? video.getName().trim()
-            : "after-sales-video.mp4";
+        String fileName =
+                StringUtils.hasText(trimToNull(video.getName()))
+                        ? video.getName().trim()
+                        : "after-sales-video.mp4";
         entity.setId(SnowflakeIdUtil.nextVideoId());
         entity.setOriginalName(fileName);
         entity.setFileName(fileName);
         entity.setFilePath(fileUrl);
         entity.setFileUrl(fileUrl);
         entity.setFileSize(video.getFileSize() == null ? 0L : video.getFileSize());
-        entity.setMimeType(StringUtils.hasText(trimToNull(video.getMimeType())) ? video.getMimeType().trim() : "video/mp4");
+        entity.setMimeType(
+                StringUtils.hasText(trimToNull(video.getMimeType()))
+                        ? video.getMimeType().trim()
+                        : "video/mp4");
         entity.setDuration(video.getDuration());
         entity.setWidth(video.getWidth());
         entity.setHeight(video.getHeight());
@@ -2117,34 +2286,39 @@ public class UserOrdersController {
     }
 
     private Map<String, ServiceTypes> listServiceTypeMap(List<RepairOrders> orders) {
-        Set<String> ids = orders.stream()
-            .map(RepairOrders::getServiceTypeId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+        Set<String> ids =
+                orders.stream()
+                        .map(RepairOrders::getServiceTypeId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (ids.isEmpty()) {
             return new HashMap<>();
         }
-        return serviceTypesService.list(
-            new LambdaQueryWrapper<ServiceTypes>()
-                .in(ServiceTypes::getId, ids)
-                .eq(ServiceTypes::getIsDelete, 0)
-        ).stream().collect(Collectors.toMap(ServiceTypes::getId, item -> item, (a, b) -> a));
+        return serviceTypesService
+                .list(
+                        new LambdaQueryWrapper<ServiceTypes>()
+                                .in(ServiceTypes::getId, ids)
+                                .eq(ServiceTypes::getIsDelete, 0))
+                .stream()
+                .collect(Collectors.toMap(ServiceTypes::getId, item -> item, (a, b) -> a));
     }
 
-    private Map<String, ServiceCategories> listCategoryMap(Map<String, ServiceTypes> serviceTypeMap) {
-        Set<String> directIds = serviceTypeMap.values().stream()
-            .map(ServiceTypes::getCategoryId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+    private Map<String, ServiceCategories> listCategoryMap(
+            Map<String, ServiceTypes> serviceTypeMap) {
+        Set<String> directIds =
+                serviceTypeMap.values().stream()
+                        .map(ServiceTypes::getCategoryId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (directIds.isEmpty()) {
             return new HashMap<>();
         }
 
-        List<ServiceCategories> directCategories = serviceCategoriesService.list(
-            new LambdaQueryWrapper<ServiceCategories>()
-                .in(ServiceCategories::getId, directIds)
-                .eq(ServiceCategories::getIsDelete, 0)
-        );
+        List<ServiceCategories> directCategories =
+                serviceCategoriesService.list(
+                        new LambdaQueryWrapper<ServiceCategories>()
+                                .in(ServiceCategories::getId, directIds)
+                                .eq(ServiceCategories::getIsDelete, 0));
         if (directCategories.isEmpty()) {
             return new HashMap<>();
         }
@@ -2153,89 +2327,109 @@ public class UserOrdersController {
         for (ServiceCategories category : directCategories) {
             allIds.addAll(parsePathIds(category.getPath()));
         }
-        return serviceCategoriesService.list(
-            new LambdaQueryWrapper<ServiceCategories>()
-                .in(ServiceCategories::getId, allIds)
-                .eq(ServiceCategories::getIsDelete, 0)
-        ).stream().collect(Collectors.toMap(ServiceCategories::getId, item -> item, (a, b) -> a));
+        return serviceCategoriesService
+                .list(
+                        new LambdaQueryWrapper<ServiceCategories>()
+                                .in(ServiceCategories::getId, allIds)
+                                .eq(ServiceCategories::getIsDelete, 0))
+                .stream()
+                .collect(Collectors.toMap(ServiceCategories::getId, item -> item, (a, b) -> a));
     }
 
     private Map<String, TechnicianAccounts> listTechnicianMap(List<RepairOrders> orders) {
-        Set<String> ids = orders.stream()
-            .map(RepairOrders::getTechnicianAccountId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+        Set<String> ids =
+                orders.stream()
+                        .map(RepairOrders::getTechnicianAccountId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (ids.isEmpty()) {
             return new HashMap<>();
         }
-        return technicianAccountsService.list(
-            new LambdaQueryWrapper<TechnicianAccounts>()
-                .in(TechnicianAccounts::getId, ids)
-                .eq(TechnicianAccounts::getIsDelete, 0)
-        ).stream().collect(Collectors.toMap(TechnicianAccounts::getId, item -> item, (a, b) -> a));
+        return technicianAccountsService
+                .list(
+                        new LambdaQueryWrapper<TechnicianAccounts>()
+                                .in(TechnicianAccounts::getId, ids)
+                                .eq(TechnicianAccounts::getIsDelete, 0))
+                .stream()
+                .collect(Collectors.toMap(TechnicianAccounts::getId, item -> item, (a, b) -> a));
     }
 
     private Map<String, UserAddresses> listAddressMap(List<RepairOrders> orders) {
-        Set<String> ids = orders.stream()
-            .map(RepairOrders::getServiceAddressId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+        Set<String> ids =
+                orders.stream()
+                        .map(RepairOrders::getServiceAddressId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (ids.isEmpty()) {
             return new HashMap<>();
         }
-        return userAddressesService.list(
-            new LambdaQueryWrapper<UserAddresses>()
-                .in(UserAddresses::getId, ids)
-                .eq(UserAddresses::getIsDelete, 0)
-        ).stream().collect(Collectors.toMap(UserAddresses::getId, item -> item, (a, b) -> a));
+        return userAddressesService
+                .list(
+                        new LambdaQueryWrapper<UserAddresses>()
+                                .in(UserAddresses::getId, ids)
+                                .eq(UserAddresses::getIsDelete, 0))
+                .stream()
+                .collect(Collectors.toMap(UserAddresses::getId, item -> item, (a, b) -> a));
     }
 
     private Map<String, List<RepairOrderFaults>> listFaultMap(List<RepairOrders> orders) {
-        Set<String> ids = orders.stream()
-            .map(RepairOrders::getId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+        Set<String> ids =
+                orders.stream()
+                        .map(RepairOrders::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (ids.isEmpty()) {
             return new HashMap<>();
         }
-        return repairOrderFaultsService.list(
-            new LambdaQueryWrapper<RepairOrderFaults>()
-                .in(RepairOrderFaults::getRepairOrderId, ids)
-                .eq(RepairOrderFaults::getIsDelete, 0)
-                .orderByAsc(RepairOrderFaults::getCreatedTime)
-        ).stream().collect(Collectors.groupingBy(RepairOrderFaults::getRepairOrderId));
+        return repairOrderFaultsService
+                .list(
+                        new LambdaQueryWrapper<RepairOrderFaults>()
+                                .in(RepairOrderFaults::getRepairOrderId, ids)
+                                .eq(RepairOrderFaults::getIsDelete, 0)
+                                .orderByAsc(RepairOrderFaults::getCreatedTime))
+                .stream()
+                .collect(Collectors.groupingBy(RepairOrderFaults::getRepairOrderId));
     }
 
-    private Map<String, FaultPhenomena> listPhenomenonMap(Map<String, List<RepairOrderFaults>> faultMap) {
-        Set<String> ids = faultMap.values().stream()
-            .flatMap(List::stream)
-            .map(RepairOrderFaults::getFaultPhenomenonId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+    private Map<String, FaultPhenomena> listPhenomenonMap(
+            Map<String, List<RepairOrderFaults>> faultMap) {
+        Set<String> ids =
+                faultMap.values().stream()
+                        .flatMap(List::stream)
+                        .map(RepairOrderFaults::getFaultPhenomenonId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (ids.isEmpty()) {
             return new HashMap<>();
         }
-        return faultPhenomenaService.list(
-            new LambdaQueryWrapper<FaultPhenomena>()
-                .in(FaultPhenomena::getId, ids)
-                .eq(FaultPhenomena::getIsDelete, 0)
-        ).stream().collect(Collectors.toMap(FaultPhenomena::getId, item -> item, (a, b) -> a));
+        return faultPhenomenaService
+                .list(
+                        new LambdaQueryWrapper<FaultPhenomena>()
+                                .in(FaultPhenomena::getId, ids)
+                                .eq(FaultPhenomena::getIsDelete, 0))
+                .stream()
+                .collect(Collectors.toMap(FaultPhenomena::getId, item -> item, (a, b) -> a));
     }
 
     private Map<String, RepairOrderPayments> listPaymentMap(List<RepairOrders> orders) {
-        Set<String> ids = orders.stream()
-            .map(RepairOrders::getId)
-            .filter(StringUtils::hasText)
-            .collect(Collectors.toSet());
+        Set<String> ids =
+                orders.stream()
+                        .map(RepairOrders::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toSet());
         if (ids.isEmpty()) {
             return new HashMap<>();
         }
-        return repairOrderPaymentsService.list(
-            new LambdaQueryWrapper<RepairOrderPayments>()
-                .in(RepairOrderPayments::getRepairOrderId, ids)
-                .eq(RepairOrderPayments::getIsDelete, 0)
-                .orderByDesc(RepairOrderPayments::getCreatedTime)
-        ).stream().collect(Collectors.toMap(RepairOrderPayments::getRepairOrderId, item -> item, (a, b) -> a));
+        return repairOrderPaymentsService
+                .list(
+                        new LambdaQueryWrapper<RepairOrderPayments>()
+                                .in(RepairOrderPayments::getRepairOrderId, ids)
+                                .eq(RepairOrderPayments::getIsDelete, 0)
+                                .orderByDesc(RepairOrderPayments::getCreatedTime))
+                .stream()
+                .collect(
+                        Collectors.toMap(
+                                RepairOrderPayments::getRepairOrderId, item -> item, (a, b) -> a));
     }
 
     private BigDecimal resolvePaidAmount(RepairOrders order, RepairOrderPayments payment) {
@@ -2249,7 +2443,8 @@ public class UserOrdersController {
         return BigDecimal.ZERO;
     }
 
-    private String buildFaultSummary(List<RepairOrderFaults> faults, Map<String, FaultPhenomena> phenomenonMap) {
+    private String buildFaultSummary(
+            List<RepairOrderFaults> faults, Map<String, FaultPhenomena> phenomenonMap) {
         if (faults == null || faults.isEmpty()) {
             return "";
         }
@@ -2271,10 +2466,10 @@ public class UserOrdersController {
             return "";
         }
         return safe(address.getProvince())
-            + safe(address.getCity())
-            + safe(address.getDistrict())
-            + safe(address.getStreet())
-            + safe(address.getDetailedAddress());
+                + safe(address.getCity())
+                + safe(address.getDistrict())
+                + safe(address.getStreet())
+                + safe(address.getDetailedAddress());
     }
 
     private String buildShortAddress(UserAddresses address) {
@@ -2285,7 +2480,8 @@ public class UserOrdersController {
         return StringUtils.hasText(shortAddress) ? shortAddress : buildFullAddress(address);
     }
 
-    private String buildCategoryPath(ServiceCategories category, Map<String, ServiceCategories> categoryMap) {
+    private String buildCategoryPath(
+            ServiceCategories category, Map<String, ServiceCategories> categoryMap) {
         if (category == null) {
             return "";
         }
@@ -2324,42 +2520,35 @@ public class UserOrdersController {
         }
         String value = tab.trim();
         if ("waiting".equals(value)
-            || "processing".equals(value)
-            || "to-pay".equals(value)
-            || "finished".equals(value)
-            || "closed".equals(value)) {
+                || "processing".equals(value)
+                || "to-pay".equals(value)
+                || "finished".equals(value)
+                || "closed".equals(value)) {
             return value;
         }
         return "all";
     }
 
     private String getStatusText(Integer status) {
-        int value = safeInt(status);
-        if (value == 1) {
-            return "待接单";
-        }
-        if (value == 2) {
-            return "待上门";
-        }
-        if (value == 3) {
-            return "待检查";
-        }
-        if (value == 4) {
-            return "待支付";
-        }
-        if (value == 5) {
-            return "服务中";
-        }
-        if (value == 6) {
-            return "已完成";
-        }
-        if (value == 7) {
-            return "已取消";
-        }
-        if (value == 8) {
-            return "已退款";
-        }
-        return "未知状态";
+        return repairOrderStateMachine.statusText(status);
+    }
+
+    private RepairOrderStateContext userStateContext(
+            RepairOrders order,
+            ServiceTypes serviceType,
+            RepairOrderPayments payment,
+            AfterSalesApplications afterSalesApplication) {
+        return new RepairOrderStateContext(
+                safeInt(serviceType == null ? null : serviceType.getType()),
+                isFullyPaid(payment),
+                isTailPaymentCompleted(payment),
+                isWaitingUserConfirmCompletion(order),
+                hasTechnicianArrived(order, serviceType),
+                isAfterSalesProcessing(afterSalesApplication),
+                isAfterSalesWithinWindow(order),
+                normalizeMoney(payment == null ? null : payment.getActualAmount())
+                                .compareTo(BigDecimal.ZERO)
+                        > 0);
     }
 
     private String getPaymentStatusText(RepairOrders order, RepairOrderPayments payment) {
@@ -2390,8 +2579,8 @@ public class UserOrdersController {
             return false;
         }
         return isZero(payment.getServiceFee())
-            && isZero(payment.getMaterialFee())
-            && isZero(payment.getOvertimeFee());
+                && isZero(payment.getMaterialFee())
+                && isZero(payment.getOvertimeFee());
     }
 
     private boolean isFullyPaid(RepairOrderPayments payment) {
@@ -2461,26 +2650,28 @@ public class UserOrdersController {
         return value == null ? 0 : value;
     }
 
-    private void notifyWorkerOrderCanceled(RepairOrders order, ServiceTypes serviceType, String cancelReason, long now) {
+    private void notifyWorkerOrderCanceled(
+            RepairOrders order, ServiceTypes serviceType, String cancelReason, long now) {
         if (order == null || !StringUtils.hasText(order.getTechnicianAccountId())) {
             return;
         }
         String serviceName = serviceType == null ? "" : safe(serviceType.getName());
         String title = "订单取消通知";
-        String content = new StringBuilder()
-            .append("订单").append(safe(order.getOrderNo()))
-            .append("已被用户取消")
-            .append(StringUtils.hasText(serviceName) ? "，服务项目：" + serviceName : "")
-            .append(StringUtils.hasText(cancelReason) ? "，取消原因：" + cancelReason : "")
-            .toString();
+        String content =
+                new StringBuilder()
+                        .append("订单")
+                        .append(safe(order.getOrderNo()))
+                        .append("已被用户取消")
+                        .append(StringUtils.hasText(serviceName) ? "，服务项目：" + serviceName : "")
+                        .append(StringUtils.hasText(cancelReason) ? "，取消原因：" + cancelReason : "")
+                        .toString();
         saveWorkerSystemMessage(
-            order.getTechnicianAccountId(),
-            title,
-            content,
-            WORKER_ORDER_CANCEL_MESSAGE_TYPE,
-            order.getId(),
-            now
-        );
+                order.getTechnicianAccountId(),
+                title,
+                content,
+                WORKER_ORDER_CANCEL_MESSAGE_TYPE,
+                order.getId(),
+                now);
     }
 
     private void notifyWorkerAfterSalesApplied(RepairOrders order, String reason, long now) {
@@ -2490,31 +2681,33 @@ public class UserOrdersController {
         ServiceTypes serviceType = getOrderServiceType(order.getServiceTypeId());
         String serviceName = serviceType == null ? "" : safe(serviceType.getName());
         String title = "售后申请通知";
-        String content = new StringBuilder()
-            .append("订单").append(safe(order.getOrderNo()))
-            .append("收到新的售后申请")
-            .append(StringUtils.hasText(serviceName) ? "，服务项目：" + serviceName : "")
-            .append(StringUtils.hasText(reason) ? "，申请原因：" + reason : "")
-            .toString();
+        String content =
+                new StringBuilder()
+                        .append("订单")
+                        .append(safe(order.getOrderNo()))
+                        .append("收到新的售后申请")
+                        .append(StringUtils.hasText(serviceName) ? "，服务项目：" + serviceName : "")
+                        .append(StringUtils.hasText(reason) ? "，申请原因：" + reason : "")
+                        .toString();
         saveWorkerSystemMessage(
-            order.getTechnicianAccountId(),
-            title,
-            content,
-            WORKER_AFTER_SALES_MESSAGE_TYPE,
-            order.getId(),
-            now
-        );
+                order.getTechnicianAccountId(),
+                title,
+                content,
+                WORKER_AFTER_SALES_MESSAGE_TYPE,
+                order.getId(),
+                now);
     }
 
     private void saveWorkerSystemMessage(
-        String workerId,
-        String title,
-        String content,
-        String businessType,
-        String businessId,
-        long now
-    ) {
-        if (!StringUtils.hasText(workerId) || !StringUtils.hasText(title) || !StringUtils.hasText(content)) {
+            String workerId,
+            String title,
+            String content,
+            String businessType,
+            String businessId,
+            long now) {
+        if (!StringUtils.hasText(workerId)
+                || !StringUtils.hasText(title)
+                || !StringUtils.hasText(content)) {
             return;
         }
         SystemMessages message = new SystemMessages();
@@ -2543,7 +2736,8 @@ public class UserOrdersController {
             return;
         }
         String referenceOrderId = resolveConversationReferenceOrderId(order);
-        session.setRepairOrderId(StringUtils.hasText(referenceOrderId) ? referenceOrderId : order.getId());
+        session.setRepairOrderId(
+                StringUtils.hasText(referenceOrderId) ? referenceOrderId : order.getId());
         session.setStatus(StringUtils.hasText(referenceOrderId) ? 1 : 2);
         session.setUpdatedTime(now);
         conversationSessionsService.updateById(session);
@@ -2551,9 +2745,9 @@ public class UserOrdersController {
 
     private void ensureConversationSessionOpen(RepairOrders order, long now) {
         if (order == null
-            || !StringUtils.hasText(order.getId())
-            || !StringUtils.hasText(order.getAccountId())
-            || !StringUtils.hasText(order.getTechnicianAccountId())) {
+                || !StringUtils.hasText(order.getId())
+                || !StringUtils.hasText(order.getAccountId())
+                || !StringUtils.hasText(order.getTechnicianAccountId())) {
             return;
         }
         ConversationSessions session = findConversationSession(order);
@@ -2573,7 +2767,8 @@ public class UserOrdersController {
             conversationSessionsService.save(session);
             return;
         }
-        if (safeInt(session.getStatus()) != 1 || !order.getId().equals(session.getRepairOrderId())) {
+        if (safeInt(session.getStatus()) != 1
+                || !order.getId().equals(session.getRepairOrderId())) {
             session.setUserAccountId(order.getAccountId());
             session.setTechnicianAccountId(order.getTechnicianAccountId());
             session.setRepairOrderId(order.getId());
@@ -2585,71 +2780,80 @@ public class UserOrdersController {
 
     private ConversationSessions findConversationSession(RepairOrders order) {
         if (order == null
-            || !StringUtils.hasText(order.getAccountId())
-            || !StringUtils.hasText(order.getTechnicianAccountId())) {
+                || !StringUtils.hasText(order.getAccountId())
+                || !StringUtils.hasText(order.getTechnicianAccountId())) {
             return null;
         }
         return conversationSessionsService.getOne(
-            new LambdaQueryWrapper<ConversationSessions>()
-                .eq(ConversationSessions::getUserAccountId, order.getAccountId())
-                .eq(ConversationSessions::getTechnicianAccountId, order.getTechnicianAccountId())
-                .eq(ConversationSessions::getIsDelete, 0)
-                .orderByDesc(ConversationSessions::getUpdatedTime)
-                .orderByDesc(ConversationSessions::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+                new LambdaQueryWrapper<ConversationSessions>()
+                        .eq(ConversationSessions::getUserAccountId, order.getAccountId())
+                        .eq(
+                                ConversationSessions::getTechnicianAccountId,
+                                order.getTechnicianAccountId())
+                        .eq(ConversationSessions::getIsDelete, 0)
+                        .orderByDesc(ConversationSessions::getUpdatedTime)
+                        .orderByDesc(ConversationSessions::getCreatedTime)
+                        .last("limit 1"),
+                false);
     }
 
     private String resolveConversationReferenceOrderId(RepairOrders order) {
         if (order == null
-            || !StringUtils.hasText(order.getAccountId())
-            || !StringUtils.hasText(order.getTechnicianAccountId())) {
+                || !StringUtils.hasText(order.getAccountId())
+                || !StringUtils.hasText(order.getTechnicianAccountId())) {
             return null;
         }
-        RepairOrders activeOrder = repairOrdersService.getOne(
-            new LambdaQueryWrapper<RepairOrders>()
-                .eq(RepairOrders::getAccountId, order.getAccountId())
-                .eq(RepairOrders::getTechnicianAccountId, order.getTechnicianAccountId())
-                .eq(RepairOrders::getIsDelete, 0)
-                .in(RepairOrders::getStatus, 2, 3, 4, 5)
-                .orderByDesc(RepairOrders::getUpdatedTime)
-                .orderByDesc(RepairOrders::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+        RepairOrders activeOrder =
+                repairOrdersService.getOne(
+                        new LambdaQueryWrapper<RepairOrders>()
+                                .eq(RepairOrders::getAccountId, order.getAccountId())
+                                .eq(
+                                        RepairOrders::getTechnicianAccountId,
+                                        order.getTechnicianAccountId())
+                                .eq(RepairOrders::getIsDelete, 0)
+                                .in(RepairOrders::getStatus, 2, 3, 4, 5)
+                                .orderByDesc(RepairOrders::getUpdatedTime)
+                                .orderByDesc(RepairOrders::getCreatedTime)
+                                .last("limit 1"),
+                        false);
         if (activeOrder != null) {
             return activeOrder.getId();
         }
 
-        List<String> relatedOrderIds = repairOrdersService.list(
-            new LambdaQueryWrapper<RepairOrders>()
-                .eq(RepairOrders::getAccountId, order.getAccountId())
-                .eq(RepairOrders::getTechnicianAccountId, order.getTechnicianAccountId())
-                .eq(RepairOrders::getIsDelete, 0)
-                .orderByDesc(RepairOrders::getUpdatedTime)
-                .orderByDesc(RepairOrders::getCreatedTime)
-        ).stream().map(RepairOrders::getId).filter(StringUtils::hasText).collect(Collectors.toList());
+        List<String> relatedOrderIds =
+                repairOrdersService
+                        .list(
+                                new LambdaQueryWrapper<RepairOrders>()
+                                        .eq(RepairOrders::getAccountId, order.getAccountId())
+                                        .eq(
+                                                RepairOrders::getTechnicianAccountId,
+                                                order.getTechnicianAccountId())
+                                        .eq(RepairOrders::getIsDelete, 0)
+                                        .orderByDesc(RepairOrders::getUpdatedTime)
+                                        .orderByDesc(RepairOrders::getCreatedTime))
+                        .stream()
+                        .map(RepairOrders::getId)
+                        .filter(StringUtils::hasText)
+                        .collect(Collectors.toList());
         if (relatedOrderIds.isEmpty()) {
             return null;
         }
 
-        AfterSalesApplications activeApplication = afterSalesApplicationsService.getOne(
-            new LambdaQueryWrapper<AfterSalesApplications>()
-                .in(AfterSalesApplications::getOrderId, relatedOrderIds)
-                .eq(AfterSalesApplications::getOrderType, ORDER_TYPE_REPAIR)
-                .in(
-                    AfterSalesApplications::getStatus,
-                    AFTER_SALES_STATUS_PENDING,
-                    AFTER_SALES_STATUS_APPROVED,
-                    AFTER_SALES_STATUS_PROCESSING
-                )
-                .eq(AfterSalesApplications::getIsDelete, 0)
-                .orderByDesc(AfterSalesApplications::getUpdatedTime)
-                .orderByDesc(AfterSalesApplications::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+        AfterSalesApplications activeApplication =
+                afterSalesApplicationsService.getOne(
+                        new LambdaQueryWrapper<AfterSalesApplications>()
+                                .in(AfterSalesApplications::getOrderId, relatedOrderIds)
+                                .eq(AfterSalesApplications::getOrderType, ORDER_TYPE_REPAIR)
+                                .in(
+                                        AfterSalesApplications::getStatus,
+                                        AFTER_SALES_STATUS_PENDING,
+                                        AFTER_SALES_STATUS_APPROVED,
+                                        AFTER_SALES_STATUS_PROCESSING)
+                                .eq(AfterSalesApplications::getIsDelete, 0)
+                                .orderByDesc(AfterSalesApplications::getUpdatedTime)
+                                .orderByDesc(AfterSalesApplications::getCreatedTime)
+                                .last("limit 1"),
+                        false);
         return activeApplication == null ? null : activeApplication.getOrderId();
     }
 
@@ -2658,6 +2862,9 @@ public class UserOrdersController {
 
         private String orderId;
         private String reason;
+        private String reasonCode;
+        private String reasonLabel;
+        private String userRemark;
     }
 
     @Data
@@ -2741,4 +2948,3 @@ public class UserOrdersController {
         }
     }
 }
-

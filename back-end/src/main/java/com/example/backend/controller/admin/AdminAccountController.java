@@ -12,10 +12,13 @@ import com.example.backend.security.model.AccountRole;
 import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.AdminAccountsService;
 import com.example.backend.service.ImagesService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "管理员端/账号管理", description = "管理员账号的增删改查、密码重置、状态管理")
 @RestController
 @RequestMapping("/admin/account")
 public class AdminAccountController {
@@ -23,11 +26,13 @@ public class AdminAccountController {
     private final AdminAccountsService adminAccountsService;
     private final ImagesService imagesService;
 
-    public AdminAccountController(AdminAccountsService adminAccountsService, ImagesService imagesService) {
+    public AdminAccountController(
+            AdminAccountsService adminAccountsService, ImagesService imagesService) {
         this.adminAccountsService = adminAccountsService;
         this.imagesService = imagesService;
     }
 
+    @Operation(summary = "查询CurrentAdmin")
     @GetMapping("/me")
     public Result<AdminAccountInfoResponse> getCurrentAdmin() {
         LoginUserInfo user = AuthUserContext.get();
@@ -43,15 +48,15 @@ public class AdminAccountController {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR, "管理员账号不存在");
         }
         String avatarUrl = null;
-        Images avatarImage = imagesService.getOne(
-            new LambdaQueryWrapper<Images>()
-                .eq(Images::getBusinessType, "AVATAR")
-                .eq(Images::getBusinessId, accountId)
-                .eq(Images::getIsDelete, 0)
-                .orderByDesc(Images::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+        Images avatarImage =
+                imagesService.getOne(
+                        new LambdaQueryWrapper<Images>()
+                                .eq(Images::getBusinessType, "AVATAR")
+                                .eq(Images::getBusinessId, accountId)
+                                .eq(Images::getIsDelete, 0)
+                                .orderByDesc(Images::getCreatedTime)
+                                .last("limit 1"),
+                        false);
         if (avatarImage != null) {
             avatarUrl = avatarImage.getFileUrl();
         }
@@ -65,4 +70,3 @@ public class AdminAccountController {
         return Result.success(resp);
     }
 }
-

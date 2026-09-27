@@ -3,7 +3,7 @@ const { fetchHomePrivateData } = require("../../api/userHome");
 const { getUserFundsSummary } = require("../../api/userFunds");
 const userProfileApi = require("../../api/userProfile");
 
-const SHARE_TITLE = "安修到家｜让上门维修更安心";
+const SHARE_TITLE = "速修派｜让上门维修更安心";
 const SHARE_PATH = "/pages/home/index";
 const SHARE_IMAGE = "/assets/logo-full.png";
 
@@ -23,7 +23,6 @@ const TEXTS = {
   latestOrderEmpty: "还没有报修订单，去首页提交报修吧",
   quickToolsTitle: "常用功能",
   accountTitle: "账户管理",
-  serviceTitle: "服务保障",
   fundsBalance: "钱包余额",
   frozenBalance: "冻结金额",
   totalIncome: "累计入账",
@@ -138,26 +137,20 @@ function buildQuickEntries() {
       title: TEXTS.favorites,
       subtitle: TEXTS.favoritesDesc,
       theme: "purple"
-    }
-  ];
-}
-
-function buildServicePromises() {
-  return [
-    {
-      title: "极速派单",
-      subtitle: "附近师傅快速响应",
-      theme: "blue"
     },
     {
-      title: "价格透明",
-      subtitle: "费用明细清晰可查",
+      key: "reports",
+      icon: "warning-o",
+      title: "我的举报",
+      subtitle: "查看举报记录与处理结果",
       theme: "orange"
     },
     {
-      title: "售后保障",
-      subtitle: "服务完成后可追踪",
-      theme: "green"
+      key: "credit",
+      icon: "gold-coin-o",
+      title: "信用积分",
+      subtitle: "查看信用评分与变动记录",
+      theme: "blue"
     }
   ];
 }
@@ -224,8 +217,7 @@ Page({
     orderStats: buildDefaultOrderStats(),
     walletSummary: createDefaultWalletSummary(),
     latestOrder: null,
-    quickEntries: buildQuickEntries(),
-    servicePromises: buildServicePromises()
+    quickEntries: buildQuickEntries()
   },
 
   onShow() {
@@ -519,6 +511,24 @@ Page({
     }
     if (key === "favorites") {
       this.onNavigateFavorites();
+      return;
     }
+    if (key === "reports") {
+      this.onNavigateReports();
+      return;
+    }
+    if (key === "credit") {
+      this.onNavigateCredit();
+    }
+  },
+
+  onNavigateReports() {
+    if (!this.ensureLogin()) return;
+    router.navigateTo({ url: "/pages/my-reports/index" });
+  },
+
+  onNavigateCredit() {
+    if (!this.ensureLogin()) return;
+    router.navigateTo({ url: "/pages/credit-score/index" });
   }
 });

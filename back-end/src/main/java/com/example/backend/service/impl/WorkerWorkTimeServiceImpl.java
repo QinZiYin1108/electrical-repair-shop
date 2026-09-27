@@ -12,10 +12,6 @@ import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.TechnicianWorkTimesService;
 import com.example.backend.service.WorkerWorkTimeService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-
 import java.sql.Time;
 import java.time.Instant;
 import java.time.LocalTime;
@@ -26,13 +22,17 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 public class WorkerWorkTimeServiceImpl implements WorkerWorkTimeService {
 
     private static final LocalTime DEFAULT_START_TIME = LocalTime.of(9, 0);
     private static final LocalTime DEFAULT_END_TIME = LocalTime.of(18, 0);
-    private static final DateTimeFormatter SIMPLE_TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter SIMPLE_TIME_FORMATTER =
+            DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     private final TechnicianWorkTimesService technicianWorkTimesService;
@@ -44,14 +44,14 @@ public class WorkerWorkTimeServiceImpl implements WorkerWorkTimeService {
     @Override
     public List<WorkerWorkTimeItem> getCurrentWorkerWorkTimes() {
         String accountId = requireWorker().getAccountId();
-        List<TechnicianWorkTimes> existingList = technicianWorkTimesService.list(
-            new LambdaQueryWrapper<TechnicianWorkTimes>()
-                .eq(TechnicianWorkTimes::getTechnicianAccountId, accountId)
-                .eq(TechnicianWorkTimes::getIsDelete, 0)
-                .orderByAsc(TechnicianWorkTimes::getDayOfWeek)
-                .orderByDesc(TechnicianWorkTimes::getUpdatedTime)
-                .orderByDesc(TechnicianWorkTimes::getCreatedTime)
-        );
+        List<TechnicianWorkTimes> existingList =
+                technicianWorkTimesService.list(
+                        new LambdaQueryWrapper<TechnicianWorkTimes>()
+                                .eq(TechnicianWorkTimes::getTechnicianAccountId, accountId)
+                                .eq(TechnicianWorkTimes::getIsDelete, 0)
+                                .orderByAsc(TechnicianWorkTimes::getDayOfWeek)
+                                .orderByDesc(TechnicianWorkTimes::getUpdatedTime)
+                                .orderByDesc(TechnicianWorkTimes::getCreatedTime));
 
         Map<Integer, TechnicianWorkTimes> dayToRecordMap = new LinkedHashMap<>();
         for (TechnicianWorkTimes item : existingList) {
@@ -102,12 +102,17 @@ public class WorkerWorkTimeServiceImpl implements WorkerWorkTimeService {
             Integer dayOfWeek = entry.getKey();
             WorkerWorkTimeItem item = entry.getValue();
             boolean available = item.getIsAvailable() == null || item.getIsAvailable() == 1;
-            if (item.getIsAvailable() != null && item.getIsAvailable() != 0 && item.getIsAvailable() != 1) {
+            if (item.getIsAvailable() != null
+                    && item.getIsAvailable() != 0
+                    && item.getIsAvailable() != 1) {
                 throw new BusinessException(ErrorCode.PARAM_ERROR, "isAvailable 仅支持 0 或 1");
             }
 
-            LocalTime startTime = parseTimeOrDefault(item.getStartTime(), DEFAULT_START_TIME, available, "startTime");
-            LocalTime endTime = parseTimeOrDefault(item.getEndTime(), DEFAULT_END_TIME, available, "endTime");
+            LocalTime startTime =
+                    parseTimeOrDefault(
+                            item.getStartTime(), DEFAULT_START_TIME, available, "startTime");
+            LocalTime endTime =
+                    parseTimeOrDefault(item.getEndTime(), DEFAULT_END_TIME, available, "endTime");
             if (!startTime.isBefore(endTime)) {
                 throw new BusinessException(ErrorCode.PARAM_ERROR, "开始时间必须早于结束时间");
             }
@@ -139,14 +144,13 @@ public class WorkerWorkTimeServiceImpl implements WorkerWorkTimeService {
 
     private TechnicianWorkTimes findAnyByDay(String accountId, Integer dayOfWeek) {
         return technicianWorkTimesService.getOne(
-            new LambdaQueryWrapper<TechnicianWorkTimes>()
-                .eq(TechnicianWorkTimes::getTechnicianAccountId, accountId)
-                .eq(TechnicianWorkTimes::getDayOfWeek, dayOfWeek)
-                .orderByDesc(TechnicianWorkTimes::getUpdatedTime)
-                .orderByDesc(TechnicianWorkTimes::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+                new LambdaQueryWrapper<TechnicianWorkTimes>()
+                        .eq(TechnicianWorkTimes::getTechnicianAccountId, accountId)
+                        .eq(TechnicianWorkTimes::getDayOfWeek, dayOfWeek)
+                        .orderByDesc(TechnicianWorkTimes::getUpdatedTime)
+                        .orderByDesc(TechnicianWorkTimes::getCreatedTime)
+                        .last("limit 1"),
+                false);
     }
 
     private WorkerWorkTimeItem toResponseItem(TechnicianWorkTimes entity, Integer defaultDay) {
@@ -162,11 +166,13 @@ public class WorkerWorkTimeServiceImpl implements WorkerWorkTimeService {
         item.setDayOfWeek(entity.getDayOfWeek() == null ? defaultDay : entity.getDayOfWeek());
         item.setStartTime(formatTime(toLocalTime(entity.getStartTime(), DEFAULT_START_TIME)));
         item.setEndTime(formatTime(toLocalTime(entity.getEndTime(), DEFAULT_END_TIME)));
-        item.setIsAvailable(entity.getIsAvailable() != null && entity.getIsAvailable() == 0 ? 0 : 1);
+        item.setIsAvailable(
+                entity.getIsAvailable() != null && entity.getIsAvailable() == 0 ? 0 : 1);
         return item;
     }
 
-    private LocalTime parseTimeOrDefault(String value, LocalTime defaultValue, boolean required, String fieldName) {
+    private LocalTime parseTimeOrDefault(
+            String value, LocalTime defaultValue, boolean required, String fieldName) {
         if (!StringUtils.hasText(value)) {
             if (required) {
                 throw new BusinessException(ErrorCode.PARAM_ERROR, fieldName + " 不能为空");
@@ -180,7 +186,8 @@ public class WorkerWorkTimeServiceImpl implements WorkerWorkTimeService {
             }
             return LocalTime.parse(normalized, TIME_FORMATTER);
         } catch (DateTimeParseException e) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, fieldName + " 格式错误，应为 HH:mm 或 HH:mm:ss");
+            throw new BusinessException(
+                    ErrorCode.PARAM_ERROR, fieldName + " 格式错误，应为 HH:mm 或 HH:mm:ss");
         }
     }
 
@@ -192,9 +199,9 @@ public class WorkerWorkTimeServiceImpl implements WorkerWorkTimeService {
             return ((Time) value).toLocalTime();
         }
         return Instant.ofEpochMilli(value.getTime())
-            .atZone(ZoneId.systemDefault())
-            .toLocalTime()
-            .withNano(0);
+                .atZone(ZoneId.systemDefault())
+                .toLocalTime()
+                .withNano(0);
     }
 
     private String formatTime(LocalTime value) {

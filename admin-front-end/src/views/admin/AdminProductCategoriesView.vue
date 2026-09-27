@@ -23,9 +23,7 @@
       >
         <el-table-column prop="name" label="分类名称" min-width="220" show-overflow-tooltip />
         <el-table-column label="层级" width="90">
-          <template #default="{ row }">
-            第{{ row.level || 1 }}级
-          </template>
+          <template #default="{ row }"> 第{{ row.level || 1 }}级 </template>
         </el-table-column>
         <el-table-column prop="parentName" label="父级分类" min-width="160" show-overflow-tooltip />
         <el-table-column prop="sortOrder" label="排序" width="90" />
@@ -49,7 +47,12 @@
             <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column prop="description" label="分类描述" min-width="220" show-overflow-tooltip />
+        <el-table-column
+          prop="description"
+          label="分类描述"
+          min-width="220"
+          show-overflow-tooltip
+        />
         <el-table-column label="更新时间" width="170">
           <template #default="{ row }">
             {{ formatTime(row.updatedTime || row.createdTime) }}
@@ -57,12 +60,16 @@
         </el-table-column>
         <el-table-column label="操作" width="140" fixed="right">
           <template #default="{ row }">
-            <el-dropdown @command="command => handleCategoryAction(command, row)">
+            <el-dropdown @command="(command) => handleCategoryAction(command, row)">
               <el-button size="small">操作</el-button>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item v-if="row.level < 3" command="createChild">新增子分类</el-dropdown-item>
-                  <el-dropdown-item v-if="row.level === 3" command="uploadIcon">上传图标</el-dropdown-item>
+                  <el-dropdown-item v-if="row.level < 3" command="createChild"
+                    >新增子分类</el-dropdown-item
+                  >
+                  <el-dropdown-item v-if="row.level === 3" command="uploadIcon"
+                    >上传图标</el-dropdown-item
+                  >
                   <el-dropdown-item command="edit">编辑</el-dropdown-item>
                   <el-dropdown-item command="delete">删除</el-dropdown-item>
                 </el-dropdown-menu>
@@ -95,7 +102,13 @@
           />
         </el-form-item>
         <el-form-item label="分类描述">
-          <el-input v-model="form.description" type="textarea" :rows="4" maxlength="5000" show-word-limit />
+          <el-input
+            v-model="form.description"
+            type="textarea"
+            :rows="4"
+            maxlength="5000"
+            show-word-limit
+          />
         </el-form-item>
         <el-form-item label="状态">
           <el-switch v-model="form.isActive" :active-value="1" :inactive-value="0" />
@@ -116,7 +129,7 @@
       accept="image/*"
       style="display: none"
       @change="onIconFileChange"
-    >
+    />
   </div>
 </template>
 
@@ -160,7 +173,9 @@ const parentCascaderProps = {
 };
 
 const parentOptions = computed(() => {
-  const disabledIds = currentEditId.value ? collectDescendantIds(categoryTreeRows.value, currentEditId.value) : new Set();
+  const disabledIds = currentEditId.value
+    ? collectDescendantIds(categoryTreeRows.value, currentEditId.value)
+    : new Set();
   if (currentEditId.value) {
     disabledIds.add(currentEditId.value);
   }
@@ -252,9 +267,10 @@ async function submitForm() {
 
   saving.value = true;
   try {
-    const res = dialogMode.value === 'create'
-      ? await createAdminProductCategory(payload)
-      : await updateAdminProductCategory(currentEditId.value, payload);
+    const res =
+      dialogMode.value === 'create'
+        ? await createAdminProductCategory(payload)
+        : await updateAdminProductCategory(currentEditId.value, payload);
     if (res.code !== 200) {
       ElMessage.error(res.message || '保存商品分类失败');
       return;
@@ -298,7 +314,11 @@ async function onIconFileChange(event) {
   try {
     const res = await uploadAdminProductCategoryIcon(row.id, file);
     if (res.code !== 200) {
-      showUploadErrorDialog(res.message || '上传商品分类图标失败', '上传商品分类图标失败', '图标上传失败');
+      showUploadErrorDialog(
+        res.message || '上传商品分类图标失败',
+        '上传商品分类图标失败',
+        '图标上传失败'
+      );
       return;
     }
     ElMessage.success('商品分类图标上传成功');
@@ -324,7 +344,9 @@ function beforeIconUpload(file) {
 
 async function confirmDelete(row) {
   try {
-    await ElMessageBox.confirm(`确定删除商品分类“${row.name || row.id}”吗？`, '删除确认', { type: 'warning' });
+    await ElMessageBox.confirm(`确定删除商品分类“${row.name || row.id}”吗？`, '删除确认', {
+      type: 'warning'
+    });
   } catch (error) {
     return;
   }
@@ -351,7 +373,7 @@ async function handleExternalRefresh(event) {
 }
 
 function mapParentOptions(nodes, disabledIds) {
-  return (nodes || []).map(item => ({
+  return (nodes || []).map((item) => ({
     id: item.id,
     name: item.name,
     disabled: disabledIds.has(item.id) || Number(item.level) >= 3,

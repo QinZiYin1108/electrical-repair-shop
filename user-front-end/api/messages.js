@@ -62,13 +62,20 @@ const uploadUserChatMedia = (filePath, mediaType) => {
       },
       success(res) {
         try {
-          resolve(request.resolveUploadResponse(res, mediaType === 'video' ? '视频上传失败' : '图片上传失败'));
+          resolve(
+            request.resolveUploadResponse(
+              res,
+              mediaType === 'video' ? '视频上传失败' : '图片上传失败'
+            )
+          );
         } catch (error) {
           reject(error);
         }
       },
       fail(error) {
-        reject(request.createRequestError((error && error.errMsg) || '上传失败，请稍后重试', error));
+        reject(
+          request.createRequestError((error && error.errMsg) || '上传失败，请稍后重试', error)
+        );
       }
     });
   });

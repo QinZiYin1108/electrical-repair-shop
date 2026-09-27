@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "信用积分",
+  "usingComponents": {
+    "van-loading": "@vant/weapp/loading/index",
+    "van-tag": "@vant/weapp/tag/index"
+  }
+}

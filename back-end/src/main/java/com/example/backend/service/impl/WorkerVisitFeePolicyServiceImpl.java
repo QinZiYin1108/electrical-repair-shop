@@ -12,37 +12,37 @@ import com.example.backend.security.model.LoginUserInfo;
 import com.example.backend.service.TechnicianVisitFeePoliciesService;
 import com.example.backend.service.WorkerVisitFeePolicyService;
 import com.example.backend.utils.id.SnowflakeIdUtil;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
 public class WorkerVisitFeePolicyServiceImpl implements WorkerVisitFeePolicyService {
 
     private final TechnicianVisitFeePoliciesService technicianVisitFeePoliciesService;
 
-    public WorkerVisitFeePolicyServiceImpl(TechnicianVisitFeePoliciesService technicianVisitFeePoliciesService) {
+    public WorkerVisitFeePolicyServiceImpl(
+            TechnicianVisitFeePoliciesService technicianVisitFeePoliciesService) {
         this.technicianVisitFeePoliciesService = technicianVisitFeePoliciesService;
     }
 
     @Override
     public List<WorkerVisitFeePolicyItem> getCurrentWorkerPolicies() {
         String accountId = requireWorker().getAccountId();
-        List<TechnicianVisitFeePolicies> allPolicyList = technicianVisitFeePoliciesService.list(
-            new LambdaQueryWrapper<TechnicianVisitFeePolicies>()
-                .eq(TechnicianVisitFeePolicies::getTechnicianAccountId, accountId)
-                .eq(TechnicianVisitFeePolicies::getIsDelete, 0)
-                .orderByAsc(TechnicianVisitFeePolicies::getServiceKind)
-                .orderByDesc(TechnicianVisitFeePolicies::getEffectiveTime)
-                .orderByDesc(TechnicianVisitFeePolicies::getCreatedTime)
-        );
+        List<TechnicianVisitFeePolicies> allPolicyList =
+                technicianVisitFeePoliciesService.list(
+                        new LambdaQueryWrapper<TechnicianVisitFeePolicies>()
+                                .eq(TechnicianVisitFeePolicies::getTechnicianAccountId, accountId)
+                                .eq(TechnicianVisitFeePolicies::getIsDelete, 0)
+                                .orderByAsc(TechnicianVisitFeePolicies::getServiceKind)
+                                .orderByDesc(TechnicianVisitFeePolicies::getEffectiveTime)
+                                .orderByDesc(TechnicianVisitFeePolicies::getCreatedTime));
 
         Map<Integer, TechnicianVisitFeePolicies> latestPolicyMap = new LinkedHashMap<>();
         for (TechnicianVisitFeePolicies policy : allPolicyList) {
@@ -112,18 +112,18 @@ public class WorkerVisitFeePolicyServiceImpl implements WorkerVisitFeePolicyServ
 
     private TechnicianVisitFeePolicies findLatestPolicy(String accountId, Integer serviceKind) {
         return technicianVisitFeePoliciesService.getOne(
-            new LambdaQueryWrapper<TechnicianVisitFeePolicies>()
-                .eq(TechnicianVisitFeePolicies::getTechnicianAccountId, accountId)
-                .eq(TechnicianVisitFeePolicies::getServiceKind, serviceKind)
-                .eq(TechnicianVisitFeePolicies::getIsDelete, 0)
-                .orderByDesc(TechnicianVisitFeePolicies::getEffectiveTime)
-                .orderByDesc(TechnicianVisitFeePolicies::getCreatedTime)
-                .last("limit 1"),
-            false
-        );
+                new LambdaQueryWrapper<TechnicianVisitFeePolicies>()
+                        .eq(TechnicianVisitFeePolicies::getTechnicianAccountId, accountId)
+                        .eq(TechnicianVisitFeePolicies::getServiceKind, serviceKind)
+                        .eq(TechnicianVisitFeePolicies::getIsDelete, 0)
+                        .orderByDesc(TechnicianVisitFeePolicies::getEffectiveTime)
+                        .orderByDesc(TechnicianVisitFeePolicies::getCreatedTime)
+                        .last("limit 1"),
+                false);
     }
 
-    private WorkerVisitFeePolicyItem toResponseItem(TechnicianVisitFeePolicies policy, Integer defaultServiceKind) {
+    private WorkerVisitFeePolicyItem toResponseItem(
+            TechnicianVisitFeePolicies policy, Integer defaultServiceKind) {
         WorkerVisitFeePolicyItem item = new WorkerVisitFeePolicyItem();
         if (policy == null) {
             item.setServiceKind(defaultServiceKind);
@@ -138,9 +138,12 @@ public class WorkerVisitFeePolicyServiceImpl implements WorkerVisitFeePolicyServ
         }
         item.setId(policy.getId());
         item.setServiceKind(policy.getServiceKind());
-        item.setMinVisitFee(policy.getMinVisitFee() == null ? BigDecimal.ZERO : policy.getMinVisitFee());
-        item.setBaseRadiusKm(policy.getBaseRadiusKm() == null ? BigDecimal.ZERO : policy.getBaseRadiusKm());
-        item.setExtraFeePerKm(policy.getExtraFeePerKm() == null ? BigDecimal.ZERO : policy.getExtraFeePerKm());
+        item.setMinVisitFee(
+                policy.getMinVisitFee() == null ? BigDecimal.ZERO : policy.getMinVisitFee());
+        item.setBaseRadiusKm(
+                policy.getBaseRadiusKm() == null ? BigDecimal.ZERO : policy.getBaseRadiusKm());
+        item.setExtraFeePerKm(
+                policy.getExtraFeePerKm() == null ? BigDecimal.ZERO : policy.getExtraFeePerKm());
         item.setDistanceCalcType(policy.getDistanceCalcType());
         item.setRoundingRule(policy.getRoundingRule());
         item.setMaxVisitFee(policy.getMaxVisitFee());
@@ -159,16 +162,20 @@ public class WorkerVisitFeePolicyServiceImpl implements WorkerVisitFeePolicyServ
         if (item.getMinVisitFee() == null || item.getMinVisitFee().compareTo(BigDecimal.ZERO) < 0) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "最低上门费不能小于0");
         }
-        if (item.getBaseRadiusKm() == null || item.getBaseRadiusKm().compareTo(BigDecimal.ZERO) < 0) {
+        if (item.getBaseRadiusKm() == null
+                || item.getBaseRadiusKm().compareTo(BigDecimal.ZERO) < 0) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "基础服务半径不能小于0");
         }
-        if (item.getExtraFeePerKm() == null || item.getExtraFeePerKm().compareTo(BigDecimal.ZERO) < 0) {
+        if (item.getExtraFeePerKm() == null
+                || item.getExtraFeePerKm().compareTo(BigDecimal.ZERO) < 0) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "超区每公里费用不能小于0");
         }
-        if (item.getDistanceCalcType() == null || (item.getDistanceCalcType() != 1 && item.getDistanceCalcType() != 2)) {
+        if (item.getDistanceCalcType() == null
+                || (item.getDistanceCalcType() != 1 && item.getDistanceCalcType() != 2)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "距离计算方式不合法");
         }
-        if (item.getRoundingRule() == null || (item.getRoundingRule() != 1 && item.getRoundingRule() != 2)) {
+        if (item.getRoundingRule() == null
+                || (item.getRoundingRule() != 1 && item.getRoundingRule() != 2)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "公里取整规则不合法");
         }
         if (item.getMaxVisitFee() != null && item.getMaxVisitFee().compareTo(BigDecimal.ZERO) < 0) {

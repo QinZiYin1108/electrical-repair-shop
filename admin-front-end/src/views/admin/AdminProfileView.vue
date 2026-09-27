@@ -29,14 +29,10 @@
           <div class="header-title">个人中心</div>
           <div class="header-subtitle">查看并管理您的账号、资料和安全设置</div>
           <div class="header-actions">
-            <el-button v-if="!editMode" type="primary" @click="handleEdit">
-              编辑信息
-            </el-button>
+            <el-button v-if="!editMode" type="primary" @click="handleEdit"> 编辑信息 </el-button>
             <template v-else>
               <el-button @click="handleCancelEdit">取消</el-button>
-              <el-button type="primary" :loading="saving" @click="handleSave">
-                保存
-              </el-button>
+              <el-button type="primary" :loading="saving" @click="handleSave"> 保存 </el-button>
             </template>
           </div>
         </div>
@@ -62,7 +58,11 @@
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="用户名">
-                <el-input v-model="form.username" :disabled="!editMode" placeholder="请输入用户名" />
+                <el-input
+                  v-model="form.username"
+                  :disabled="!editMode"
+                  placeholder="请输入用户名"
+                />
               </el-form-item>
             </el-col>
             <el-col :span="12">
@@ -88,12 +88,20 @@
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="真实姓名">
-                <el-input v-model="form.realName" :disabled="!editMode" placeholder="请输入真实姓名" />
+                <el-input
+                  v-model="form.realName"
+                  :disabled="!editMode"
+                  placeholder="请输入真实姓名"
+                />
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item label="部门">
-                <el-input v-model="form.department" :disabled="!editMode" placeholder="请输入部门" />
+                <el-input
+                  v-model="form.department"
+                  :disabled="!editMode"
+                  placeholder="请输入部门"
+                />
               </el-form-item>
             </el-col>
           </el-row>
@@ -113,18 +121,14 @@
               <div class="security-name">修改密码</div>
               <div class="security-desc">修改时需要填写当前旧密码。</div>
             </div>
-            <el-button type="primary" plain @click="openPasswordDialog">
-              去修改
-            </el-button>
+            <el-button type="primary" plain @click="openPasswordDialog"> 去修改 </el-button>
           </div>
           <div class="security-item">
             <div>
               <div class="security-name">修改邮箱</div>
               <div class="security-desc">新邮箱需要验证码确认，且不能使用已注册邮箱。</div>
             </div>
-            <el-button type="primary" plain @click="openEmailDialog">
-              去修改
-            </el-button>
+            <el-button type="primary" plain @click="openEmailDialog"> 去修改 </el-button>
           </div>
         </div>
       </div>
@@ -216,8 +220,16 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { getAdminProfileDetail, updateAdminProfile, uploadAdminAvatar } from '../../api/adminProfile';
-import { changeAdminEmail, changeAdminPassword, sendAdminChangeEmailCode } from '../../api/adminSecurity';
+import {
+  getAdminProfileDetail,
+  updateAdminProfile,
+  uploadAdminAvatar
+} from '../../api/adminProfile';
+import {
+  changeAdminEmail,
+  changeAdminPassword,
+  sendAdminChangeEmailCode
+} from '../../api/adminSecurity';
 import { useAdminStore } from '../../stores/admin';
 import { useAdminPageRefresh } from '../../utils/adminPageRefresh';
 import { showUploadErrorDialog, showUploadLimitDialog } from '../../utils/uploadFeedback';
@@ -333,7 +345,9 @@ function syncStore() {
 }
 
 function normalizeEmail(value) {
-  return String(value || '').trim().toLowerCase();
+  return String(value || '')
+    .trim()
+    .toLowerCase();
 }
 
 function isValidEmail(value) {
@@ -420,7 +434,7 @@ function handleFileChange(event) {
   }
   avatarFile.value = file;
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = (e) => {
     avatarPreview.value = e.target.result;
   };
   reader.readAsDataURL(file);

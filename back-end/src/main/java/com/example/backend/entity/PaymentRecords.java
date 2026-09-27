@@ -1,114 +1,81 @@
 package com.example.backend.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
-
 import java.math.BigDecimal;
 import lombok.Data;
 
-/**
- * 支付记录表
- * @TableName payment_records
- */
-@TableName(value ="payment_records")
+/** 支付记录表 @TableName payment_records */
+@TableName(value = "payment_records")
 @Data
 public class PaymentRecords {
-    /**
-     * 主键，PR+雪花ID
-     */
-    @TableId
-    private String id;
+    /** 主键，PR+雪花ID */
+    @TableId private String id;
 
-    /**
-     * 支付单号
-     */
+    /** 支付单号 */
     private String paymentNo;
 
-    /**
-     * 订单ID
-     */
+    /** 订单ID */
     private String orderId;
 
-    /**
-     * 订单类型：1-维修订单，2-商品订单
-     */
+    /** 订单类型：1-维修订单，2-商品订单，3-钱包充值 */
     private Integer orderType;
 
-    /**
-     * 用户账号ID
-     */
+    /** 支付阶段（订单支付专用）：1-预付，2-尾款，3-商品订单全额 */
+    private Integer bizStage;
+
+    /** 用户账号ID */
     private String accountId;
 
-    /**
-     * 支付方式：1-微信支付，2-支付宝，3-现金，4-银行卡，5-钱包支付
-     */
+    /** 支付方式：1-微信支付，2-支付宝，3-现金，4-银行卡，5-钱包支付 */
     private Integer paymentMethod;
 
-    /**
-     * 支付金额
-     */
+    /** 支付金额 */
     private BigDecimal paymentAmount;
 
-    /**
-     * 支付状态：1-待支付，2-支付中，3-支付成功，4-支付失败，5-已退款
-     */
+    /** 币种，当前为 CNY */
+    private String currency;
+
+    /** 支付状态：1-待支付，2-支付中，3-支付成功，4-支付失败，5-已退款，6-已关闭 */
     private Integer paymentStatus;
 
-    /**
-     * 第三方支付单号
-     */
+    /** 第三方支付单号 */
     private String thirdPartyNo;
 
-    /**
-     * 支付时间戳
-     */
+    /** 支付意图过期时间戳 */
+    private Long expiresAt;
+
+    /** 支付时间戳 */
     private Long paymentTime;
 
-    /**
-     * 退款金额
-     */
+    /** 退款金额 */
     private BigDecimal refundAmount;
 
-    /**
-     * 退款时间戳
-     */
+    /** 退款时间戳 */
     private Long refundTime;
 
-    /**
-     * 退款原因
-     */
+    /** 退款原因 */
     private String refundReason;
 
-    /**
-     * 回调数据
-     */
+    /** 回调数据 */
     private String callbackData;
 
-    /**
-     * 备注
-     */
+    /** 首次成功处理渠道回调的时间戳 */
+    private Long callbackProcessedTime;
+
+    /** 备注 */
     private String remark;
 
-    /**
-     * 创建时间戳
-     */
+    /** 创建时间戳 */
     private Long createdTime;
 
-    /**
-     * 更新时间戳
-     */
+    /** 更新时间戳 */
     private Long updatedTime;
 
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
+    /** 乐观锁版本号 */
+    @Version private Integer version;
 
-    /**
-     * 逻辑删除：0-未删除，1-已删除
-     */
-    @TableLogic
-    private Integer isDelete;
+    /** 逻辑删除：0-未删除，1-已删除 */
+    @TableLogic private Integer isDelete;
 
     @Override
     public boolean equals(Object that) {
@@ -123,24 +90,60 @@ public class PaymentRecords {
         }
         PaymentRecords other = (PaymentRecords) that;
         return (this.getId() == null ? other.getId() == null : this.getId().equals(other.getId()))
-            && (this.getPaymentNo() == null ? other.getPaymentNo() == null : this.getPaymentNo().equals(other.getPaymentNo()))
-            && (this.getOrderId() == null ? other.getOrderId() == null : this.getOrderId().equals(other.getOrderId()))
-            && (this.getOrderType() == null ? other.getOrderType() == null : this.getOrderType().equals(other.getOrderType()))
-            && (this.getAccountId() == null ? other.getAccountId() == null : this.getAccountId().equals(other.getAccountId()))
-            && (this.getPaymentMethod() == null ? other.getPaymentMethod() == null : this.getPaymentMethod().equals(other.getPaymentMethod()))
-            && (this.getPaymentAmount() == null ? other.getPaymentAmount() == null : this.getPaymentAmount().equals(other.getPaymentAmount()))
-            && (this.getPaymentStatus() == null ? other.getPaymentStatus() == null : this.getPaymentStatus().equals(other.getPaymentStatus()))
-            && (this.getThirdPartyNo() == null ? other.getThirdPartyNo() == null : this.getThirdPartyNo().equals(other.getThirdPartyNo()))
-            && (this.getPaymentTime() == null ? other.getPaymentTime() == null : this.getPaymentTime().equals(other.getPaymentTime()))
-            && (this.getRefundAmount() == null ? other.getRefundAmount() == null : this.getRefundAmount().equals(other.getRefundAmount()))
-            && (this.getRefundTime() == null ? other.getRefundTime() == null : this.getRefundTime().equals(other.getRefundTime()))
-            && (this.getRefundReason() == null ? other.getRefundReason() == null : this.getRefundReason().equals(other.getRefundReason()))
-            && (this.getCallbackData() == null ? other.getCallbackData() == null : this.getCallbackData().equals(other.getCallbackData()))
-            && (this.getRemark() == null ? other.getRemark() == null : this.getRemark().equals(other.getRemark()))
-            && (this.getCreatedTime() == null ? other.getCreatedTime() == null : this.getCreatedTime().equals(other.getCreatedTime()))
-            && (this.getUpdatedTime() == null ? other.getUpdatedTime() == null : this.getUpdatedTime().equals(other.getUpdatedTime()))
-            && (this.getVersion() == null ? other.getVersion() == null : this.getVersion().equals(other.getVersion()))
-            && (this.getIsDelete() == null ? other.getIsDelete() == null : this.getIsDelete().equals(other.getIsDelete()));
+                && (this.getPaymentNo() == null
+                        ? other.getPaymentNo() == null
+                        : this.getPaymentNo().equals(other.getPaymentNo()))
+                && (this.getOrderId() == null
+                        ? other.getOrderId() == null
+                        : this.getOrderId().equals(other.getOrderId()))
+                && (this.getOrderType() == null
+                        ? other.getOrderType() == null
+                        : this.getOrderType().equals(other.getOrderType()))
+                && (this.getAccountId() == null
+                        ? other.getAccountId() == null
+                        : this.getAccountId().equals(other.getAccountId()))
+                && (this.getPaymentMethod() == null
+                        ? other.getPaymentMethod() == null
+                        : this.getPaymentMethod().equals(other.getPaymentMethod()))
+                && (this.getPaymentAmount() == null
+                        ? other.getPaymentAmount() == null
+                        : this.getPaymentAmount().equals(other.getPaymentAmount()))
+                && (this.getPaymentStatus() == null
+                        ? other.getPaymentStatus() == null
+                        : this.getPaymentStatus().equals(other.getPaymentStatus()))
+                && (this.getThirdPartyNo() == null
+                        ? other.getThirdPartyNo() == null
+                        : this.getThirdPartyNo().equals(other.getThirdPartyNo()))
+                && (this.getPaymentTime() == null
+                        ? other.getPaymentTime() == null
+                        : this.getPaymentTime().equals(other.getPaymentTime()))
+                && (this.getRefundAmount() == null
+                        ? other.getRefundAmount() == null
+                        : this.getRefundAmount().equals(other.getRefundAmount()))
+                && (this.getRefundTime() == null
+                        ? other.getRefundTime() == null
+                        : this.getRefundTime().equals(other.getRefundTime()))
+                && (this.getRefundReason() == null
+                        ? other.getRefundReason() == null
+                        : this.getRefundReason().equals(other.getRefundReason()))
+                && (this.getCallbackData() == null
+                        ? other.getCallbackData() == null
+                        : this.getCallbackData().equals(other.getCallbackData()))
+                && (this.getRemark() == null
+                        ? other.getRemark() == null
+                        : this.getRemark().equals(other.getRemark()))
+                && (this.getCreatedTime() == null
+                        ? other.getCreatedTime() == null
+                        : this.getCreatedTime().equals(other.getCreatedTime()))
+                && (this.getUpdatedTime() == null
+                        ? other.getUpdatedTime() == null
+                        : this.getUpdatedTime().equals(other.getUpdatedTime()))
+                && (this.getVersion() == null
+                        ? other.getVersion() == null
+                        : this.getVersion().equals(other.getVersion()))
+                && (this.getIsDelete() == null
+                        ? other.getIsDelete() == null
+                        : this.getIsDelete().equals(other.getIsDelete()));
     }
 
     @Override
@@ -152,9 +155,12 @@ public class PaymentRecords {
         result = prime * result + ((getOrderId() == null) ? 0 : getOrderId().hashCode());
         result = prime * result + ((getOrderType() == null) ? 0 : getOrderType().hashCode());
         result = prime * result + ((getAccountId() == null) ? 0 : getAccountId().hashCode());
-        result = prime * result + ((getPaymentMethod() == null) ? 0 : getPaymentMethod().hashCode());
-        result = prime * result + ((getPaymentAmount() == null) ? 0 : getPaymentAmount().hashCode());
-        result = prime * result + ((getPaymentStatus() == null) ? 0 : getPaymentStatus().hashCode());
+        result =
+                prime * result + ((getPaymentMethod() == null) ? 0 : getPaymentMethod().hashCode());
+        result =
+                prime * result + ((getPaymentAmount() == null) ? 0 : getPaymentAmount().hashCode());
+        result =
+                prime * result + ((getPaymentStatus() == null) ? 0 : getPaymentStatus().hashCode());
         result = prime * result + ((getThirdPartyNo() == null) ? 0 : getThirdPartyNo().hashCode());
         result = prime * result + ((getPaymentTime() == null) ? 0 : getPaymentTime().hashCode());
         result = prime * result + ((getRefundAmount() == null) ? 0 : getRefundAmount().hashCode());

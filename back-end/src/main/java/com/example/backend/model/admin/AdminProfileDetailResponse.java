@@ -1,17 +1,41 @@
 package com.example.backend.model.admin;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "管理员个人资料详情响应")
 public class AdminProfileDetailResponse {
 
+    @Schema(description = "ID")
     private String id;
+
+    @Schema(description = "username")
     private String username;
+
+    @Schema(description = "手机号")
     private String phone;
+
+    @Schema(description = "邮箱")
     private String email;
+
+    @Schema(description = "管理员类型")
     private Integer adminType;
+
+    @Schema(description = "管理员角色")
     private Integer adminRole;
+
+    @Schema(description = "账号状态")
     private Integer accountStatus;
+
+    @Schema(description = "真实姓名")
     private String realName;
+
+    @Schema(description = "department")
     private String department;
+
+    @Schema(description = "position")
     private String position;
+
+    @Schema(description = "头像URL")
     private String avatarUrl;
 
     public String getId() {
@@ -102,4 +126,3 @@ public class AdminProfileDetailResponse {
         this.avatarUrl = avatarUrl;
     }
 }
-

@@ -139,6 +139,9 @@ sudo mysql -e "CREATE USER IF NOT EXISTS 'app'@'localhost' IDENTIFIED BY '你的
 sudo mysql electrical_repair_shop < <SRC>/main/sql/electrical_repair_shop_init.sql
 ```
 
+> ★ 更省事、且**避免「app 密码与 .env 不一致」**：配好 `.env` 后直接
+> `bash <SRC>/deploy/db-init.sh`（读取 `.env` 的 `DB_*`，建库 + 建/对齐 app 用户 + 导入）。
+
 **验证**：
 ```bash
 sudo mysql electrical_repair_shop -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='electrical_repair_shop';"   # 期望 69
@@ -149,7 +152,7 @@ sudo mysql electrical_repair_shop -e "SELECT config_key FROM system_configs LIMI
 **预期**：默认管理员 `admin` / `admin123456`。
 
 **排错**：
-- `Access denied for user 'app'` → 密码与 `.env` 不一致，或 GRANT 未执行。
+- `Access denied for user 'app'@'localhost' (using password: YES)` → app 用户密码与 `.env` 的 `DB_PASSWORD` 不一致。修：`DBP=$(grep '^DB_PASSWORD=' <ROOT>/.env | cut -d= -f2-); mysql -e "ALTER USER 'app'@'localhost' IDENTIFIED BY '$DBP'; FLUSH PRIVILEGES;"` 然后 `systemctl restart electrical-backend`；或直接 `bash <SRC>/deploy/db-init.sh`。
 - 导入报语法错 → 确认用的是 `electrical_repair_shop_init.sql`（MySQL 语法）；若误用其它 dump 请更换。
 
 ---

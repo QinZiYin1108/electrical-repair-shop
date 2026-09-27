@@ -217,7 +217,7 @@ sudo nginx -t
 sudo certbot certificates | grep -A2 thdqwx.work
 curl -I https://www.thdqwx.work
 curl -I https://admin.thdqwx.work
-curl -s https://api.thdqwx.work/api/actuator/health    # 需步骤6已完成
+curl -s http://127.0.0.1:9090/actuator/health    # 健康检查在管理端口 9090（经 api 域名访问会 404，属正常）
 ```
 
 **排错**：
@@ -256,7 +256,7 @@ cd <本地仓库根目录>
 
 - [ ] `https://www.thdqwx.work` 正常
 - [ ] `https://admin.thdqwx.work` 可打开、`admin/admin123456` 可登录（登录后改密码）
-- [ ] `https://api.thdqwx.work/api/actuator/health` = `{"status":"UP"}`
+- [ ] `curl -s http://127.0.0.1:9090/actuator/health` = `{"status":"UP"}`（健康检查在管理端口，不经 api 域名）
 - [ ] `curl -I http://thdqwx.work` 返回 301 → `https://www.thdqwx.work`
 - [ ] 数据库 69 张表、`system_configs` 有数据
 - [ ] 三端接口基址指向 `https://api.thdqwx.work`
@@ -294,7 +294,7 @@ sudo mysqldump --single-transaction --routines --triggers electrical_repair_shop
 3) 重启：`sudo systemctl restart electrical-backend`
 4) 微信商户平台配置回调域名白名单（`api.thdqwx.work`）
 5) 小程序端用最小金额下单一笔，验证：预下单 → `wx.requestPayment` → 回调入账 → 订单状态推进；再验证退款闭环。
-6) 观察：`journalctl -u electrical-backend -f`、`curl -s https://api.thdqwx.work/api/actuator/health`
+6) 观察：`journalctl -u electrical-backend -f`、`curl -s http://127.0.0.1:9090/actuator/health`
 
 **注意**：`WX_PAY_ENABLED=true` 后表示真金白银，任何改动前先备份。
 

@@ -14,7 +14,7 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update
 
 echo "==> 基础组件（curl/tar/rsync/git/nginx/redis/certbot）"
-apt-get install -y curl tar rsync git nginx redis-server certbot python3-certbot-nginx ca-certificates gnupg
+apt-get install -y curl tar rsync git maven nginx redis-server certbot python3-certbot-nginx ca-certificates gnupg
 
 echo "==> OpenJDK 25（Debian 13 主源自带；缺失则回退 Adoptium）"
 if ! java -version 2>&1 | grep -q '"25'; then

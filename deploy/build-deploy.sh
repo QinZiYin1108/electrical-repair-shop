@@ -71,8 +71,13 @@ publish_dist() {
 if [ "$SKIP_BACKEND" -eq 0 ]; then
   echo "==> 构建后端"
   cd "$SRC_DIR/back-end"
-  chmod +x mvnw 2>/dev/null || true
-  ./mvnw -q -DskipTests clean package
+  if command -v mvn >/dev/null 2>&1; then
+    MVN=mvn
+  else
+    chmod +x mvnw 2>/dev/null || true
+    MVN=./mvnw
+  fi
+  "$MVN" -q -DskipTests clean package
   JAR="$(ls -t target/back-end-*.jar 2>/dev/null | grep -v '\.original$' | head -1 || true)"
   if [ -z "$JAR" ]; then
     echo "未找到后端 jar 产物" >&2

@@ -45,6 +45,17 @@ sudo git clone -b feat/new-thing https://github.com/QinZiYin1108/electrical-repa
 ```
 > 私有仓库需先给服务器配置凭据：HTTPS 用 Personal Access Token（`git config --global credential.helper store` 后首次输入），或改用 SSH（配 Deploy Key）。
 
+方式 A2（**服务器拉不动 GitHub 时——国内常见 `GnuTLS recv error (-110)`，改用 Gitee 镜像**）：
+```bash
+# 1) 在 Gitee 导入仓库：登录 gitee.com → 右上「+」→「新建仓库」→ 选「导入」
+#    打开 https://gitee.com/projects/import/url ，填 GitHub 仓库地址，导入（可设公开/私有）
+# 2) 服务器从 Gitee 克隆
+sudo mkdir -p <SRC>
+sudo git clone -b feat/new-thing https://gitee.com/<你的Gitee用户名>/electrical-repair-shop.git <SRC>
+# 3) 之后更新（origin 即 Gitee）：bash <SRC>/deploy/server-pull-deploy.sh
+```
+> Gitee 镜像是**一次性快照**：GitHub 侧后续提交需在 Gitee 仓库页点「同步」/重新导入，或本地直接 push 到 Gitee。
+
 方式 B（本地推送，本地仓库根目录执行）：
 ```powershell
 tar -czf app-src.tar.gz --exclude node_modules --exclude target --exclude dist --exclude .git .

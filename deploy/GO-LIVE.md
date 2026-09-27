@@ -35,11 +35,13 @@ dig +short thdqwx.work www.thdqwx.work admin.thdqwx.work api.thdqwx.work
 
 **目的**：让服务器上有仓库（含 `deploy/` 脚本），后续才能用推送部署。
 
-方式 A（服务器能访问 Git）：
+方式 A（服务器能访问 Git，**推荐 XShell 场景**）：
 ```bash
 sudo mkdir -p <SRC>
-sudo git clone <你的仓库地址> <SRC>
+sudo git clone -b feat/new-thing https://github.com/QinZiYin1108/electrical-repair-shop.git <SRC>
+# 之后在 XShell 里一条命令更新并部署：bash <SRC>/deploy/server-pull-deploy.sh
 ```
+> 私有仓库需先给服务器配置凭据：HTTPS 用 Personal Access Token（`git config --global credential.helper store` 后首次输入），或改用 SSH（配 Deploy Key）。
 
 方式 B（本地推送，本地仓库根目录执行）：
 ```powershell
@@ -247,6 +249,12 @@ cd <本地仓库根目录>
 
 ## 步骤 10：日常更新流程
 
+**方式一（XShell，服务器端拉取，推荐）**：
+```bash
+bash <SRC>/deploy/server-pull-deploy.sh              # git 拉取 feat/new-thing 并构建部署
+bash <SRC>/deploy/server-pull-deploy.sh --skip-frontend
+```
+**方式二（本地 PowerShell 推送）**：
 ```powershell
 # 全量（后端+官网+后台）
 ./deploy/push-deploy.ps1 -Server <SERVER>

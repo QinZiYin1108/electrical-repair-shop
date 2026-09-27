@@ -44,8 +44,9 @@ push-deploy.ps1
 
 # 1) 放置源码（首次）：把本仓库放到 /opt/electrical-repair-shop/src
 sudo mkdir -p /opt/electrical-repair-shop/src
-#   方式 A（服务器能访问 Git）：git clone <repo> /opt/electrical-repair-shop/src
-#   方式 B（推送）：先本地 git 仓库整体 scp 一次，或见文末“首次推送”说明
+#   方式 A（服务器能访问 Git，推荐）：git clone -b feat/new-thing https://github.com/QinZiYin1108/electrical-repair-shop.git /opt/electrical-repair-shop/src
+#   方式 B（本地推送）：见 deploy/push-deploy.ps1
+#   走方式 A 时，日后在服务器一条命令更新：bash /opt/electrical-repair-shop/src/deploy/server-pull-deploy.sh
 
 # 2) 一键准备基础环境（JDK25 / Node20 / MySQL / Redis / Nginx / certbot + 2G swap + systemd）
 sudo bash /opt/electrical-repair-shop/src/deploy/server-bootstrap.sh

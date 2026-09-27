@@ -39,6 +39,23 @@ if ! command -v node >/dev/null 2>&1; then
   fi
 fi
 
+echo "==> 配置 Maven 阿里云镜像与 npm 镜像（国内加速）"
+mkdir -p /root/.m2
+if [ ! -f /root/.m2/settings.xml ]; then
+  cat > /root/.m2/settings.xml <<'EOF'
+<settings>
+  <mirrors>
+    <mirror>
+      <id>aliyun</id>
+      <mirrorOf>*</mirrorOf>
+      <url>https://maven.aliyun.com/repository/public</url>
+    </mirror>
+  </mirrors>
+</settings>
+EOF
+fi
+npm config set registry https://registry.npmmirror.com 2>/dev/null || true
+
 echo "==> 数据库：Oracle MySQL 8.4 LTS（官方源；注意 2025-10 旧签名 key 已过期）"
 if ! command -v mysqld >/dev/null 2>&1; then
   apt-get install -y wget curl gnupg ca-certificates

@@ -7,6 +7,8 @@ set -euo pipefail
 # 小内存机器（如 2 核 4GB）构建内存上限，可用环境变量覆盖
 export MAVEN_OPTS="${MAVEN_OPTS:--Xmx1024m -XX:MaxMetaspaceSize=320m}"
 export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=1024}"
+# 国内 npm 镜像（可用环境变量覆盖）
+export NPM_CONFIG_REGISTRY="${NPM_CONFIG_REGISTRY:-https://registry.npmmirror.com}"
 
 SRC_DIR="${SRC_DIR:-/opt/electrical-repair-shop/src}"
 DEPLOY_ROOT="${DEPLOY_ROOT:-/opt/electrical-repair-shop}"

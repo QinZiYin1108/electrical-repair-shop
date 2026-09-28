@@ -104,8 +104,9 @@ fi
 
 echo "==> 重启后端"
 if systemctl list-unit-files 2>/dev/null | grep -q "^${SERVICE_NAME}.service"; then
+  systemctl enable "$SERVICE_NAME" 2>/dev/null || true
   systemctl restart "$SERVICE_NAME"
-  echo "    已重启 $SERVICE_NAME"
+  echo "    已重启 $SERVICE_NAME（并确保开机自启）"
 else
   echo "    未找到 systemd 服务 $SERVICE_NAME，跳过重启（请先执行 deploy/server-bootstrap.sh）"
 fi

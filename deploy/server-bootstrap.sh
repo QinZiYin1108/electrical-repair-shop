@@ -123,7 +123,8 @@ UNIT_SRC="$SRC_DIR/deploy/systemd/electrical-backend.service"
 if [ -f "$UNIT_SRC" ]; then
   cp "$UNIT_SRC" /etc/systemd/system/electrical-backend.service
   systemctl daemon-reload || true
-  echo "    已安装 /etc/systemd/system/electrical-backend.service"
+  systemctl enable electrical-backend 2>/dev/null || true
+  echo "    已安装 /etc/systemd/system/electrical-backend.service（并已设为开机自启 enable）"
 else
   echo "    未找到 $UNIT_SRC（请先推送源码，再次执行本脚本）"
 fi
@@ -137,6 +138,6 @@ echo "     sudo mysql -e \"CREATE DATABASE IF NOT EXISTS electrical_repair_shop 
 echo "     sudo mysql -e \"CREATE USER IF NOT EXISTS 'app'@'localhost' IDENTIFIED BY 'your-db-password'; GRANT ALL PRIVILEGES ON electrical_repair_shop.* TO 'app'@'localhost'; FLUSH PRIVILEGES;\""
 echo "     sudo mysql electrical_repair_shop < $SRC_DIR/main/sql/electrical_repair_shop_init.sql"
 echo "     （.env 中 DB_USERNAME=app、DB_PASSWORD=your-db-password）"
-echo "  3) systemctl enable --now electrical-backend"
+echo "  3) 启动后端：systemctl restart electrical-backend（bootstrap 已 enable，重启机器会自动拉起；用 systemctl is-enabled 可确认）"
 echo "  4) Nginx 站点与证书：EMAIL=you@example.com bash $SRC_DIR/deploy/setup-nginx-ssl.sh"
 echo "  5) 本地执行 deploy/push-deploy.ps1 进行首次部署"

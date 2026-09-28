@@ -67,6 +67,16 @@ if [ "$wx" = "true" ]; then
       if [ "$p" = "600" ]; then ok "私钥权限 600"; else wa "私钥权限 $p（建议 600）"; fi
     else no "私钥文件不存在: $pk"; fi
   fi
+  pubid="$(getval WX_PAY_PUBLIC_KEY_ID)"
+  pubpath="$(getval WX_PAY_PUBLIC_KEY_PATH)"
+  if [ -n "$pubid" ] && [ -n "$pubpath" ]; then
+    ok "使用微信支付公钥模式 (public-key-id=$pubid)"
+    if [ -f "$pubpath" ]; then
+      if head -1 "$pubpath" | grep -q 'BEGIN PUBLIC KEY'; then ok "微信支付公钥是 PEM: $pubpath"; else no "公钥文件头部异常(非 PEM): $pubpath"; fi
+    else no "公钥文件不存在: $pubpath"; fi
+  else
+    wa "未配置微信支付公钥（WX_PAY_PUBLIC_KEY_ID/PATH）——新商户必须配，否则支付初始化失败（平台证书已不再下发）"
+  fi
 else
   wa "WX_PAY_ENABLED != true（支付未启用，跳过；联调真实支付时再开）"
 fi

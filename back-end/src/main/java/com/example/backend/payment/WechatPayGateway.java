@@ -2,7 +2,10 @@ package com.example.backend.payment;
 
 import com.example.backend.common.ErrorCode;
 import com.example.backend.exception.BusinessException;
+import com.wechat.pay.java.core.Config;
 import com.wechat.pay.java.core.RSAAutoCertificateConfig;
+import com.wechat.pay.java.core.RSAPublicKeyConfig;
+import com.wechat.pay.java.core.notification.NotificationConfig;
 import com.wechat.pay.java.core.notification.NotificationParser;
 import com.wechat.pay.java.core.notification.RequestParam;
 import com.wechat.pay.java.service.payments.jsapi.JsapiServiceExtension;
@@ -30,6 +33,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -38,8 +43,10 @@ import org.springframework.util.StringUtils;
 @ConditionalOnProperty(name = "payment.wechat.enabled", havingValue = "true")
 public class WechatPayGateway implements PaymentGateway {
     private static final int PROVIDER_WECHAT = 1;
+    private static final Logger log = LoggerFactory.getLogger(WechatPayGateway.class);
 
     private final WechatPayProperties properties;
+    private final boolean ready;
     private final JsapiServiceExtension jsapiService;
     private final NotificationParser notificationParser;
     private final RefundService refundService;
@@ -47,16 +54,47 @@ public class WechatPayGateway implements PaymentGateway {
     public WechatPayGateway(WechatPayProperties properties) {
         this.properties = properties;
         validateConfiguration(properties);
-        RSAAutoCertificateConfig config =
-                new RSAAutoCertificateConfig.Builder()
-                        .merchantId(properties.getMerchantId())
-                        .privateKeyFromPath(properties.getPrivateKeyPath())
-                        .merchantSerialNumber(properties.getMerchantSerialNumber())
-                        .apiV3Key(properties.getApiV3Key())
-                        .build();
-        this.jsapiService = new JsapiServiceExtension.Builder().config(config).build();
-        this.notificationParser = new NotificationParser(config);
-        this.refundService = new RefundService.Builder().config(config).build();
+        Config config = null;
+        boolean initialized = false;
+        try {
+            config = buildConfig(properties);
+            initialized = true;
+        } catch (RuntimeException ex) {
+            // 支付通道初始化失败不应拖垮整个后端：降级为不可用，仅支付相关接口报错
+            log.error("微信支付通道初始化失败，已降级为不可用（请检查 WX_PAY_* 配置/证书）: {}", ex.getMessage(), ex);
+        }
+        if (initialized) {
+            this.jsapiService = new JsapiServiceExtension.Builder().config(config).build();
+            this.notificationParser = new NotificationParser((NotificationConfig) config);
+            this.refundService = new RefundService.Builder().config(config).build();
+            this.ready = true;
+        } else {
+            this.jsapiService = null;
+            this.notificationParser = null;
+            this.refundService = null;
+            this.ready = false;
+        }
+    }
+
+    /** 构建微信支付配置：新商户用「微信支付公钥」(RSAPublicKeyConfig，平台证书已不再下发)； 未配置公钥时回退旧方式（自动下载平台证书）。 */
+    private static Config buildConfig(WechatPayProperties properties) {
+        if (StringUtils.hasText(properties.getPublicKeyId())
+                && StringUtils.hasText(properties.getPublicKeyPath())) {
+            return new RSAPublicKeyConfig.Builder()
+                    .merchantId(properties.getMerchantId())
+                    .privateKeyFromPath(properties.getPrivateKeyPath())
+                    .merchantSerialNumber(properties.getMerchantSerialNumber())
+                    .apiV3Key(properties.getApiV3Key())
+                    .publicKeyId(properties.getPublicKeyId())
+                    .publicKeyFromPath(properties.getPublicKeyPath())
+                    .build();
+        }
+        return new RSAAutoCertificateConfig.Builder()
+                .merchantId(properties.getMerchantId())
+                .privateKeyFromPath(properties.getPrivateKeyPath())
+                .merchantSerialNumber(properties.getMerchantSerialNumber())
+                .apiV3Key(properties.getApiV3Key())
+                .build();
     }
 
     @Override
@@ -66,11 +104,19 @@ public class WechatPayGateway implements PaymentGateway {
 
     @Override
     public boolean isAvailable() {
-        return true;
+        return ready;
+    }
+
+    private void ensureReady() {
+        if (!ready) {
+            throw new BusinessException(
+                    ErrorCode.SYSTEM_ERROR, "微信支付通道未就绪（配置/证书有误），请检查 WX_PAY_* 配置");
+        }
     }
 
     @Override
     public Map<String, String> prepay(PaymentPrepayRequest request) {
+        ensureReady();
         validatePrepayRequest(request);
         PrepayRequest channelRequest = new PrepayRequest();
         channelRequest.setAppid(properties.getAppId());
@@ -108,6 +154,7 @@ public class WechatPayGateway implements PaymentGateway {
 
     @Override
     public PaymentQueryResult query(String paymentNo) {
+        ensureReady();
         if (!StringUtils.hasText(paymentNo)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "支付单号不能为空");
         }
@@ -124,6 +171,7 @@ public class WechatPayGateway implements PaymentGateway {
 
     @Override
     public void close(String paymentNo) {
+        ensureReady();
         if (!StringUtils.hasText(paymentNo)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "支付单号不能为空");
         }
@@ -139,6 +187,7 @@ public class WechatPayGateway implements PaymentGateway {
 
     @Override
     public RefundResult refund(RefundRequest request) {
+        ensureReady();
         validateRefundRequest(request);
         CreateRequest channelRequest = new CreateRequest();
         channelRequest.setOutTradeNo(request.paymentNo());
@@ -162,6 +211,7 @@ public class WechatPayGateway implements PaymentGateway {
 
     @Override
     public RefundResult queryRefund(String refundNo) {
+        ensureReady();
         if (!StringUtils.hasText(refundNo)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "退款单号不能为空");
         }
@@ -177,6 +227,7 @@ public class WechatPayGateway implements PaymentGateway {
 
     @Override
     public VerifiedPaymentCallback verifyCallback(Map<String, String> headers, String body) {
+        ensureReady();
         try {
             RequestParam requestParam = buildRequestParam(headers, body);
             Transaction transaction = notificationParser.parse(requestParam, Transaction.class);
@@ -191,6 +242,7 @@ public class WechatPayGateway implements PaymentGateway {
 
     @Override
     public VerifiedRefundCallback verifyRefundCallback(Map<String, String> headers, String body) {
+        ensureReady();
         try {
             RequestParam requestParam = buildRequestParam(headers, body);
             RefundNotification notification =

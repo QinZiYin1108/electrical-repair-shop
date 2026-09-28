@@ -12,6 +12,8 @@ public class WechatPayProperties {
     private String merchantSerialNumber;
     private String privateKeyPath;
     private String apiV3Key;
+    private String publicKeyId;
+    private String publicKeyPath;
     private String notifyUrl;
     private String refundNotifyUrl;
 
@@ -61,6 +63,22 @@ public class WechatPayProperties {
 
     public void setApiV3Key(String apiV3Key) {
         this.apiV3Key = apiV3Key;
+    }
+
+    public String getPublicKeyId() {
+        return publicKeyId;
+    }
+
+    public void setPublicKeyId(String publicKeyId) {
+        this.publicKeyId = publicKeyId;
+    }
+
+    public String getPublicKeyPath() {
+        return publicKeyPath;
+    }
+
+    public void setPublicKeyPath(String publicKeyPath) {
+        this.publicKeyPath = publicKeyPath;
     }
 
     public String getNotifyUrl() {

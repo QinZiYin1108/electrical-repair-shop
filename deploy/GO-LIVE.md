@@ -290,7 +290,7 @@ bash <SRC>/deploy/server-pull-deploy.sh --skip-frontend
 ```bash
 sudo mysqldump --single-transaction --routines --triggers electrical_repair_shop > ~/backup_$(date +%F_%H%M).sql
 ```
-2) `.env` 填写：`WX_PAY_ENABLED=true`、`WX_PAY_APPID`、`WX_PAY_MCH_ID`、`WX_PAY_MERCHANT_SERIAL_NUMBER`、`WX_PAY_PRIVATE_KEY_PATH`、`WX_PAY_API_V3_KEY`、`WX_PAY_NOTIFY_URL=https://api.thdqwx.work/api/pass/payments/wechat/notify`、`WX_PAY_REFUND_NOTIFY_URL=.../refund-notify`
+2) `.env` 填写：`WX_PAY_ENABLED=true`、`WX_PAY_APPID`、`WX_PAY_MCH_ID`、`WX_PAY_MERCHANT_SERIAL_NUMBER`、`WX_PAY_PRIVATE_KEY_PATH`、`WX_PAY_API_V3_KEY`、**`WX_PAY_PUBLIC_KEY_ID` + `WX_PAY_PUBLIC_KEY_PATH`（新商户必需：商户平台→API安全→「微信支付公钥」申请并下载 `pub_key.pem`；不配会报 `RESOURCE_NOT_EXISTS 无可用的平台证书` 且后端启动即失败）**、`WX_PAY_NOTIFY_URL=https://api.thdqwx.work/api/pass/payments/wechat/notify`、`WX_PAY_REFUND_NOTIFY_URL=.../refund-notify`
 3) 重启：`sudo systemctl restart electrical-backend`
 4) 微信商户平台配置回调域名白名单（`api.thdqwx.work`）
 5) 小程序端用最小金额下单一笔，验证：预下单 → `wx.requestPayment` → 回调入账 → 订单状态推进；再验证退款闭环。
@@ -325,6 +325,7 @@ EOF
 | 后端启动失败 | `journalctl -u electrical-backend -n 150 --no-pager`。prod 启动强校验：`StartupConfigurationValidator` 会拒绝占位值（`change-me`/`<your…`/`your_…`/`your-password`/`your-secret`），报「启动配置不完整」→ 必须把 `DB_PASSWORD`、`JWT_SECRET` 等改成真实/非占位值；`SystemConfigBootstrap` 启动即查数据库，DB 连不上会崩（多为 `app` 用户密码与 `.env` 不一致 / MySQL 未起） |
 | `/actuator/health` 返回 DOWN（服务其实在跑） | 开 `MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS=always` 看 components：`db`/`redis` 正常而 **`mail` DOWN** 多为邮件账号是占位值（QQ 邮箱需授权码，`535 Login fail`）。暂不接邮件：`.env` 加 `MANAGEMENT_HEALTH_MAIL_ENABLED=false` 后重启；要用邮件则填真实 `MAIL_USERNAME/MAIL_PASSWORD`（QQ 用「授权码」而非登录密码） |
 | DB 拒绝连接 | `systemctl status mysql`；`app` 用户与密码、GRANT；端口 3306 |
+| 后端启动即崩，日志含 `RESOURCE_NOT_EXISTS 无可用的平台证书` / `RSAAutoCertificateProvider` | 新商户未配「微信支付公钥」：`WX_PAY_PUBLIC_KEY_ID` + `WX_PAY_PUBLIC_KEY_PATH`（`pub_key.pem`）。代码已改为支付初始化失败**不再拖垮后端**（降级为不可用），但仍需配齐才能用支付 |
 | 502/503（api 域全部 502） | nginx 在、上游不可达 → 后端没在 8081 监听：`systemctl status electrical-backend`、`journalctl -u electrical-backend -n 60`、`ss -lntp \| grep 8081`；确认后端 `active (running)` 再测。前端会把它显示成 **CORS 报错**（No 'Access-Control-Allow-Origin'），实为 502 假象 |
 | 重启机器后 api 全 502（后端不自启） | `systemctl is-enabled electrical-backend`；若 `disabled` → `systemctl enable --now electrical-backend`。bootstrap 与 build-deploy 现已自动 `enable` |
 | 站点 404/空白 | 是否已首次部署；`ls <ROOT>/official-website` 是否为空 |

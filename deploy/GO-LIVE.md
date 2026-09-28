@@ -242,7 +242,7 @@ cd <本地仓库根目录>
 
 **验证**：浏览器
 - `https://www.thdqwx.work` 打开官网
-- `https://admin.thdqwx.work` 打开后台，用 `admin/admin123456` 登录，**随后在个人中心修改密码**
+- `https://admin.thdqwx.work` 打开后台，用**手机号 `13800138000` / 密码 `admin123456`** 登录（后台为手机号登录），**随后在个人中心修改密码**
 
 **排错**：
 - `Permission denied (publickey)` → ssh 密钥/`-SshKey` 参数。
@@ -255,7 +255,7 @@ cd <本地仓库根目录>
 ## 步骤 9：端到端验收
 
 - [ ] `https://www.thdqwx.work` 正常
-- [ ] `https://admin.thdqwx.work` 可打开、`admin/admin123456` 可登录（登录后改密码）
+- [ ] `https://admin.thdqwx.work` 可打开、手机号 `13800138000` + 密码 `admin123456` 可登录（登录后改密码）
 - [ ] `curl -s http://127.0.0.1:9090/actuator/health` = `{"status":"UP"}`（健康检查在管理端口，不经 api 域名）
 - [ ] `curl -I http://thdqwx.work` 返回 301 → `https://www.thdqwx.work`
 - [ ] 数据库 69 张表、`system_configs` 有数据
@@ -325,13 +325,37 @@ EOF
 | 后端启动失败 | `journalctl -u electrical-backend -n 150 --no-pager`。prod 启动强校验：`StartupConfigurationValidator` 会拒绝占位值（`change-me`/`<your…`/`your_…`/`your-password`/`your-secret`），报「启动配置不完整」→ 必须把 `DB_PASSWORD`、`JWT_SECRET` 等改成真实/非占位值；`SystemConfigBootstrap` 启动即查数据库，DB 连不上会崩（多为 `app` 用户密码与 `.env` 不一致 / MySQL 未起） |
 | `/actuator/health` 返回 DOWN（服务其实在跑） | 开 `MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS=always` 看 components：`db`/`redis` 正常而 **`mail` DOWN** 多为邮件账号是占位值（QQ 邮箱需授权码，`535 Login fail`）。暂不接邮件：`.env` 加 `MANAGEMENT_HEALTH_MAIL_ENABLED=false` 后重启；要用邮件则填真实 `MAIL_USERNAME/MAIL_PASSWORD`（QQ 用「授权码」而非登录密码） |
 | DB 拒绝连接 | `systemctl status mysql`；`app` 用户与密码、GRANT；端口 3306 |
-| 503/502（api 域） | 后端是否在 8081：`ss -lntp \| grep 8081` |
+| 502/503（api 域全部 502） | nginx 在、上游不可达 → 后端没在 8081 监听：`systemctl status electrical-backend`、`journalctl -u electrical-backend -n 60`、`ss -lntp \| grep 8081`；确认后端 `active (running)` 再测 |
 | 站点 404/空白 | 是否已首次部署；`ls <ROOT>/official-website` 是否为空 |
 | certbot 失败 | DNS/80；`dig +short`；`sudo certbot certificates` |
 | `mvnw`/CRLF | `chmod +x`；`sed -i 's/\r$//' ...` |
 | 构建 OOM | `dmesg -T \| grep -i oom`；用 `-Skip*`、错峰、或升 4C8G |
 | 证书到期 | 自动续期；`sudo certbot renew --dry-run` 测试 |
 | MySQL 源 key 过期（`not live ... Expired`/`EXPKEYSIG B7B3B788A8D3785C`） | 2025-10 旧签名 key 过期；用官方 `mysql-apt-config`（含刷新 key）或从 keyserver 重取 `B7B3B788A8D3785C`；脚本已自动处理 |
+
+---
+
+## 步骤 14：部署自检脚本 & 外部服务申请
+
+**一键自检**（服务器上核对 `.env` 必填项 / 占位值 / 微信支付四件套 / 本机连通性 / 回调域名可达）：
+```bash
+bash <SRC>/deploy/check-env.sh                  # 默认读 /opt/electrical-repair-shop/.env
+bash <SRC>/deploy/check-env.sh /path/to/.env    # 也可指定文件
+```
+输出 `[ OK ]/[WARN]/[FAIL]` 与汇总；有 FAIL 时退出码非 0。
+
+**外部服务去哪申请**（按需填 `.env`；缺省占位不影响启动，但对应功能不可用）：
+
+| 服务 | 用于 | 在哪申请 |
+| --- | --- | --- |
+| 腾讯云 SMS | 短信验证码（登录/重置密码/换绑） | 控制台开通短信 → 应用拿 SDKAppID；签名/正文模板需审核；CAM 拿 SecretId/Key |
+| 腾讯位置服务 | 地图/定位（`TENCENT_MAP_KEY`） | lbs.qq.com 控制台 → key 管理 |
+| 阿里云 OSS | 图片/视频存储（`ALIYUN_OSS_*`） | OSS 控制台建 Bucket，拿 endpoint/bucket |
+| 阿里云内容安全 | 文本/图片/视频审核（`ALIYUN_GREEN_ENDPOINT`） | 内容安全控制台开通；key 默认复用 OSS；RAM 最小权限 |
+| 微信支付 | 真实收款（`WX_PAY_*`） | 商户平台申请商户号（需企业/个体户）；API 证书 → `apiclient_key.pem`；APIv3 密钥；证书序列号 |
+| 微信小程序 | 小程序登录（`WX_MINI_APPID/SECRET`） | 微信公众平台小程序后台 |
+
+> `apiclient_key.pem` 需从商户平台下载的证书包解压后上传到 `<ROOT>/certs/`（`chmod 600`），`.env` 用绝对路径。
 
 ---
 
@@ -347,4 +371,5 @@ EOF
 | systemd | `electrical-backend` |
 | 端口 | 后端 8081（ctx `/api`）、管理 9090（127.0.0.1）、MySQL 3306、Redis 6379、Nginx 80/443 |
 | 构建部署 | `bash <SRC>/deploy/build-deploy.sh [--skip-backend\|--skip-frontend]` |
+| 部署自检 | `bash <SRC>/deploy/check-env.sh` |
 | 日志 | `journalctl -u electrical-backend -f` |
